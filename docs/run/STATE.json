@@ -4,7 +4,7 @@
   "repo_url": "https://github.com/remcaro-rgb/nexus-erp-colombia",
   "plan_sha256": "593796320d7b832515b6c33e344d08904c9a24185528abcd51c8e09fe8ba089f",
   "registry_sha256": "a62fa1d937c13533ddc08f22b87a65d9bce24d662e6df7e8996f3aa7ee939ab4",
-  "updated_at": "2026-11-09T14:52:56Z",
+  "updated_at": "2026-11-09T21:19:50Z",
   "tasks": {
     "P01": {
       "status": "ACCEPTED",
@@ -35,28 +35,46 @@
       "accepted_at": "2026-11-09T14:52:56Z"
     },
     "P22a": {
-      "status": "READY",
-      "attempt": 1
+      "status": "ACCEPTED",
+      "attempt": 1,
+      "accepted_sha": "e195fac7b1f060addb46f380c27e3fa4c507c33c",
+      "branch": "claude/great-keller-dph2as",
+      "accepted_at": "2026-11-09T21:19:50Z"
     },
     "P04": {
-      "status": "READY",
-      "attempt": 1
+      "status": "ACCEPTED",
+      "attempt": 1,
+      "accepted_sha": "e195fac7b1f060addb46f380c27e3fa4c507c33c",
+      "branch": "claude/new-session-q0i4n6",
+      "accepted_at": "2026-11-09T21:19:50Z"
     },
     "P05": {
-      "status": "READY",
-      "attempt": 1
+      "status": "REWORK",
+      "attempt": 2,
+      "notes": [
+        "attempt 1 rejected: integrator-run mandatory tests not PASSED: ['T-ACC-DIM-08']"
+      ]
     },
     "P06": {
-      "status": "READY",
-      "attempt": 1
+      "status": "ACCEPTED",
+      "attempt": 1,
+      "accepted_sha": "e195fac7b1f060addb46f380c27e3fa4c507c33c",
+      "branch": "claude/new-session-ipl02z",
+      "accepted_at": "2026-11-09T21:19:50Z"
     },
     "P07": {
-      "status": "READY",
-      "attempt": 1
+      "status": "ACCEPTED",
+      "attempt": 1,
+      "accepted_sha": "e195fac7b1f060addb46f380c27e3fa4c507c33c",
+      "branch": "claude/new-session-l23rrg",
+      "accepted_at": "2026-11-09T21:19:50Z"
     },
     "P08": {
-      "status": "READY",
-      "attempt": 1
+      "status": "REWORK",
+      "attempt": 2,
+      "notes": [
+        "attempt 1 rejected: `make ci` failed after merging it: TIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.\nwarning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.\nmake: *** [Makefile:79: frontend-test] Error 2\n"
+      ]
     },
     "G1": {
       "status": "PENDING",
@@ -212,6 +230,46 @@
       "sha": "1473890a96e79e32531dc1c4462c17cc4e5371a0",
       "digest": "6ed418928562e6b06d5c58c9f6d650dad79907b7e47cd7b33b200ee5dd94e382",
       "at": "2026-11-09T14:52:56Z"
+    },
+    {
+      "type": "reject",
+      "task": "P08",
+      "reason": "`make ci` failed after merging it: TIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.\nwarning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.\nmake: *** [Makefile:79: frontend-test] Error 2\n",
+      "at": "2026-11-09T21:15:09Z"
+    },
+    {
+      "type": "reject",
+      "task": "P05",
+      "reason": "integrator-run mandatory tests not PASSED: ['T-ACC-DIM-08']",
+      "at": "2026-11-09T21:15:09Z"
+    },
+    {
+      "type": "accept",
+      "task": "P22a",
+      "sha": "e195fac7b1f060addb46f380c27e3fa4c507c33c",
+      "branch": "claude/great-keller-dph2as",
+      "at": "2026-11-09T21:19:50Z"
+    },
+    {
+      "type": "accept",
+      "task": "P04",
+      "sha": "e195fac7b1f060addb46f380c27e3fa4c507c33c",
+      "branch": "claude/new-session-q0i4n6",
+      "at": "2026-11-09T21:19:50Z"
+    },
+    {
+      "type": "accept",
+      "task": "P06",
+      "sha": "e195fac7b1f060addb46f380c27e3fa4c507c33c",
+      "branch": "claude/new-session-ipl02z",
+      "at": "2026-11-09T21:19:50Z"
+    },
+    {
+      "type": "accept",
+      "task": "P07",
+      "sha": "e195fac7b1f060addb46f380c27e3fa4c507c33c",
+      "branch": "claude/new-session-l23rrg",
+      "at": "2026-11-09T21:19:50Z"
     }
   ]
 }

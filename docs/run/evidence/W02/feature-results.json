@@ -1,0 +1,55 @@
+{
+  "schema": "erp-features/results/v1",
+  "registry_sha256": "a62fa1d937c13533ddc08f22b87a65d9bce24d662e6df7e8996f3aa7ee939ab4",
+  "commit": "e195fac7b1f060addb46f380c27e3fa4c507c33c",
+  "tests": {
+    "T-ACC-BRANCH-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_BRANCH_01_crud_code_unique_per_company_and_one_head_office"
+    },
+    "T-ACC-BRANCH-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_BRANCH_02_cross_company_links_rejected_and_archive_blocked_while_referenced"
+    },
+    "T-ACC-DIM-09": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_DIM_09_subtree_grant_limits_list_tree_search_and_export"
+    },
+    "T-ACC-EXO-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_EXO_01_stored_synthetic_pack_is_not_dian_valid"
+    },
+    "T-FORMULA-ENGINE-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_FORMULA_ENGINE_01_suite_has_at_least_200_cases"
+    },
+    "T-FORMULA-ENGINE-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_FORMULA_ENGINE_02_corpus_is_large_and_codes_are_stable"
+    },
+    "T-FORMULA-ENGINE-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_FORMULA_ENGINE_03_d008_defaults"
+    },
+    "T-FORMULA-ENGINE-04": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_FORMULA_ENGINE_04_topological_order_diamond_is_deterministic"
+    },
+    "T-FORMULA-ENGINE-05": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_FORMULA_ENGINE_05_db_tables_of_other_companies_are_invisible"
+    },
+    "T-PORTAL-CORE-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_CORE_01_invite_accept_login_me_and_revoked_denied"
+    },
+    "T-PORTAL-CORE-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_CORE_02_idor_suite_party_a_cannot_read_party_b"
+    },
+    "T-PORTAL-CORE-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_CORE_03_external_users_get_no_internal_roles_and_internal_api_rejects_portal_tokens"
+    }
+  }
+}
