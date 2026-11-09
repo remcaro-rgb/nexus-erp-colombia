@@ -34,6 +34,7 @@ servers:
   description: Contract mock server (Prism, contracts/mock/compose.yaml)
 security:
 - oauth2: []
+- tokenExchange: []
 tags:
 - name: Operaciones
   description: Long-running operations (202 + polling)
@@ -99,6 +100,7 @@ paths:
   /api/v1/operations/{id}:
     get:
       operationId: kernel_operations_get
+      x-owner: P01
       summary: Estado de una operación de larga duración
       tags:
       - Operaciones
@@ -125,6 +127,7 @@ paths:
   /api/v1/operations/{id}:cancel:
     post:
       operationId: kernel_operations_cancel
+      x-owner: P01
       summary: Cancelar una operación en curso (si es cancelable)
       tags:
       - Operaciones
@@ -20960,6 +20963,46 @@ paths:
           $ref: '#/components/responses/Unprocessable'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+  /api/v1/inventory/issues:export:
+    get:
+      operationId: inventory_issues_export
+      summary: Acción export sobre salidas de inventario
+      tags:
+      - Inventario
+      x-permission: inventory.issue.export
+      x-owner: P09
+      x-features:
+      - F-INV-ISSUE
+      x-error-codes:
+      - unauthenticated
+      - policy_denied
+      - stock_insufficient
+      - issue_concept_inactive
+      - dimension_required
+      - issue_reason_required
+      - lot_required
+      - location_not_leaf
+      - period_closed
+      parameters:
+      - $ref: '#/components/parameters/CompanyHeader'
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                contentMediaType: text/csv
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
   /api/v1/inventory/issues/{id}/pdf:
     get:
       operationId: inventory_issues_by_pdf_pdf
@@ -22801,6 +22844,48 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/inventory/transformations:export:
+    get:
+      operationId: inventory_transformations_export
+      summary: Acción export sobre transformaciones (presentación, porcionado, manual)
+      tags:
+      - Inventario
+      x-permission: inventory.transformation.export
+      x-owner: P09
+      x-features:
+      - F-INV-XFORM
+      x-error-codes:
+      - unauthenticated
+      - policy_denied
+      - stock_insufficient
+      - transformation_unbalanced_value
+      - transformation_yield_out_of_tolerance
+      - transformation_no_inputs
+      - transformation_cross_scope
+      - reservation_conflict
+      - uom_precision_violation
+      parameters:
+      - $ref: '#/components/parameters/CompanyHeader'
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                contentMediaType: text/csv
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '409':
           $ref: '#/components/responses/Conflict'
         '422':

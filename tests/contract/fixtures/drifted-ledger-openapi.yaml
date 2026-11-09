@@ -1,0 +1,69 @@
+# Intentionally DRIFTED implementation schema (T-P02-06). Mimics what a backend might generate for two ledger operations.
+# Expected drift against contracts/openapi/openapi.json (module ledger, operations listed here only):
+#   * POST /api/v1/ledger/accounts           missing required Idempotency-Key header
+#   * GET  /api/v1/ledger/accounts/{id}       response property `nature` missing; `postable` typed string instead of boolean
+#   * GET  /api/v1/ledger/accounts/{id}       x-permission changed
+#   * GET  /api/v1/ledger/secret-dump         undocumented operation (fake/private endpoint)
+openapi: 3.1.0
+info: {title: drifted fixture, version: 0.0.0}
+paths:
+  /api/v1/ledger/accounts:
+    post:
+      operationId: ledger_accounts_create
+      x-permission: ledger.account.create
+      parameters:
+        - {name: X-Company-Id, in: header, required: false, schema: {type: string}}
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AccountInput'}
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Account'}
+  /api/v1/ledger/accounts/{account_pk}:
+    get:
+      operationId: ledger_accounts_get
+      x-permission: ledger.account.admin
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string}}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Account'}
+  /api/v1/ledger/secret-dump:
+    get:
+      operationId: dump
+      responses:
+        '200': {description: OK}
+components:
+  schemas:
+    AccountInput:
+      type: object
+      required: [code, name, nature]
+      properties:
+        code: {type: string}
+        name: {type: string}
+        nature: {type: string}
+    Account:
+      type: object
+      properties:
+        id: {type: string}
+        tenant_id: {type: string}
+        company_id: {type: string}
+        code: {type: string}
+        name: {type: string}
+        status: {type: string}
+        postable: {type: string}
+        parent_id: {type: string}
+        level: {type: integer}
+        requires_party: {type: boolean}
+        requires_dimension: {type: boolean}
+        currency: {type: string}
+        cash_flow_line: {type: string}
+        version: {type: integer}
+        audit: {type: object}

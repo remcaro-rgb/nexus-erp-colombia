@@ -26,6 +26,7 @@ servers:
     description: Contract mock server (Prism, contracts/mock/compose.yaml)
 security:
   - oauth2: []
+  - tokenExchange: []
 tags:
   - name: Operaciones
     description: Long-running operations (202 + polling)
@@ -33,6 +34,7 @@ paths:
   /api/v1/operations/{id}:
     get:
       operationId: kernel_operations_get
+      x-owner: P01
       summary: Estado de una operación de larga duración
       tags: [Operaciones]
       x-permission: kernel.operation.read
@@ -52,6 +54,7 @@ paths:
   /api/v1/operations/{id}:cancel:
     post:
       operationId: kernel_operations_cancel
+      x-owner: P01
       summary: Cancelar una operación en curso (si es cancelable)
       tags: [Operaciones]
       x-permission: kernel.operation.void

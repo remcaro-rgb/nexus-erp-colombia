@@ -86,6 +86,7 @@ resources:
     fields: {party: null, concept_id: ref internal req, warehouse_id: ref internal req, reason: string internal null, dimensions: dims internal}
     lines: {presentation_id: ref internal null, lot_id: ref internal null, location_id: ref internal null}
     actions: [submit, approve, post, reverse, simulate]
+    coll_actions: [{export: {ext: csv}}]
     extra: [{path: '{id}/pdf', method: GET, op: pdf, perm: export, returns: 'file:pdf'}]
     errors: [stock_insufficient, issue_concept_inactive, dimension_required, issue_reason_required, lot_required, location_not_leaf, period_closed]
     features: [F-INV-ISSUE]
@@ -123,6 +124,7 @@ resources:
     fields: {party: null, transformation_type: 'enum(PRESENTATION|PORTIONING|MANUAL) internal req', template_id: ref internal null, warehouse_id: ref internal req, additional_costs: money confidential null}
     lines: {role: 'enum(INPUT|OUTPUT|WASTE) internal req', presentation_id: ref internal null, lot_id: ref internal null, location_id: ref internal null, cost_share: percent internal null, actual_weight: qty internal null}
     actions: [reserve, submit, approve, post, reverse, simulate]
+    coll_actions: [{export: {ext: csv}}]
     errors: [stock_insufficient, transformation_unbalanced_value, transformation_yield_out_of_tolerance, transformation_no_inputs, transformation_cross_scope, reservation_conflict, uom_precision_violation]
     features: [F-INV-XFORM]
   - {path: portioning-templates, kind: master, fields: {input_item_id: ref internal req, outputs: json internal req, tolerance_percent: percent internal}, features: [F-INV-XFORM]}

@@ -1,0 +1,119 @@
+# Spectral ruleset for the Nexus ERP contract (P02 deliverable 8). Run against the bundle:
+#   npx @stoplight/spectral-cli@6.17.1 lint contracts/openapi/openapi.yaml --ruleset contracts/.spectral.yaml
+# The same rules are executed without Node by tests/contract/test_conventions.py (T-P02-01), which is the CI gate.
+extends: [["spectral:oas", "recommended"]]
+rules:
+  # The generated summaries already describe each operation; tags are documented per module.
+  operation-description: off
+  info-contact: off
+  operation-tag-defined: off
+  nexus-paths-versioned:
+    description: Paths live under /api/v1/ or /api/portal/v1/ (a breaking change uses /api/v2/ with a CCR).
+    severity: error
+    given: $.paths
+    then:
+      field: "@key"
+      function: pattern
+      functionOptions:
+        match: "^/api/(portal/)?v[0-9]+/"
+  nexus-path-kebab-and-actions:
+    description: Segments are kebab-case; actions are `:<verb>` on the last segment.
+    severity: error
+    given: $.paths
+    then:
+      field: "@key"
+      function: pattern
+      functionOptions:
+        match: "^(/(\\{[a-z_]+\\}|[a-z0-9][a-z0-9.-]*))+(:[a-z][a-z0-9-]*)?$"
+  nexus-operation-permission:
+    description: Every operation declares x-permission `<module>.<resource>.<action>`.
+    severity: error
+    given: $.paths[*][get,post,put,patch,delete]
+    then:
+      field: x-permission
+      function: pattern
+      functionOptions:
+        match: "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*\\.(read|create|update|delete|approve|post|void|export|admin)$"
+  nexus-operation-error-codes:
+    description: Every operation lists its stable error codes.
+    severity: error
+    given: $.paths[*][get,post,put,patch,delete]
+    then:
+      field: x-error-codes
+      function: truthy
+  nexus-mutating-idempotency-key:
+    description: Every POST/PUT/PATCH/DELETE requires the Idempotency-Key header.
+    severity: error
+    given: $.paths[*][post,put,patch,delete].parameters
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: array
+          contains:
+            type: object
+            properties:
+              $ref: {const: "#/components/parameters/IdempotencyKey"}
+            required: [$ref]
+  nexus-update-if-match:
+    description: PATCH/PUT require If-Match (optimistic locking).
+    severity: error
+    given: $.paths[*][put,patch].parameters
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: array
+          contains:
+            type: object
+            properties:
+              $ref: {const: "#/components/parameters/IfMatch"}
+            required: [$ref]
+  nexus-no-json-number:
+    description: Money, quantities, rates and percentages are decimal strings; JSON `number` is forbidden (D-001).
+    severity: error
+    given: $..[?(@.type == 'number')]
+    then:
+      function: falsy
+  nexus-property-classification:
+    description: Every schema property declares x-classification.
+    severity: error
+    given: $.components.schemas[*].properties[*]
+    then:
+      field: x-classification
+      function: enumeration
+      functionOptions:
+        values: [public, internal, confidential, restricted-pii, sensitive-pii, secret]
+  nexus-problem-json:
+    description: Error responses are RFC 9457 application/problem+json.
+    severity: error
+    given: $.components.responses[*].content
+    then:
+      field: application/problem+json
+      function: truthy
+  nexus-limit-max-500:
+    description: Page size is capped at 500.
+    severity: error
+    given: $.components.parameters.Limit.schema
+    then:
+      field: maximum
+      function: enumeration
+      functionOptions:
+        values: [500]
+  nexus-bulk-max-1000:
+    description: Bulk requests carry at most 1,000 items.
+    severity: error
+    given: $.components.schemas.BulkRequest.properties.items
+    then:
+      field: maxItems
+      function: enumeration
+      functionOptions:
+        values: [1000]
+  nexus-loopback-servers:
+    description: DEV-only contract; servers are loopback.
+    severity: error
+    given: $.servers[*].url
+    then:
+      function: pattern
+      functionOptions:
+        match: "^http://127\\.0\\.0\\.1:"

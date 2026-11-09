@@ -696,8 +696,8 @@ class Builder:
                     req = set(sch.get("required", []))
                     fields = OrderedDict()
                     for k, v in sch["properties"].items():
-                        if k in ("lines",):
-                            continue
+                        if k in ("lines",) or v.get("x-classification") == "secret" or v.get("writeOnly"):
+                            continue  # secrets are never imported/exported
                         fields[k] = v
                     for k, v in fields.items():
                         cols.append(self.column(k, v, k in req))

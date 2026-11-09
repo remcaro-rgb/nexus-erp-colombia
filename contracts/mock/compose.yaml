@@ -1,0 +1,17 @@
+# Contract mock server (P02 deliverable 9): lets the frontend (P08) and MCP (P20) start before the backend.
+# Serves the bundled contract with Prism in mock mode, loopback only (D-002 forbids 0.0.0.0 exposure).
+#   docker compose -f contracts/mock/compose.yaml up -d      → http://127.0.0.1:4010/api/v1/...
+# Prism validates requests against the contract (missing Idempotency-Key → 422 from the mock) and returns schema-based examples.
+# P03 may include this file from the dev compose stack (CCR-P02-3). Image pinned by exact version (D-028; digest pin at RC).
+name: nexus-contract-mock
+services:
+  contract-mock:
+    image: stoplight/prism:5.15.10
+    # -h 0.0.0.0 is the listen address INSIDE the container network namespace; the host side is published on 127.0.0.1 only.
+    command: ["mock", "-h", "0.0.0.0", "-p", "4010", "--errors", "/contracts/openapi/openapi.yaml"]
+    ports:
+      - "127.0.0.1:4010:4010"
+    volumes:
+      - ../openapi:/contracts/openapi:ro
+    read_only: true
+    restart: "no"

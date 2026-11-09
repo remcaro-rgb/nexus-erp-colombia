@@ -60,7 +60,7 @@ roles:
   - einvoice.*.read
   - '*.*.export'
   denies:
-  - ledger.period.admin
+  - iam.*.*
   max_classification: confidential
 - key: auxiliar_contable
   name_es: Auxiliar contable
@@ -131,8 +131,8 @@ roles:
   - purchasing.internal_requisition.approve
   - sales.delivery.*
   denies:
-  - inventory.*.admin
   - inventory.valuation.*
+  - inventory.*.delete
   max_classification: internal
 - key: comprador
   name_es: Comprador
@@ -2012,9 +2012,10 @@ codes:
 - code: inventory.issue.export
   module: inventory
   owner: P09
-  description: pdf de salidas de inventario
+  description: Acción export sobre salidas de inventario
   operations:
   - inventory_issues_by_pdf_pdf
+  - inventory_issues_export
   source: P02
 - code: inventory.issue.post
   module: inventory
@@ -2558,6 +2559,13 @@ codes:
   description: Eliminar transformaciones (presentación, porcionado, manual) (solo BORRADOR)
   operations:
   - inventory_transformations_by_delete
+  source: P02
+- code: inventory.transformation.export
+  module: inventory
+  owner: P09
+  description: Acción export sobre transformaciones (presentación, porcionado, manual)
+  operations:
+  - inventory_transformations_export
   source: P02
 - code: inventory.transformation.post
   module: inventory

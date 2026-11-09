@@ -41,11 +41,6 @@ columns:
   classification: internal
   allowed:
   - SANDBOX
-- name: credentials_ref
-  type: string
-  required: false
-  classification: secret
-  max_length: 255
 - name: contract_version
   type: string
   required: false

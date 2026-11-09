@@ -18,7 +18,7 @@ METHODS = ("get", "post", "put", "patch", "delete")
 
 def load_yaml(*parts):
     with open(os.path.join(ROOT, *parts), encoding="utf-8") as fh:
-        return yaml.safe_load(fh)
+        return yaml.load(fh, Loader=getattr(yaml, "CSafeLoader", yaml.SafeLoader))
 
 
 def load_json(*parts):

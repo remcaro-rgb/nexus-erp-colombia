@@ -13,7 +13,7 @@ roles:
     name_es: Contador
     grants: ['ledger.*.*', 'tax.*.*', 'reporting.*.*', 'documents.*.*', 'assets.*.*', 'treasury.*.read', 'treasury.*.approve', 'treasury.*.post',
              'consolidation.*.*', 'intercompany.*.*', 'sales.*.read', 'purchasing.*.read', 'inventory.*.read', 'payroll.*.read', 'einvoice.*.read', '*.*.export']
-    denies: ['ledger.period.admin']
+    denies: ['iam.*.*']
     max_classification: confidential
   - key: auxiliar_contable
     name_es: Auxiliar contable
@@ -36,7 +36,7 @@ roles:
   - key: jefe_bodega
     name_es: Jefe de bodega
     grants: ['inventory.*.*', 'purchasing.receipt.*', 'purchasing.internal_requisition.read', 'purchasing.internal_requisition.approve', 'sales.delivery.*']
-    denies: ['inventory.*.admin', 'inventory.valuation.*']
+    denies: ['inventory.valuation.*', 'inventory.*.delete']
     max_classification: internal
   - key: comprador
     name_es: Comprador
