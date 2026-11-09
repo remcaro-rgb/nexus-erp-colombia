@@ -32,7 +32,12 @@ export const ledgerModule: RegistryModule = {
       })),
     },
   ],
-  quick_action: { label: "Nuevo comprobante", route: "/m/contabilidad/comprobantes/nuevo", permission: "ledger.post" },
+  quick_action: {
+    id: "nuevo_comprobante",
+    label: "Nuevo comprobante",
+    permission: "ledger.post",
+    action: "route:/m/contabilidad/comprobantes/nuevo",
+  },
 };
 
 /** Route table contributed to the shell router (paths relative to the app root). */

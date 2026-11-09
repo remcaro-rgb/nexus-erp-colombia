@@ -157,7 +157,8 @@ test("T-ACC-DIM-08 keyboard tree navigation (role=tree)", async ({ page }) => {
   await tree.focus();
   const active = async () => {
     const id = await tree.getAttribute("aria-activedescendant");
-    return id ? page.locator(`[id="${id}"]`) : null;
+    expect(id, "tree has an aria-activedescendant").toBeTruthy();
+    return page.locator(`[id="${id}"]`);
   };
   const group = tree.getByRole("treeitem").filter({ hasText: "Proyectos" });
   await expect(group).toHaveAttribute("aria-expanded", "true");
@@ -170,7 +171,7 @@ test("T-ACC-DIM-08 keyboard tree navigation (role=tree)", async ({ page }) => {
   await expect(group).toHaveAttribute("aria-expanded", "true");
   await page.keyboard.press("ArrowRight"); // into first child
   await expect(await active()).toContainText("PRY-01");
-  await expect((await active())!).toHaveAttribute("aria-level", "2");
+  await expect(await active()).toHaveAttribute("aria-level", "2");
   await page.keyboard.press("ArrowDown");
   await expect(await active()).toContainText("PRY-02");
   await page.keyboard.press("ArrowLeft"); // to parent
