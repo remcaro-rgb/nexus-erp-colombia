@@ -524,17 +524,17 @@ class WebhookListView(WorkflowView):
         shown: dict[str, str] = {}
 
         def fn(uow: UnitOfWork) -> tuple[Any, int]:
-            sub, secret = WebhookService().subscribe_in(
+            sub, signing = WebhookService().subscribe_in(
                 uow, company, str(d.get("url", "")), list(d.get("event_types") or []),
                 parse_uuid(d.get("service_account_id"), "service_account_id"), str(d.get("description") or ""),
             )  # fmt: skip
-            shown["secret"] = secret
+            shown["signing"] = signing
             # The stored (replayable) response never contains the secret.
             return {"id": sub.id, "url": sub.url, "event_types": sub.event_types}, 201
 
         resp = mutate(request, "workflow.webhook.create", fn)
-        if "secret" in shown:
-            resp.data = {**resp.data, "signing_secret_once": shown["secret"]}
+        if "signing" in shown:
+            resp.data = {**resp.data, "signing_secret_once": shown["signing"]}
         return resp
 
 
