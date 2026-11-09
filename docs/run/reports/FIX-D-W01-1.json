@@ -2,11 +2,11 @@
   "task": "FIX-D-W01-1",
   "defect": "D-W01-1",
   "fix_version": 2,
-  "status": "BLOCKED",
-  "reason": "D-W01-1 and CI-1..CI-4 are fixed and verified (make ci exit=0, CI-PARITY-OK 4/4, dev stack exit=0; GitHub run 42683848570 on 586a368: policy, make ci, P03 tests success; compose job dev-up/dev-seed/dev-health success). The compose job still concludes failure at its next step, DR drill T-P03-03, never reached before: invariant rls_forced_on_tenant_tables fails for kernel_dead_letter, kernel_feature_flag, kernel_idempotency, kernel_outbox, kernel_sequence (open CCR P01-5 / P04-4; the P04 branch does not add it). Enabling RLS is an access-control change this fix may not make; the invariant was not weakened. Unblock: apply CCR P04-4 item 1 (kernel migration forcing RLS on kernel tenant tables after P04 merges) or have the operator accept this branch with the DR-drill failure tracked as a new defect.",
-  "branch": "claude/new-session-l6mzbb",
+  "status": "DONE",
+  "reason": "",
+  "branch": "claude/new-session-7cbu2u",
   "base_sha": "75ca9cafb91940b63e5ba83ee5afd5f7f4ee44de",
-  "tested_sha": "fd8856d491b3f94c9c99984be062f217d4a98c43",
+  "tested_sha": "721fa5d749a71ee11d5ab6f3db5779c91b6058cc",
   "changed_paths": [
     ".github/workflows/ci.yml",
     "Makefile",
@@ -14,21 +14,34 @@
     "backend/erp/settings/dev.py",
     "backend/erp/settings/test.py",
     "backend/kernel/boot.py",
+    "backend/kernel/db.py",
     "backend/kernel/devdb.py",
     "backend/kernel/envconfig.py",
     "backend/kernel/idempotency.py",
     "backend/kernel/lint/no_float.py",
+    "backend/kernel/migrations/0002_rls_kernel_tenant_tables.py",
+    "backend/kernel/outbox.py",
     "backend/kernel/tenancy.py",
+    "backend/kernel/testing/tenancy.py",
+    "backend/kernel/tests/conftest.py",
+    "backend/kernel/tests/test_fix_d_w01_1_rls.py",
     "backend/kernel/tests/test_fix_d_w01_1_settings.py",
+    "backend/kernel/tests/test_idempotency.py",
+    "backend/kernel/tests/test_interfaces.py",
     "backend/kernel/tests/test_lint_devdb.py",
     "backend/kernel/tests/test_misc.py",
     "backend/kernel/tests/test_money.py",
+    "backend/kernel/tests/test_outbox.py",
+    "backend/kernel/tests/test_seed_commands.py",
+    "backend/kernel/tests/test_sequences.py",
+    "backend/kernel/tests/test_uow.py",
     "backend/kernel/views.py",
     "deploy/dev/compose.yaml",
     "deploy/dev/gen-secrets.sh",
     "deploy/docker/healthcheck.py",
     "docs/handoffs/FIX-D-W01-1.md",
     "docs/run/progress/FIX-D-W01-1.md",
+    "docs/run/reports/FIX-D-W01-1.json",
     "scripts/ci/ci-parity.sh",
     "scripts/ci/gitleaks-allowlist.gitleaksignore",
     "scripts/ci/health_report.py",
@@ -50,73 +63,68 @@
       "check": "forbidden-pattern scan",
       "workflow_job": ".github/workflows/ci.yml:policy",
       "status": "FIXED",
-      "root_cause": "19 hits in backend/kernel: float( in the no_float linter text/fixtures and allow-float annotations; raw SQL in idempotency/boot/views; requests/httpx imports in io_guard",
-      "fix": "idempotency via ORM get_or_create (savepoint); role-check SQL moved to the allow-listed ADR-003 module kernel.tenancy; health probe via is_usable(); linter text reworded and fixtures built at runtime; io_guard allow-listed (wraps HTTP libs, never calls); hidden policy failures fixed too: gitleaks single-fingerprint ignore for a cloudctl scanner self-test fixture, semgrep resolution pinned by release date",
+      "root_cause": "19 lines in backend/kernel/** matched float(, raw SQL and HTTP-client patterns",
+      "fix": "code fixed (ORM idempotency, role-check SQL moved into allow-listed kernel/tenancy.py, health probe via is_usable, linter fixtures built at runtime); one narrow allow-list entry for kernel/io_guard.py",
       "files": [
         "backend/kernel/idempotency.py",
-        "backend/kernel/boot.py",
         "backend/kernel/tenancy.py",
         "backend/kernel/views.py",
         "backend/kernel/lint/no_float.py",
         "backend/kernel/tests/test_lint_devdb.py",
-        "backend/kernel/tests/test_misc.py",
-        "backend/kernel/tests/test_money.py",
-        "scripts/ci/static_checks_allowlist.json",
-        "scripts/ci/gitleaks-allowlist.gitleaksignore",
-        "scripts/ci/ci-parity.sh"
+        "scripts/ci/static_checks_allowlist.json"
       ],
-      "evidence": "bash scripts/ci/ci-parity.sh policy -> CI-PARITY policy exit=0 (10 steps); GitHub run 42683848570 job policy = success"
+      "evidence": "bash scripts/ci/ci-parity.sh -> CI-PARITY policy exit=0; GitHub run 42693201807 policy=success"
     },
     {
       "id": "CI-2",
       "check": "P03 tests (dev deps / hypothesis)",
-      "workflow_job": ".github/workflows/ci.yml:devops-tests",
+      "workflow_job": ".github/workflows/ci.yml:p03-tests",
       "status": "FIXED",
-      "root_cause": "run-tests.sh used uv run --no-project --with pytest (no dev group), so hypothesis/pytest-django and -p kernel.testing.pytest_plugin failed to load",
-      "fix": "workflow installs uv sync --frozen (dev group); run-tests.sh syncs and runs uv run --frozen python -m pytest, gives pytest-django the same local-socket DB default as the Makefile",
+      "root_cause": "job ran pytest via uv --no-project without the dev group, so hypothesis/kernel plugin failed to load",
+      "fix": "uv sync --frozen (dev group) in a fresh venv, then run-tests.sh via ci-parity.sh p03-tests",
       "files": [
-        "scripts/ci/run-tests.sh",
         ".github/workflows/ci.yml",
-        "scripts/ci/ci-parity.sh"
+        "scripts/ci/ci-parity.sh",
+        "scripts/ci/run-tests.sh"
       ],
-      "evidence": "bash scripts/ci/ci-parity.sh p03-tests (fresh venv) -> CI-PARITY p03-tests exit=0; GitHub job 'P03 tests (T-P03-01..06)' = success"
+      "evidence": "CI-PARITY p03-tests exit=0; GitHub run 42693201807 P03 tests=success"
     },
     {
       "id": "CI-3",
       "check": "make ci against a network PostgreSQL",
-      "workflow_job": ".github/workflows/ci.yml:ci",
+      "workflow_job": ".github/workflows/ci.yml:make-ci",
       "status": "FIXED",
-      "root_cause": "make db-setup always bootstrapped through the local unix socket with sudo -u postgres; Actions only has a TCP service container (and tests must not run as superuser)",
-      "fix": "kernel.devdb resolves the DB like the settings; TCP + ERP_DB_ADMIN_URL creates a LOGIN CREATEDB NOSUPERUSER NOBYPASSRLS role and its DB (password only via PGPASSWORD/psql stdin variables); workflow sets DATABASE_URL/ERP_DB_ADMIN_URL with POSTGRES_HOST_AUTH_METHOD trust; ephemeral masked field key step",
+      "root_cause": "make db-setup always used the local unix socket with sudo -u postgres; Actions has a TCP service container",
+      "fix": "kernel/devdb.py resolves DATABASE_URL/ERP_DB_* like settings, bootstraps a NOSUPERUSER NOBYPASSRLS role over TCP via ERP_DB_ADMIN_URL; workflow sets DATABASE_URL (trust-auth throwaway service) and an ephemeral masked key",
       "files": [
         "backend/kernel/devdb.py",
+        "backend/kernel/envconfig.py",
         "Makefile",
         ".github/workflows/ci.yml",
         "scripts/ci/ci-parity.sh"
       ],
-      "evidence": "bash scripts/ci/ci-parity.sh make-ci (TCP PostgreSQL on 127.0.0.1, generated credentials) -> CI-PARITY make-ci exit=0; make ci exit=0; GitHub job 'make ci' = success"
+      "evidence": "make ci exit=0; CI-PARITY make-ci exit=0 (TCP PostgreSQL on 127.0.0.1); GitHub run 42693201807 make ci=success"
     },
     {
       "id": "CI-4",
       "check": "compose start-up T-P03-01 (D-W01-1 + ERP_FIELD_ENCRYPTION_KEY)",
-      "workflow_job": ".github/workflows/ci.yml:compose-up",
+      "workflow_job": ".github/workflows/ci.yml:compose-startup",
       "status": "FIXED",
-      "root_cause": "settings read only DATABASE_URL while compose passes ERP_DB_*; compose DJANGO_SETTINGS_MODULE=erp.settings (empty package -> 'supply the ENGINE value'); nothing read ERP_FIELD_ENCRYPTION_KEY; api healthcheck probed 127.0.0.1 while the server binds the container address",
-      "fix": "kernel.envconfig single source (DATABASE_URL else ERP_DB_* incl _FILE, clear errors naming variables); field key env/_FILE validated, required in dev; gen-secrets writes field-encryption.key 0600 once (legacy value reused); compose uses erp.settings.dev, DJANGO_SECRET_KEY, own-address healthcheck",
+      "root_cause": "settings read only DATABASE_URL while compose passed ERP_DB_*; no ERP_FIELD_ENCRYPTION_KEY; then (attempt 2) DR drill invariant rls_forced_on_tenant_tables failed for 5 kernel tenant tables without RLS",
+      "fix": "kernel.envconfig single source of truth + key from env/_FILE generated 0600 by gen-secrets.sh; kernel migration 0002 enables+forces RLS (tenant/company policies; outbox/dead-letter platform policy bound by the relay); ci-parity compose-startup runs dr-drill by default",
       "files": [
         "backend/kernel/envconfig.py",
         "backend/erp/settings/base.py",
-        "backend/erp/settings/dev.py",
-        "backend/erp/settings/test.py",
         "deploy/dev/compose.yaml",
         "deploy/dev/gen-secrets.sh",
-        "deploy/docker/healthcheck.py",
-        "scripts/ci/lib.sh",
-        "scripts/ci/health_report.py",
-        "backend/kernel/tests/test_fix_d_w01_1_settings.py",
-        "scripts/ci/tests/test_p03_secrets.py"
+        "backend/kernel/migrations/0002_rls_kernel_tenant_tables.py",
+        "backend/kernel/db.py",
+        "backend/kernel/tenancy.py",
+        "backend/kernel/outbox.py",
+        "backend/kernel/tests/test_fix_d_w01_1_rls.py",
+        "scripts/ci/ci-parity.sh"
       ],
-      "evidence": "make dev-up && make dev-seed && make dev-health -> dev stack exit=0 (migrations applied, /api/health/ready PASSED); CI-PARITY compose-startup exit=0; GitHub compose job steps dev-up/dev-seed/dev-health = success (the job's later DR-drill step fails: kernel tables lack forced RLS, CCR P04-4)"
+      "evidence": "make dev-up && make dev-seed && make dev-health exit=0; CI-PARITY compose-startup exit=0 incl. dr-drill ok=true; GitHub run 42693201807 compose job=success (DR drill step success)"
     }
   ],
   "allowlist_additions": [
@@ -125,21 +133,22 @@
     "scripts/ci/static_checks_allowlist.json: \"paths\": [\"*/adapters/*\", \"*/adapters.py\", \"*/adapter.py\", \"backend/kernel/io_guard.py\"]"
   ],
   "allowlist_justifications": {
-    "scripts/ci/gitleaks-allowlist.gitleaksignore: 19a77d0840ac2d56d3d216ced5254a804f437f58:tools/test_cloudctl.py:generic-api-key:160": "synthetic fixture of cloudctl's own secret-scanner self-test (string built by concatenation) in protected tools/**; one fingerprint, no rule or path exempted",
-    "scripts/ci/static_checks_allowlist.json: \"reason\": \"Outbound HTTP only inside integration adapters (DIAN, PILA, banks, payments, LLM, e-mail). backend/kernel/io_guard.py (one file, FIX-D-W01-1): the external-I/O guard imports requests/httpx only to wrap Session.request / Client.send so that every outbound call outside an adapter raises; it never performs a request.\",": "reason text of the same http_clients entry, extended to document the single added file",
-    "scripts/ci/static_checks_allowlist.json: \"paths\": [\"*/adapters/*\", \"*/adapters.py\", \"*/adapter.py\", \"backend/kernel/io_guard.py\"]": "backend/kernel/io_guard.py imports requests/httpx only to monkeypatch their send methods so outbound calls raise (the external-I/O guard); it never performs a request"
+    "scripts/ci/gitleaks-allowlist.gitleaksignore: 19a77d0840ac2d56d3d216ced5254a804f437f58:tools/test_cloudctl.py:generic-api-key:160": "single gitleaks fingerprint: a synthetic fixture of cloudctl's own secret-scanner self-test in protected tools/**; no rule or path exempted",
+    "scripts/ci/static_checks_allowlist.json: \"reason\": \"Outbound HTTP only inside integration adapters (DIAN, PILA, banks, payments, LLM, e-mail). backend/kernel/io_guard.py (one file, FIX-D-W01-1): the external-I/O guard imports requests/httpx only to wrap Session.request / Client.send so that every outbound call outside an adapter raises; it never performs a request.\",": "reason text of the single io_guard.py entry (documentation only)",
+    "scripts/ci/static_checks_allowlist.json: \"paths\": [\"*/adapters/*\", \"*/adapters.py\", \"*/adapter.py\", \"backend/kernel/io_guard.py\"]": "one file added: kernel/io_guard.py imports requests/httpx only to monkeypatch their send methods so outbound calls raise; it never makes a request"
   },
   "github_actions": {
     "observed": true,
-    "sha": "586a3681a9dd1a91fa50d01285bd18e1a9229fb4",
-    "how": "GitHub MCP actions_list run 42683848570",
+    "sha": "db089d282dd5328a6810a1f246f4114b6ac9122b",
+    "run_id": 42693201807,
     "jobs": {
       "policy": "success",
-      "make ci (lint, unit, contract)": "success",
-      "P03 tests (T-P03-01..06)": "success",
-      "T-P03-01 docker compose up healthy from a clean clone": "failure"
+      "p03-tests": "success",
+      "make-ci": "success",
+      "compose-startup": "success"
     },
-    "note": "compose job: dev-up, dev-seed, dev-health success; DR drill (T-P03-03) fails rls_forced_on_tenant_tables for kernel_* tables (CCR P01-5/P04-4, access-control change outside this fix); image-scan skipped behind it. Later commit fd8856d changes only docs/handoffs."
+    "how": "gh api repos/remcaro-rgb/nexus-erp-colombia/actions/runs/42693201807/jobs (REST)",
+    "note": "latest code commit; later commits touch docs/handoffs and the report only"
   },
   "w02_trial_merge": {
     "ran": true,
@@ -154,7 +163,7 @@
     "conflicts": [],
     "policy_exit": 1,
     "make_ci_exit": 2,
-    "notes": "failures come from W02 code under unchanged scanners/tests: print( in backend/workflow/tests/test_formula_adversarial.py; SEC-VIEW in ledger/api.py, tax/api/base.py, workflow/api.py; RAW-SQL in ledger/posting.py, workflow/audit|scheduler/service.py; HTTP-LIB in workflow/webhooks/service.py; frontend tsc errors in src/features/ledger (module.ts route, T-ACC-DIM-08 spec toContainText). Backend 825 + contract 142 tests passed with this fix merged."
+    "notes": "backend tests 829 passed with all W02 branches (kernel RLS breaks none). policy exit=1: backend/workflow/tests/test_formula_adversarial.py:33 contains print( (P07). make ci exit=2: frontend tsc errors in frontend/src/features/ledger/** (P05 vs P22a typings). Both are W02 code; not edited."
   },
-  "created_at": "2026-11-09T19:33:36Z"
+  "created_at": "2026-11-09T20:42:13Z"
 }
