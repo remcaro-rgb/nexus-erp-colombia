@@ -198,6 +198,32 @@ def bind_platform(job: str, using: str = "default") -> None:
     _log.debug("tenancy.platform_bind", job=job)
 
 
+def _require_atomic(using: str, name: str) -> Any:
+    conn = connections[using]
+    if not conn.in_atomic_block:
+        raise TenancyNotBound(f"{name}() must run inside a transaction (transaction-level advisory lock)")
+    return conn
+
+
+def advisory_xact_lock(using: str, key: int) -> None:
+    """``pg_advisory_xact_lock(key)``: wait for the transaction-level lock ``key`` (released at COMMIT/ROLLBACK).
+
+    Kept here because this module owns the tenancy/locking raw SQL (ADR-004 allow-list).
+    """
+    conn = _require_atomic(using, "advisory_xact_lock")
+    with conn.cursor() as cur:
+        cur.execute("SELECT pg_advisory_xact_lock(%s)", [int(key)])
+
+
+def try_advisory_xact_lock(using: str, key: int) -> bool:
+    """``pg_try_advisory_xact_lock(key)``: take the transaction-level lock without waiting; ``True`` if taken."""
+    conn = _require_atomic(using, "try_advisory_xact_lock")
+    with conn.cursor() as cur:
+        cur.execute("SELECT pg_try_advisory_xact_lock(%s)", [int(key)])
+        row = cur.fetchone()
+    return bool(row[0]) if row else False
+
+
 #: ``(relrowsecurity, relforcerowsecurity, has_policy)`` of one table (RLS self-checks and tests).
 RLS_STATUS_QUERY = (
     "SELECT c.relrowsecurity, c.relforcerowsecurity, EXISTS (SELECT 1 FROM pg_policy p WHERE p.polrelid = c.oid) "

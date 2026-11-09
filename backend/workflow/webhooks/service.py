@@ -21,7 +21,6 @@ import secrets
 import uuid
 from collections.abc import Mapping
 from typing import Any, Protocol
-from urllib.parse import urlsplit
 
 from kernel import clock, ids
 from kernel.errors import NotFound, ValidationFailed
@@ -30,14 +29,13 @@ from kernel.tenancy import Channel, PrincipalType, TenantContext
 from kernel.uow import UnitOfWork, run_in_unit_of_work
 from workflow.audit.service import record_change
 from workflow.policy import policy
+from workflow.webhooks.targets import validate_url
 
 MAX_ATTEMPTS = 8
 BASE_DELAY = dt.timedelta(seconds=30)
 MAX_DELAY = dt.timedelta(hours=6)
 SIGNATURE_HEADER = "X-Nexus-Signature"
 TOLERANCE_SECONDS = 300
-DEV_HOST_SUFFIXES = (".localhost", ".test", ".invalid", ".local", ".example")
-DEV_HOSTS = {"localhost", "127.0.0.1", "::1", "host.docker.internal", "mailpit", "webhook-sink"}
 ALWAYS_KEPT = {"id", "event_id", "event_type", "company_id", "status", "state"}
 
 
@@ -61,35 +59,12 @@ def backoff(attempts: int) -> dt.timedelta:
     return min(BASE_DELAY * (2 ** max(attempts - 1, 0)), MAX_DELAY)
 
 
-def validate_url(url: str) -> str:
-    parts = urlsplit(url)
-    host = (parts.hostname or "").lower()
-    if parts.scheme not in ("http", "https") or not host:
-        raise ValidationFailed("webhook URL must be an absolute http(s) URL")
-    if parts.username or parts.password:
-        raise ValidationFailed("credentials in webhook URLs are not allowed")
-    if host not in DEV_HOSTS and not host.endswith(DEV_HOST_SUFFIXES):
-        raise ValidationFailed(
-            "DEV-only build: webhook targets must be local/test hosts", code="production_endpoint_refused"
-        )
-    return url
-
-
 def matches(event_type: str, patterns: list[str]) -> bool:
     return any(p == event_type or p == "*" or (p.endswith(".*") and event_type.startswith(p[:-1])) for p in patterns)
 
 
 class Transport(Protocol):
     def send(self, url: str, headers: Mapping[str, str], body: bytes) -> int: ...
-
-
-class HttpxTransport:
-    def send(self, url: str, headers: Mapping[str, str], body: bytes) -> int:
-        import httpx
-
-        validate_url(url)
-        resp = httpx.post(url, content=body, headers=dict(headers), timeout=5.0, follow_redirects=False)
-        return int(resp.status_code)
 
 
 def service_account_context(sub: Any) -> TenantContext:
@@ -117,7 +92,11 @@ def filter_payload(sub: Any, envelope: Mapping[str, Any]) -> dict[str, Any] | No
 
 class WebhookService:
     def __init__(self, transport: Transport | None = None) -> None:
-        self.transport = transport or HttpxTransport()
+        if transport is None:
+            from workflow.webhooks.adapters import HttpxTransport
+
+            transport = HttpxTransport()
+        self.transport = transport
 
     def subscribe(self, ctx: TenantContext, company_id: uuid.UUID, url: str, event_types: list[str],
                   service_account_id: uuid.UUID, description: str = "",

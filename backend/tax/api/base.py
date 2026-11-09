@@ -16,8 +16,8 @@ from typing import Any
 from django.db.models import Model, QuerySet
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
+from iam.api.base import ModuleSecuredView
 from kernel import services, tenancy
 from kernel.errors import DomainError, NotAuthenticated, NotFound, ValidationFailed
 from kernel.idempotency import StoredResponse
@@ -180,5 +180,5 @@ def with_etag(response: Response, obj: Any) -> Response:
     return response
 
 
-class TaxAPIView(APIView):  # type: ignore[misc]
-    """Authentication comes from P04's classes; the tenant context must be active."""
+class TaxAPIView(ModuleSecuredView):
+    """P04's secured base: IAM authentication, tenant context required (401), each handler authorizes."""

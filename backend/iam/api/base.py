@@ -308,6 +308,47 @@ class SecuredView(APIView):
         return response
 
 
+class HasTenantContext(BasePermission):
+    """The request carries a tenant context: from the IAM authentication or the kernel tenancy middleware."""
+
+    def has_permission(self, request: Request, view: Any) -> bool:
+        if request_context(request) is None:
+            raise Unauthenticated("authentication required")
+        return True
+
+
+def request_context(request: Request) -> TenantContext | None:
+    """Context of ``request``: set by :class:`iam.authn.InternalAuthentication`, else the one the
+    :class:`kernel.tenancy.TenancyMiddleware` activated (``request.erp_context`` / resolver). Never from headers."""
+    ctx = getattr(request, "erp_context", None)
+    if isinstance(ctx, TenantContext):
+        return ctx
+    return tenancy.current()
+
+
+class ModuleSecuredView(SecuredView):
+    """Secured base (ADR-004) for module APIs whose handlers authorize every action explicitly.
+
+    Same authentication (IAM bearer tokens), throttling and context activation as :class:`SecuredView`;
+    the context may also come from the kernel tenancy middleware. ``check_access`` requires the context
+    (401 otherwise) and every handler calls ``PolicyService.require``/``authorize`` for its own permission
+    code (deny by default: a principal without the grant gets 403). Used by ``tax`` and ``workflow``.
+    """
+
+    permission_classes: ClassVar[list[Any]] = [HasTenantContext]
+
+    def check_access(self, request: Request) -> None:
+        if request_context(request) is None:
+            raise Unauthenticated("authentication required")
+
+    @property
+    def ctx(self) -> TenantContext:
+        ctx = request_context(self.request)
+        if ctx is None:
+            raise Unauthenticated("authentication required")
+        return ctx
+
+
 def etag_for(resource_type: str, pk: Any, version: Any) -> str:
     import hashlib
 

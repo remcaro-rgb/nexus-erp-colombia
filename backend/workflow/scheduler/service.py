@@ -18,9 +18,7 @@ import hashlib
 import uuid
 from typing import Any
 
-from django.db import connections
-
-from kernel import clock
+from kernel import clock, tenancy
 from kernel.errors import DomainError, NotFound, PermissionDenied, ValidationFailed
 from kernel.interfaces.scheduler import ScheduledJob as ScheduledJobDTO
 from kernel.tenancy import Channel, PrincipalType, TenantContext
@@ -196,10 +194,7 @@ class DbSchedulerService:
 
         now = now or clock.now()
         with transaction.atomic(using=using):
-            with connections[using].cursor() as cur:
-                cur.execute("SELECT pg_try_advisory_xact_lock(%s)", [LEADER_LOCK])
-                (leader,) = cur.fetchone()
-            if not leader:
+            if not tenancy.try_advisory_xact_lock(using, LEADER_LOCK):
                 return None
             due = list(
                 ScheduledJob.objects.using(using)

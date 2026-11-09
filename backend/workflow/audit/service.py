@@ -20,9 +20,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from django.db import connections
-
-from kernel import clock, ids
+from kernel import clock, ids, tenancy
 from kernel.events import to_jsonable
 from kernel.interfaces.audit import AuditEntry
 from kernel.tenancy import TenantContext
@@ -166,8 +164,7 @@ class DbAuditService:
 
         ctx: TenantContext = uow.ctx
         meta = meta or RequestMeta(request_id=str(ctx.correlation_id or ""))
-        with connections[uow.using].cursor() as cur:
-            cur.execute("SELECT pg_advisory_xact_lock(%s)", [_lock_key(ctx.tenant_id)])
+        tenancy.advisory_xact_lock(uow.using, _lock_key(ctx.tenant_id))
         last = (
             AuditEvent.objects.using(uow.using)
             .filter(tenant_id=ctx.tenant_id)
