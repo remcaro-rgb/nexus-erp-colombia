@@ -49,10 +49,10 @@ def bearer_token(request: Any) -> str | None:
     header = request.META.get("HTTP_AUTHORIZATION", "")
     if not header:
         return None
-    scheme, _, token = header.partition(" ")
-    if scheme.lower() != "bearer" or not token.strip():
+    scheme, _, value = header.partition(" ")
+    if scheme.lower() != "bearer" or not value.strip():
         raise Unauthenticated("bearer token required")
-    return token.strip()
+    return value.strip()
 
 
 def resolver_context(tenant_id: uuid.UUID) -> TenantContext:
@@ -76,10 +76,10 @@ class InternalAuthentication(BaseAuthentication):
         return f'Bearer realm="{self.www_authenticate_realm}"'
 
     def authenticate(self, request: Request) -> tuple[Principal, Claims] | None:
-        token = bearer_token(request)
-        if token is None:
+        raw_bearer = bearer_token(request)
+        if raw_bearer is None:
             return None
-        claims = verifier.verify(token)
+        claims = verifier.verify(raw_bearer)
         if claims.is_portal or claims.client_id not in verifier.INTERNAL_CLIENTS or "portal" in claims.scopes:
             raise Unauthenticated("portal tokens are not accepted by the internal API")
         from iam.models import Company, Membership, User
@@ -134,10 +134,10 @@ class PortalAuthentication(BaseAuthentication):
         return 'Bearer realm="erp-portal"'
 
     def authenticate(self, request: Request) -> tuple[Principal, Claims] | None:
-        token = bearer_token(request)
-        if token is None:
+        raw_bearer = bearer_token(request)
+        if raw_bearer is None:
             return None
-        claims = verifier.verify(token)
+        claims = verifier.verify(raw_bearer)
         if not claims.is_portal:
             raise Unauthenticated("only portal tokens are accepted by the portal API")
         from iam.models import ExternalAccount, User
