@@ -59,9 +59,14 @@ def idempotency_key(job_id: uuid.UUID, scheduled_for: dt.datetime) -> str:
 
 class DbSchedulerService:
     # ------------------------------------------------------------------ definition
-    def create(
+    def create(self, ctx: TenantContext, company_id: uuid.UUID, *, idempotency_key: str | None = None,
+               **kwargs: Any) -> Any:  # fmt: skip
+        return run_in_unit_of_work(lambda uow: self.create_in(uow, company_id, **kwargs), ctx,
+                                   idempotency_key=idempotency_key)  # fmt: skip
+
+    def create_in(
         self,
-        ctx: TenantContext,
+        uow: UnitOfWork,
         company_id: uuid.UUID,
         *,
         code: str,
@@ -71,39 +76,34 @@ class DbSchedulerService:
         timezone: str = "America/Bogota",
         params: dict[str, Any] | None = None,
         grant_ref: str = "",
-        idempotency_key: str | None = None,
     ) -> Any:
         from workflow.models import ScheduledJob
 
+        ctx = uow.ctx
         ctx.require_company(company_id)
         policy().require(ctx, "workflow.scheduled_job.create", {"company_id": company_id, "job_type": job_type})
         if job_type not in JOB_TYPES:
             raise ValidationFailed(f"unknown job type {job_type!r}")
         if bool(cron) == bool(run_at):
             raise ValidationFailed("give either a cron schedule or a one-off run_at")
+        if run_at is not None and run_at.tzinfo is None:
+            raise ValidationFailed("run_at must include a timezone")
         zone(timezone)
         is_agent = ctx.principal_type in (PrincipalType.AI_AGENT, PrincipalType.MCP_CLIENT)
         if is_agent and (not grant_ref or ctx.on_behalf_of is None):
             raise PermissionDenied("AI-created jobs need a delegated grant and a user", code="delegation_required")
         owner = ctx.on_behalf_of if is_agent and ctx.on_behalf_of else ctx.principal_id
-        now = clock.now()
-        if run_at is not None and run_at.tzinfo is None:
-            raise ValidationFailed("run_at must include a timezone")
-        next_run = Cron.parse(cron).next_after(now, timezone) if cron else run_at
-
-        def work(uow: UnitOfWork) -> Any:
-            job = ScheduledJob.objects.create(
-                tenant_id=ctx.tenant_id, company_id=company_id, code=code[:60], job_type=job_type, owner_id=owner,
-                owner_type="user", cron=cron, run_at=run_at, timezone=timezone, params=dict(params or {}),
-                grant_ref=grant_ref, created_by_agent=is_agent, next_run_at=next_run,
-                created_by=ctx.principal_id, updated_by=ctx.principal_id,
-            )  # fmt: skip
-            record_change("workflow.scheduled_job.create", "workflow.scheduled_job", job.id, company_id=company_id,
-                          after={"code": job.code, "job_type": job_type, "cron": cron, "grant_ref": grant_ref,
-                                 "created_by_agent": is_agent}, uow=uow)  # fmt: skip
-            return job
-
-        return run_in_unit_of_work(work, ctx, idempotency_key=idempotency_key)
+        next_run = Cron.parse(cron).next_after(clock.now(), timezone) if cron else run_at
+        job = ScheduledJob.objects.create(
+            tenant_id=ctx.tenant_id, company_id=company_id, code=code[:60], job_type=job_type, owner_id=owner,
+            owner_type="user", cron=cron, run_at=run_at, timezone=timezone, params=dict(params or {}),
+            grant_ref=grant_ref, created_by_agent=is_agent, next_run_at=next_run,
+            created_by=ctx.principal_id, updated_by=ctx.principal_id,
+        )  # fmt: skip
+        record_change("workflow.scheduled_job.create", "workflow.scheduled_job", job.id, company_id=company_id,
+                      after={"code": job.code, "job_type": job_type, "cron": cron, "grant_ref": grant_ref,
+                             "created_by_agent": is_agent}, uow=uow)  # fmt: skip
+        return job
 
     def schedule(
         self, ctx: TenantContext, company_id: uuid.UUID, code: str, cron: str, task_name: str,

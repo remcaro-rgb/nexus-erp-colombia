@@ -119,43 +119,41 @@ class WebhookService:
     def __init__(self, transport: Transport | None = None) -> None:
         self.transport = transport or HttpxTransport()
 
-    def subscribe(
-        self,
-        ctx: TenantContext,
-        company_id: uuid.UUID,
-        url: str,
-        event_types: list[str],
-        service_account_id: uuid.UUID,
-        description: str = "",
-        idempotency_key: str | None = None,
-    ) -> tuple[Any, str]:
+    def subscribe(self, ctx: TenantContext, company_id: uuid.UUID, url: str, event_types: list[str],
+                  service_account_id: uuid.UUID, description: str = "",
+                  idempotency_key: str | None = None) -> tuple[Any, str]:  # fmt: skip
         """Returns (subscription, secret). The secret is shown once and never serialized again."""
+        result = run_in_unit_of_work(
+            lambda uow: self.subscribe_in(uow, company_id, url, event_types, service_account_id, description), ctx,
+            idempotency_key=idempotency_key,
+        )  # fmt: skip
+        return result  # type: ignore[return-value]
+
+    def subscribe_in(self, uow: UnitOfWork, company_id: uuid.UUID, url: str, event_types: list[str],
+                     service_account_id: uuid.UUID, description: str = "") -> tuple[Any, str]:  # fmt: skip
         from workflow.models import WebhookSubscription
 
+        ctx = uow.ctx
         ctx.require_company(company_id)
         policy().require(ctx, "workflow.webhook.create", {"company_id": company_id})
         validate_url(url)
         if not event_types or not all(isinstance(e, str) and e for e in event_types):
             raise ValidationFailed("at least one event type is required")
         secret = secrets.token_hex(32)
-
-        def work(uow: UnitOfWork) -> Any:
-            sub = WebhookSubscription.objects.create(
-                tenant_id=ctx.tenant_id, company_id=company_id, url=url, event_types=list(event_types), secret=secret,
-                service_account_id=service_account_id, description=description[:255],
-                created_by=ctx.principal_id, updated_by=ctx.principal_id,
-            )  # fmt: skip
-            record_change(
-                "workflow.webhook.create",
-                "workflow.webhook",
-                sub.id,
-                company_id=company_id,
-                after={"url": url, "event_types": event_types},
-                uow=uow,
-            )
-            return sub
-
-        return run_in_unit_of_work(work, ctx, idempotency_key=idempotency_key), secret
+        sub = WebhookSubscription.objects.create(
+            tenant_id=ctx.tenant_id, company_id=company_id, url=url, event_types=list(event_types), secret=secret,
+            service_account_id=service_account_id, description=description[:255],
+            created_by=ctx.principal_id, updated_by=ctx.principal_id,
+        )  # fmt: skip
+        record_change(
+            "workflow.webhook.create",
+            "workflow.webhook",
+            sub.id,
+            company_id=company_id,
+            after={"url": url, "event_types": event_types},
+            uow=uow,
+        )
+        return sub, secret
 
     def fan_out(self, uow: UnitOfWork, envelope: Mapping[str, Any]) -> int:
         """Outbox consumer: one delivery per matching subscription (idempotent per event)."""

@@ -117,10 +117,16 @@ class FormulaService:
     # ------------------------------------------------------------------ commands
     def create(self, ctx: TenantContext, company_id: uuid.UUID, data: Mapping[str, Any],
                idempotency_key: str | None = None) -> Any:  # fmt: skip
+        return run_in_unit_of_work(lambda uow: self.create_in(uow, company_id, data), ctx,
+                                   idempotency_key=idempotency_key)  # fmt: skip
+
+    def create_in(self, uow: UnitOfWork, company_id: uuid.UUID, data: Mapping[str, Any]) -> Any:
+        """Create a DRAFT (next version of its code) inside the caller's unit of work."""
         from django.db.models import Max
 
         from workflow.models import Formula
 
+        ctx = uow.ctx
         ctx.require_company(company_id)
         policy().require(ctx, "workflow.formula.create", {"company_id": company_id})
         domain = data.get("domain", "approval")
@@ -128,23 +134,18 @@ class FormulaService:
             raise ValidationFailed(f"domain must be one of {DOMAINS}")
         values = self._clean(data)
         definition = FormulaDefinition.from_json({**data, "tests": values.get("test_cases", [])})  # shape + names
-
-        def work(uow: UnitOfWork) -> Any:
-            last = Formula.objects.filter(
-                tenant_id=ctx.tenant_id, company_id=company_id, code=definition.code
-            ).aggregate(v=Max("formula_version"))["v"]
-            row = Formula.objects.create(
-                tenant_id=ctx.tenant_id, company_id=company_id, domain=domain, code=definition.code,
-                formula_version=(last or 0) + 1, author_id=ctx.on_behalf_of or ctx.principal_id,
-                created_by=ctx.principal_id, updated_by=ctx.principal_id, hash=definition.hash,
-                **{k: v for k, v in values.items()},
-            )  # fmt: skip
-            record_change("workflow.formula.create", "workflow.formula", row.id, company_id=company_id,
-                          after={"code": row.code, "version": row.formula_version, "expression": row.expression,
-                                 "by_agent": ctx.principal_type in AGENT_TYPES}, uow=uow)  # fmt: skip
-            return row
-
-        return run_in_unit_of_work(work, ctx, idempotency_key=idempotency_key)
+        last = Formula.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, code=definition.code).aggregate(
+            v=Max("formula_version")
+        )["v"]
+        row = Formula.objects.create(
+            tenant_id=ctx.tenant_id, company_id=company_id, domain=domain, code=definition.code,
+            formula_version=(last or 0) + 1, author_id=ctx.on_behalf_of or ctx.principal_id,
+            created_by=ctx.principal_id, updated_by=ctx.principal_id, hash=definition.hash, **values,
+        )  # fmt: skip
+        record_change("workflow.formula.create", "workflow.formula", row.id, company_id=company_id,
+                      after={"code": row.code, "version": row.formula_version, "expression": row.expression,
+                             "by_agent": ctx.principal_type in AGENT_TYPES}, uow=uow)  # fmt: skip
+        return row
 
     def update(self, ctx: TenantContext, formula_id: uuid.UUID, patch: Mapping[str, Any], if_match: str | None) -> Any:
         policy().require(ctx, "workflow.formula.update")
