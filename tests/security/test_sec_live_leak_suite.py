@@ -24,7 +24,9 @@ def test_p22a_live_leak_matrix_has_no_failures():
     results = LeakSuite(DjangoClientTransport(authenticator=None), dataset).run(cases)
     summary = summarize(results)
     out_dir = paths.REPORTS / "leak"
-    write_matrix_csv(results, out_dir / "leak-matrix-live.csv")
+    # The matrix lists every case that reached the system (PASSED/FAILED/BLOCKED/NO_DATA); the
+    # NOT_IMPLEMENTED remainder is only counted in the summary to keep the evidence small.
+    write_matrix_csv([r for r in results if r.status is not Status.NOT_IMPLEMENTED], out_dir / "leak-matrix-live.csv")
     (out_dir / "leak-summary-live.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     assert summary["failed"] == []
     assert summary["cases"] == len(cases)
