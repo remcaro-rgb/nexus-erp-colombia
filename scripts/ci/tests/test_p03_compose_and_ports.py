@@ -43,7 +43,7 @@ class ComposeLintTest(unittest.TestCase):
             self.assertIn(needle, joined)
         with tempfile.TemporaryDirectory() as tmp:
             bad = Path(tmp) / "compose.yaml"
-            bad.write_text("services:\n  x:\n    environment:\n      ERP_DB_PASSWORD: hunter2hunter2\n"
+            bad.write_text("services:\n  x:\n    environment:\n      ERP_DB_PASSWORD: test-literal-value\n"
                            "      ERP_OK_PASSWORD: ${ERP_OK_PASSWORD:?}\n    ports: ['0.0.0.0:80:80']\n")
             orig = lint.REPO
             lint.REPO = Path(tmp)
