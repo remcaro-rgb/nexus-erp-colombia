@@ -23,9 +23,9 @@ from decimal import Decimal
 from kernel.money import Money, allocate, round_half_even, q_amount
 
 total = Money.of("1190000.00", "COP")
-parts = total.allocate([Decimal(1), Decimal(2)])   # largest remainder, ties → lower index, sum preserved
-Money.of(1, "COP") + Money.of(1, "USD")            # MoneyError (mixed currencies)
-Money(0.1, "COP")                                   # MoneyError (floats refused)
+parts = total.allocate([Decimal(1), Decimal(2)])  # largest remainder, ties → lower index, sum preserved
+Money.of(1, "COP") + Money.of(1, "USD")  # MoneyError (mixed currencies)
+Money(0.1, "COP")  # MoneyError (floats refused)
 ```
 Model fields: `AmountField` (20,4), `QtyField` (20,6), `UnitCostField` (24,8), `FxRateField` (24,10), `PctField` (9,6),
 `CurrencyField`. `make lint` runs `kernel.lint.no_float` (ERP001 `float(`, ERP002 `FloatField`, ERP003 float literal on a
@@ -39,9 +39,10 @@ money-named target; opt-out only with `# erp: allow-float(<reason>)`), and ruff 
 
 ## Tenancy (`kernel.tenancy`)
 ```python
-ctx = TenantContext(tenant_id, frozenset({company_id}), principal_id,
-                    principal_type=PrincipalType.USER, channel=Channel.API)
-with tenancy.scope(ctx):          # read scope: atomic + SET LOCAL app.* settings
+ctx = TenantContext(
+    tenant_id, frozenset({company_id}), principal_id, principal_type=PrincipalType.USER, channel=Channel.API
+)
+with tenancy.scope(ctx):  # read scope: atomic + SET LOCAL app.* settings
     Invoice.objects.filter(...)
 ```
 `bind(ctx)` sets `app.tenant_id`, `app.company_ids` (`{uuid,...}`), `app.principal_id`, `app.principal_type`,
@@ -54,17 +55,23 @@ with `**TenantTask.context_kwargs(ctx)`. `kernel.db.rls_policy_sql(table)` is a 
 ```python
 from kernel.uow import run_in_unit_of_work
 
+
 def create_invoice(uow, data):
-    number = sequences.allocate(data.company_id, "FV", "SETP")   # gap-free, inside the UoW only
+    number = sequences.allocate(data.company_id, "FV", "SETP")  # gap-free, inside the UoW only
     inv = Invoice.objects.create(...)
-    services.get(PostingService).post(uow, posting_request)       # same transaction (C1-1)
+    services.get(PostingService).post(uow, posting_request)  # same transaction (C1-1)
     uow.emit("sales.invoice.issued.v1", {"invoice_id": str(inv.id)}, company_id=data.company_id)
-    uow.set_response({"id": str(inv.id)}, 201)                    # stored for Idempotency-Key replays
+    uow.set_response({"id": str(inv.id)}, 201)  # stored for Idempotency-Key replays
     return inv
 
-result = run_in_unit_of_work(lambda u: create_invoice(u, data), ctx,
-                             idempotency_key=request.headers["Idempotency-Key"], request=payload,
-                             scope="sales.invoice.create")
+
+result = run_in_unit_of_work(
+    lambda u: create_invoice(u, data),
+    ctx,
+    idempotency_key=request.headers["Idempotency-Key"],
+    request=payload,
+    scope="sales.invoice.create",
+)
 # result is the function's return value, or a StoredResponse(body, status_code) on replay
 ```
 * Retries SQLSTATE 40001/40P01 up to 3 times with jitter (T-P01-07). Nested `unit_of_work` joins the outer one.
