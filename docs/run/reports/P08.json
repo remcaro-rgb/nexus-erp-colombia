@@ -6,11 +6,12 @@
   "reason": "",
   "branch": "claude/new-session-j6l7dx",
   "base_sha": "88910c7b2fdd8b96fa917a96120811568a168d0f",
-  "tested_sha": "33f23c4612612f250750bf0739233e19f718f3ff",
+  "tested_sha": "7739b642f0bdcc7819961cc3fc44402e5a298243",
   "changed_paths": [
     "contracts/change-requests/P08-1.md",
     "contracts/change-requests/P08-2.md",
     "contracts/change-requests/P08-3.md",
+    "contracts/change-requests/P08-4.md",
     "docs/handoffs/P08.md",
     "docs/run/progress/P08.md",
     "docs/run/reports/P08.json",
@@ -27,6 +28,7 @@
     "frontend/src/app/tools/check-budget.mjs",
     "frontend/src/app/tools/ensure-deps.mjs",
     "frontend/src/app/tools/link-node-modules.mjs",
+    "frontend/src/app/tools/sync-spec.mjs",
     "frontend/src/app/vite-env.d.ts",
     "frontend/src/design-system/DesignSystemProvider.tsx",
     "frontend/src/design-system/UX-GUIDE.md",
@@ -92,6 +94,10 @@
     "frontend/src/lib/offline/db.ts",
     "frontend/src/lib/offline/sw.ts",
     "frontend/src/lib/permissions.ts",
+    "frontend/src/lib/spec/README.md",
+    "frontend/src/lib/spec/__tests__/spec-snapshot.unit.ts",
+    "frontend/src/lib/spec/ui/module-registry.json",
+    "frontend/src/lib/spec/ui/tokens.json",
     "frontend/src/lib/storage.ts",
     "frontend/src/shell/AiPanel.tsx",
     "frontend/src/shell/AppShell.tsx",
@@ -140,5 +146,5 @@
   },
   "missing_tests": [],
   "session_url": "https://claude.ai/code/session_01XNGgzNNtHqwQqxoXmNcSrL",
-  "created_at": "2026-11-09T21:48:25Z"
+  "created_at": "2026-11-09T22:03:46Z"
 }
