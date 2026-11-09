@@ -8,15 +8,21 @@ ARG CADDY_IMAGE=docker.io/library/caddy:2.11.9-alpine@sha256:0bbb055bda6793c999b
 
 FROM ${NODE_IMAGE} AS build
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH CI=true PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-RUN --mount=type=secret,id=proxy_ca,required=false \
-    if [ -s /run/secrets/proxy_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/proxy_ca; fi; \
-    corepack enable && corepack prepare --activate
 WORKDIR /src
-COPY . .
+# 1. Package manifests first (CCR P08-4): corepack reads `packageManager` from package.json, and the
+#    dependency layer is cached until the lockfile changes. pnpm-workspace.yaml is optional (glob).
+COPY package.json pnpm-lock.yaml pnpm-workspace.yam[l] ./
+COPY frontend/package.json frontend/package.json
 # Optional egress proxy CA (cloud build VMs): BuildKit secret `proxy_ca`, never stored in a layer.
+# 2. corepack (the pinned pnpm), 3. dependencies from the frozen lockfile into the store (`pnpm fetch`
+#    needs only the lockfile; the root postinstall needs the sources, so it runs in step 5).
 RUN --mount=type=secret,id=proxy_ca,required=false \
     if [ -s /run/secrets/proxy_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/proxy_ca; fi; \
-    pnpm install --frozen-lockfile \
+    corepack enable && corepack prepare --activate \
+ && pnpm fetch --frozen-lockfile
+# 4. The rest of the sources, 5. offline install from the fetched store (frozen lockfile) + build.
+COPY . .
+RUN pnpm install --frozen-lockfile --offline \
  && pnpm --dir frontend run build \
  && test -f frontend/dist/index.html
 
