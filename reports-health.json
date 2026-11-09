@@ -1,0 +1,41 @@
+{
+  "base_url": "http://localhost:8080",
+  "checks": {
+    "/api/health/live": "PASSED",
+    "/api/health/ready": "PASSED",
+    "/api/v1/system/environment": "PASSED",
+    "keycloak": "PASSED",
+    "loopback_only": "PASSED",
+    "proxy_healthz": "PASSED",
+    "secrets_mode_0600": "PASSED",
+    "security_headers": "PASSED"
+  },
+  "integrations": {
+    "ai": "FIXTURE_NOT_CERTIFIED",
+    "banks": "FIXTURE_NOT_CERTIFIED",
+    "dian": "FIXTURE_NOT_CERTIFIED",
+    "email": "LOCAL_CAPTURE",
+    "payments": "FIXTURE_NOT_CERTIFIED",
+    "pila": "FIXTURE_NOT_CERTIFIED"
+  },
+  "not_available_yet": [
+    "scheduler",
+    "mcp",
+    "web"
+  ],
+  "ok": true,
+  "profiles": [
+    "app"
+  ],
+  "services": {
+    "api": "PASSED",
+    "db": "PASSED",
+    "keycloak": "PASSED",
+    "mailpit": "PASSED",
+    "minio": "PASSED",
+    "outbox-relay": "PASSED",
+    "proxy": "PASSED",
+    "valkey": "PASSED",
+    "worker": "PASSED"
+  }
+}

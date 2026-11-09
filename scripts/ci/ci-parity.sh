@@ -6,6 +6,8 @@
 #   scripts/ci/ci-parity.sh [JOB...] [--step NAME]
 #     JOB: policy | p03-tests | make-ci | compose-startup        (default: all four)
 #     --step NAME: run only that step of the job (what one workflow step does); default: every step in order
+#                  (compose-startup default = T-P03-01: dev-up, dev-seed, dev-health; its extra workflow steps
+#                  dr-drill, image-scan, logs, dev-down run only by name)
 #
 # Prints `CI-PARITY <job> exit=N` per job, then `CI-PARITY-OK n/n` or `CI-PARITY-FAILED k/n` (exit 1).
 # Variables the workflow already set (DATABASE_URL, ERP_DB_ADMIN_URL, ERP_FIELD_ENCRYPTION_KEY) are honoured;
@@ -162,18 +164,28 @@ cs_sbom() {
     docker run --rm -v /var/run/docker.sock:/var/run/docker.sock "$GRYPE_IMAGE" "docker:$img" --fail-on critical --only-fixed
   done
 }
-cs_logs() { docker compose -p nexus-erp-dev -f deploy/dev/compose.yaml ps -a; }
+cs_logs() {
+  # through the dev wrapper so that compose gets the generated env files (interpolation); prints no values
+  # shellcheck source=scripts/ci/lib.sh
+  . scripts/ci/lib.sh
+  load_runtime_env
+  export COMPOSE_PROFILES="app,web,mcp,tools"
+  dc ps -a
+}
 job_compose_startup() {
   set -e
-  # T-P03-01: compose up (images, migrate) + seed + health, then the DR drill and the image scan of the same job.
+  # T-P03-01 (the parity definition of this job): compose up (images, fresh dev secrets, migrate) + seed + health.
   step dev-up bash scripts/ci/dev-up.sh
   step dev-seed bash scripts/ci/dev-seed.sh
   step dev-health cs_health
-  step dr-drill python3 scripts/ci/dr_drill.py
-  step image-scan cs_sbom
-  # the next two only when asked by name (workflow: on failure / always); never `down -v`
-  if [[ "$STEP" == "logs" ]]; then cs_logs; fi
-  if [[ "$STEP" == "dev-down" ]]; then bash scripts/ci/dev-down.sh; fi
+  # Further steps of the same workflow job, run by name (`--step NAME`) — the commands live only here:
+  #   dr-drill (T-P03-03), image-scan (SBOM + grype), logs (on failure), dev-down (always; never `down -v`).
+  case "$STEP" in
+    dr-drill) python3 scripts/ci/dr_drill.py ;;
+    image-scan) cs_sbom ;;
+    logs) cs_logs ;;
+    dev-down) bash scripts/ci/dev-down.sh ;;
+  esac
 }
 
 # ------------------------------------------------------------------------------------------------ main
