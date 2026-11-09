@@ -1,0 +1,45 @@
+# Manual coverage for FEATURES-ADDENDUM API lines that name no endpoint (no `/…` or `:verb` token), used by
+# contracts/tools/registry_diff.py (T-X-QA-06). Every other API line is checked automatically, token by token.
+# `text` must equal the registry line verbatim; a stale or missing entry fails the test.
+# Checks:
+#   idempotency   every mutating operation tagged with the feature requires the Idempotency-Key header
+#   operations    every listed "METHOD path" exists in the bundled contract and is tagged with the feature
+#   read_scopes   each listed module exposes `<module>.<resource>.read` permission codes (MCP read/search scopes)
+lines:
+  - feature: F-TRE-RC
+    text: All mutating calls require an Idempotency-Key
+    check: idempotency
+  - feature: F-TRE-CE
+    text: All mutating calls require an Idempotency-Key
+    check: idempotency
+  - feature: F-X-AI-MCP
+    text: 'Agent tools: dimensions, branches, treasury vouchers (draft), issues (draft), transformations (simulate/draft), requisitions (draft/sourcing simulate), RFQ comparison explain, pricing explain, payroll explain, exógena validation explain'
+    check: operations
+    note: |
+      Agent tools (P19 catalog, listed by GET /api/v1/ai/tools) call exactly these public operations with the delegated token; mutating tools only
+      create DRAFT documents or simulations and need user confirmation (POST /api/v1/ai/plans/{id}:confirm).
+    operations:
+      - GET /api/v1/ai/tools
+      - POST /api/v1/ai/plans/{id}:confirm
+      - GET /api/v1/ledger/dimensions/cost-centers
+      - GET /api/v1/ledger/dimensions/cost-centers/tree
+      - POST /api/v1/ledger/dimensions/cost-centers
+      - GET /api/v1/iam/branches
+      - POST /api/v1/treasury/receipts
+      - POST /api/v1/treasury/disbursements
+      - POST /api/v1/inventory/issues
+      - POST /api/v1/inventory/transformations/{id}:simulate
+      - POST /api/v1/inventory/transformations
+      - POST /api/v1/purchasing/internal-requisitions
+      - POST /api/v1/purchasing/internal-requisitions/{id}:source
+      - GET /api/v1/purchasing/rfqs/{id}/comparison
+      - POST /api/v1/sales/pricing:quote
+      - POST /api/v1/payroll/runs/{id}:simulate
+      - POST /api/v1/reporting/exogena/runs/{id}:validate
+  - feature: F-X-AI-MCP
+    text: 'MCP: read/search counterparts (scope `<module>.read`)'
+    check: read_scopes
+    note: MCP (P20) has no REST surface of its own; it calls the public API, and its scopes are the read permission codes of each module.
+    modules: [ledger, iam, treasury, inventory, purchasing, sales, payroll, reporting, tax, workflow, einvoice, portal]
+    operations:
+      - GET /api/v1/ai/tools

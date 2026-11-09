@@ -802,7 +802,9 @@ class Builder:
         bundle["webhooks"] = dict(webhooks)
         root["x-modules"] = module_index
         self.outputs["openapi/root.yaml"] = self.dump(self.rewrite_refs(root, "root"))
-        self.outputs["openapi/openapi.yaml"] = self.dump(self.rewrite_refs(bundle, "bundle"))
+        bundled = self.rewrite_refs(bundle, "bundle")
+        self.outputs["openapi/openapi.yaml"] = self.dump(bundled)
+        self.outputs["openapi/openapi.json"] = json.dumps(bundled, ensure_ascii=False, indent=1) + "\n"
         self.build_dataio(all_comps)
         self.build_catalog()
         return self.outputs

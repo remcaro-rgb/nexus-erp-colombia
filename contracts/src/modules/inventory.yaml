@@ -13,7 +13,8 @@ resources:
     label: presentaciones de un ítem
     ops: list create get update delete
     fields: {factor: decimal internal req, uom: code internal req, barcode: string internal null, precision: int internal, is_default_purchase: bool internal, is_default_sale: bool internal}
-    errors: [presentation_factor_invalid, presentation_barcode_duplicate, uom_precision_violation]
+    actions: [archive, unarchive]
+    errors: [presentation_factor_invalid, presentation_barcode_duplicate, uom_precision_violation, packaged_exceeds_canonical]
     features: [F-INV-PRES]
   - {path: uoms, kind: master, fields: {precision: int internal req, category: string internal}}
   - {path: warehouses, kind: master, fields: {branch_id: ref internal null, allow_negative: bool internal, address: string internal}}
@@ -51,6 +52,7 @@ resources:
     perm: availability
     label: disponibilidad (base, empacada por presentación, suelta)
     params: [item, presentation, warehouse, location, lot]
+    report_errors: [packaged_exceeds_canonical, uom_precision_violation]
     features: [F-INV-PRES, F-INV-LOC]
   - path: transfers
     kind: document

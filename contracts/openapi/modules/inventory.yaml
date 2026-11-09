@@ -306,6 +306,7 @@ paths:
       - presentation_factor_invalid
       - presentation_barcode_duplicate
       - uom_precision_violation
+      - packaged_exceeds_canonical
       parameters:
       - name: item_id
         in: path
@@ -359,6 +360,7 @@ paths:
       - presentation_factor_invalid
       - presentation_barcode_duplicate
       - uom_precision_violation
+      - packaged_exceeds_canonical
       x-idempotent: true
       parameters:
       - name: item_id
@@ -418,6 +420,7 @@ paths:
       - presentation_factor_invalid
       - presentation_barcode_duplicate
       - uom_precision_violation
+      - packaged_exceeds_canonical
       parameters:
       - name: id
         in: path
@@ -476,6 +479,7 @@ paths:
       - presentation_factor_invalid
       - presentation_barcode_duplicate
       - uom_precision_violation
+      - packaged_exceeds_canonical
       x-idempotent: true
       parameters:
       - name: id
@@ -549,6 +553,7 @@ paths:
       - presentation_factor_invalid
       - presentation_barcode_duplicate
       - uom_precision_violation
+      - packaged_exceeds_canonical
       x-idempotent: true
       parameters:
       - name: id
@@ -585,6 +590,144 @@ paths:
           $ref: ../root.yaml#/components/responses/Unprocessable
         '428':
           $ref: ../root.yaml#/components/responses/PreconditionRequired
+        '429':
+          $ref: ../root.yaml#/components/responses/TooManyRequests
+  /api/v1/inventory/items/{item_id}/presentations/{id}:archive:
+    post:
+      operationId: inventory_items_by_presentations_by_archive
+      summary: Acción archive sobre presentaciones de un ítem
+      tags:
+      - Inventario
+      x-permission: inventory.presentation.update
+      x-owner: P09
+      x-features:
+      - F-INV-PRES
+      x-error-codes:
+      - unauthenticated
+      - policy_denied
+      - not_found
+      - idempotency_conflict
+      - idempotency_key_required
+      - validation_failed
+      - field_forbidden
+      - presentation_factor_invalid
+      - presentation_barcode_duplicate
+      - uom_precision_violation
+      - packaged_exceeds_canonical
+      x-idempotent: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: ../root.yaml#/components/parameters/CompanyHeader
+      - $ref: ../root.yaml#/components/parameters/IdempotencyKey
+      - $ref: ../root.yaml#/components/parameters/IfMatchOptional
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: ../root.yaml#/components/schemas/ActionRequest
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Presentation'
+          headers:
+            ETag:
+              $ref: ../root.yaml#/components/headers/ETag
+        '400':
+          $ref: ../root.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ../root.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: ../root.yaml#/components/responses/Forbidden
+        '404':
+          $ref: ../root.yaml#/components/responses/NotFound
+        '409':
+          $ref: ../root.yaml#/components/responses/Conflict
+        '422':
+          $ref: ../root.yaml#/components/responses/Unprocessable
+        '429':
+          $ref: ../root.yaml#/components/responses/TooManyRequests
+  /api/v1/inventory/items/{item_id}/presentations/{id}:unarchive:
+    post:
+      operationId: inventory_items_by_presentations_by_unarchive
+      summary: Acción unarchive sobre presentaciones de un ítem
+      tags:
+      - Inventario
+      x-permission: inventory.presentation.update
+      x-owner: P09
+      x-features:
+      - F-INV-PRES
+      x-error-codes:
+      - unauthenticated
+      - policy_denied
+      - not_found
+      - idempotency_conflict
+      - idempotency_key_required
+      - validation_failed
+      - field_forbidden
+      - presentation_factor_invalid
+      - presentation_barcode_duplicate
+      - uom_precision_violation
+      - packaged_exceeds_canonical
+      x-idempotent: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: ../root.yaml#/components/parameters/CompanyHeader
+      - $ref: ../root.yaml#/components/parameters/IdempotencyKey
+      - $ref: ../root.yaml#/components/parameters/IfMatchOptional
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: ../root.yaml#/components/schemas/ActionRequest
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Presentation'
+          headers:
+            ETag:
+              $ref: ../root.yaml#/components/headers/ETag
+        '400':
+          $ref: ../root.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ../root.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: ../root.yaml#/components/responses/Forbidden
+        '404':
+          $ref: ../root.yaml#/components/responses/NotFound
+        '409':
+          $ref: ../root.yaml#/components/responses/Conflict
+        '422':
+          $ref: ../root.yaml#/components/responses/Unprocessable
         '429':
           $ref: ../root.yaml#/components/responses/TooManyRequests
   /api/v1/inventory/uoms:
@@ -2649,6 +2792,8 @@ paths:
       x-error-codes:
       - unauthenticated
       - policy_denied
+      - packaged_exceeds_canonical
+      - uom_precision_violation
       parameters:
       - $ref: ../root.yaml#/components/parameters/CompanyHeader
       - name: item
@@ -2707,6 +2852,8 @@ paths:
           $ref: ../root.yaml#/components/responses/Unauthorized
         '403':
           $ref: ../root.yaml#/components/responses/Forbidden
+        '422':
+          $ref: ../root.yaml#/components/responses/Unprocessable
         '429':
           $ref: ../root.yaml#/components/responses/TooManyRequests
   /api/v1/inventory/transfers:

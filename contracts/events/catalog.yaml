@@ -213,6 +213,11 @@ events:
   schema: contracts/events/purchasing/purchasing.rfq.awarded.v1.json
   features:
   - F-PUR-CYCLE
+- type: reporting.report_run.ready.v1
+  owner: P17
+  schema: contracts/events/reporting/reporting.report_run.ready.v1.json
+  features:
+  - F-ACC-REPORTS
 - type: reporting.exogena_run.generated.v1
   owner: P17
   schema: contracts/events/reporting/reporting.exogena_run.generated.v1.json

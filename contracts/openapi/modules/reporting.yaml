@@ -147,6 +147,8 @@ paths:
       - Informes y capa semántica
       x-permission: reporting.report.read
       x-owner: P17
+      x-features:
+      - F-ACC-REPORTS
       x-error-codes:
       - unauthenticated
       - policy_denied
@@ -181,6 +183,8 @@ paths:
       - Informes y capa semántica
       x-permission: reporting.report.create
       x-owner: P17
+      x-features:
+      - F-ACC-REPORTS
       x-error-codes:
       - unauthenticated
       - policy_denied
@@ -230,6 +234,8 @@ paths:
       - Informes y capa semántica
       x-permission: reporting.report.read
       x-owner: P17
+      x-features:
+      - F-ACC-REPORTS
       x-error-codes:
       - unauthenticated
       - policy_denied
@@ -269,6 +275,8 @@ paths:
       - Informes y capa semántica
       x-permission: reporting.report.update
       x-owner: P17
+      x-features:
+      - F-ACC-REPORTS
       x-error-codes:
       - unauthenticated
       - policy_denied
@@ -331,6 +339,8 @@ paths:
       - Informes y capa semántica
       x-permission: reporting.report.delete
       x-owner: P17
+      x-features:
+      - F-ACC-REPORTS
       x-error-codes:
       - unauthenticated
       - policy_denied
@@ -381,6 +391,8 @@ paths:
       - Informes y capa semántica
       x-permission: reporting.report.update
       x-owner: P17
+      x-features:
+      - F-ACC-REPORTS
       x-error-codes:
       - unauthenticated
       - policy_denied
@@ -438,6 +450,126 @@ paths:
       - Informes y capa semántica
       x-permission: reporting.report.update
       x-owner: P17
+      x-features:
+      - F-ACC-REPORTS
+      x-error-codes:
+      - unauthenticated
+      - policy_denied
+      - not_found
+      - idempotency_conflict
+      - idempotency_key_required
+      - validation_failed
+      - field_forbidden
+      x-idempotent: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: ../root.yaml#/components/parameters/CompanyHeader
+      - $ref: ../root.yaml#/components/parameters/IdempotencyKey
+      - $ref: ../root.yaml#/components/parameters/IfMatchOptional
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: ../root.yaml#/components/schemas/ActionRequest
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedReport'
+          headers:
+            ETag:
+              $ref: ../root.yaml#/components/headers/ETag
+        '400':
+          $ref: ../root.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ../root.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: ../root.yaml#/components/responses/Forbidden
+        '404':
+          $ref: ../root.yaml#/components/responses/NotFound
+        '409':
+          $ref: ../root.yaml#/components/responses/Conflict
+        '422':
+          $ref: ../root.yaml#/components/responses/Unprocessable
+        '429':
+          $ref: ../root.yaml#/components/responses/TooManyRequests
+  /api/v1/reporting/reports/{id}:publish:
+    post:
+      operationId: reporting_reports_by_publish
+      summary: Acción publish sobre reports
+      tags:
+      - Informes y capa semántica
+      x-permission: reporting.report.update
+      x-owner: P17
+      x-features:
+      - F-ACC-REPORTS
+      x-error-codes:
+      - unauthenticated
+      - policy_denied
+      - not_found
+      - idempotency_conflict
+      - idempotency_key_required
+      - validation_failed
+      - field_forbidden
+      x-idempotent: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: ../root.yaml#/components/parameters/CompanyHeader
+      - $ref: ../root.yaml#/components/parameters/IdempotencyKey
+      - $ref: ../root.yaml#/components/parameters/IfMatchOptional
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: ../root.yaml#/components/schemas/ActionRequest
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedReport'
+          headers:
+            ETag:
+              $ref: ../root.yaml#/components/headers/ETag
+        '400':
+          $ref: ../root.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ../root.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: ../root.yaml#/components/responses/Forbidden
+        '404':
+          $ref: ../root.yaml#/components/responses/NotFound
+        '409':
+          $ref: ../root.yaml#/components/responses/Conflict
+        '422':
+          $ref: ../root.yaml#/components/responses/Unprocessable
+        '429':
+          $ref: ../root.yaml#/components/responses/TooManyRequests
+  /api/v1/reporting/reports/{id}:archive:
+    post:
+      operationId: reporting_reports_by_archive
+      summary: Acción archive sobre reports
+      tags:
+      - Informes y capa semántica
+      x-permission: reporting.report.update
+      x-owner: P17
+      x-features:
+      - F-ACC-REPORTS
       x-error-codes:
       - unauthenticated
       - policy_denied

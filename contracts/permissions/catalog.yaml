@@ -2335,6 +2335,8 @@ codes:
   owner: P09
   description: Actualizar presentaciones de un ítem
   operations:
+  - inventory_items_by_presentations_by_archive
+  - inventory_items_by_presentations_by_unarchive
   - inventory_items_by_presentations_by_update
   source: P02
 - code: inventory.putaway_rule.create
@@ -4621,6 +4623,7 @@ codes:
   description: Subscribe to / read reporting events (webhooks, MCP resources)
   operations:
   - event_reporting_exogena_run_generated_v1
+  - event_reporting_report_run_ready_v1
   - event_reporting_report_scheduled_run_completed_v1
   source: P02
 - code: reporting.exogena_mapping.read
@@ -4698,6 +4701,8 @@ codes:
   owner: P17
   description: Actualizar reports
   operations:
+  - reporting_reports_by_archive
+  - reporting_reports_by_publish
   - reporting_reports_by_run
   - reporting_reports_by_schedule
   - reporting_reports_by_update

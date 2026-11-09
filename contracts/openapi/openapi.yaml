@@ -15092,6 +15092,7 @@ paths:
       - presentation_factor_invalid
       - presentation_barcode_duplicate
       - uom_precision_violation
+      - packaged_exceeds_canonical
       parameters:
       - name: item_id
         in: path
@@ -15145,6 +15146,7 @@ paths:
       - presentation_factor_invalid
       - presentation_barcode_duplicate
       - uom_precision_violation
+      - packaged_exceeds_canonical
       x-idempotent: true
       parameters:
       - name: item_id
@@ -15204,6 +15206,7 @@ paths:
       - presentation_factor_invalid
       - presentation_barcode_duplicate
       - uom_precision_violation
+      - packaged_exceeds_canonical
       parameters:
       - name: id
         in: path
@@ -15262,6 +15265,7 @@ paths:
       - presentation_factor_invalid
       - presentation_barcode_duplicate
       - uom_precision_violation
+      - packaged_exceeds_canonical
       x-idempotent: true
       parameters:
       - name: id
@@ -15335,6 +15339,7 @@ paths:
       - presentation_factor_invalid
       - presentation_barcode_duplicate
       - uom_precision_violation
+      - packaged_exceeds_canonical
       x-idempotent: true
       parameters:
       - name: id
@@ -15371,6 +15376,144 @@ paths:
           $ref: '#/components/responses/Unprocessable'
         '428':
           $ref: '#/components/responses/PreconditionRequired'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/inventory/items/{item_id}/presentations/{id}:archive:
+    post:
+      operationId: inventory_items_by_presentations_by_archive
+      summary: Acción archive sobre presentaciones de un ítem
+      tags:
+      - Inventario
+      x-permission: inventory.presentation.update
+      x-owner: P09
+      x-features:
+      - F-INV-PRES
+      x-error-codes:
+      - unauthenticated
+      - policy_denied
+      - not_found
+      - idempotency_conflict
+      - idempotency_key_required
+      - validation_failed
+      - field_forbidden
+      - presentation_factor_invalid
+      - presentation_barcode_duplicate
+      - uom_precision_violation
+      - packaged_exceeds_canonical
+      x-idempotent: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/CompanyHeader'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/IfMatchOptional'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Presentation'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/inventory/items/{item_id}/presentations/{id}:unarchive:
+    post:
+      operationId: inventory_items_by_presentations_by_unarchive
+      summary: Acción unarchive sobre presentaciones de un ítem
+      tags:
+      - Inventario
+      x-permission: inventory.presentation.update
+      x-owner: P09
+      x-features:
+      - F-INV-PRES
+      x-error-codes:
+      - unauthenticated
+      - policy_denied
+      - not_found
+      - idempotency_conflict
+      - idempotency_key_required
+      - validation_failed
+      - field_forbidden
+      - presentation_factor_invalid
+      - presentation_barcode_duplicate
+      - uom_precision_violation
+      - packaged_exceeds_canonical
+      x-idempotent: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/CompanyHeader'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/IfMatchOptional'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Presentation'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
         '429':
           $ref: '#/components/responses/TooManyRequests'
   /api/v1/inventory/uoms:
@@ -17435,6 +17578,8 @@ paths:
       x-error-codes:
       - unauthenticated
       - policy_denied
+      - packaged_exceeds_canonical
+      - uom_precision_violation
       parameters:
       - $ref: '#/components/parameters/CompanyHeader'
       - name: item
@@ -17493,6 +17638,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
         '429':
           $ref: '#/components/responses/TooManyRequests'
   /api/v1/inventory/transfers:
@@ -44839,6 +44986,8 @@ paths:
       - Informes y capa semántica
       x-permission: reporting.report.read
       x-owner: P17
+      x-features:
+      - F-ACC-REPORTS
       x-error-codes:
       - unauthenticated
       - policy_denied
@@ -44873,6 +45022,8 @@ paths:
       - Informes y capa semántica
       x-permission: reporting.report.create
       x-owner: P17
+      x-features:
+      - F-ACC-REPORTS
       x-error-codes:
       - unauthenticated
       - policy_denied
@@ -44922,6 +45073,8 @@ paths:
       - Informes y capa semántica
       x-permission: reporting.report.read
       x-owner: P17
+      x-features:
+      - F-ACC-REPORTS
       x-error-codes:
       - unauthenticated
       - policy_denied
@@ -44961,6 +45114,8 @@ paths:
       - Informes y capa semántica
       x-permission: reporting.report.update
       x-owner: P17
+      x-features:
+      - F-ACC-REPORTS
       x-error-codes:
       - unauthenticated
       - policy_denied
@@ -45023,6 +45178,8 @@ paths:
       - Informes y capa semántica
       x-permission: reporting.report.delete
       x-owner: P17
+      x-features:
+      - F-ACC-REPORTS
       x-error-codes:
       - unauthenticated
       - policy_denied
@@ -45073,6 +45230,8 @@ paths:
       - Informes y capa semántica
       x-permission: reporting.report.update
       x-owner: P17
+      x-features:
+      - F-ACC-REPORTS
       x-error-codes:
       - unauthenticated
       - policy_denied
@@ -45130,6 +45289,126 @@ paths:
       - Informes y capa semántica
       x-permission: reporting.report.update
       x-owner: P17
+      x-features:
+      - F-ACC-REPORTS
+      x-error-codes:
+      - unauthenticated
+      - policy_denied
+      - not_found
+      - idempotency_conflict
+      - idempotency_key_required
+      - validation_failed
+      - field_forbidden
+      x-idempotent: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/CompanyHeader'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/IfMatchOptional'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedReport'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/reporting/reports/{id}:publish:
+    post:
+      operationId: reporting_reports_by_publish
+      summary: Acción publish sobre reports
+      tags:
+      - Informes y capa semántica
+      x-permission: reporting.report.update
+      x-owner: P17
+      x-features:
+      - F-ACC-REPORTS
+      x-error-codes:
+      - unauthenticated
+      - policy_denied
+      - not_found
+      - idempotency_conflict
+      - idempotency_key_required
+      - validation_failed
+      - field_forbidden
+      x-idempotent: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/CompanyHeader'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/IfMatchOptional'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedReport'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/reporting/reports/{id}:archive:
+    post:
+      operationId: reporting_reports_by_archive
+      summary: Acción archive sobre reports
+      tags:
+      - Informes y capa semántica
+      x-permission: reporting.report.update
+      x-owner: P17
+      x-features:
+      - F-ACC-REPORTS
       x-error-codes:
       - unauthenticated
       - policy_denied
@@ -93537,6 +93816,29 @@ components:
       - quote_id
       - vendor
       - reason
+    EventReportingReportRunReadyV1Payload:
+      type: object
+      additionalProperties: false
+      properties:
+        run_id:
+          type: string
+          format: uuid
+          x-classification: internal
+        report:
+          type: string
+          maxLength: 255
+          x-classification: internal
+        ledger_cutoff_seq:
+          type: integer
+          x-classification: internal
+        operation_id:
+          type: string
+          format: uuid
+          x-classification: internal
+      required:
+      - run_id
+      - report
+      - ledger_cutoff_seq
     EventReportingExogenaRunGeneratedV1Payload:
       type: object
       additionalProperties: false
@@ -95197,6 +95499,35 @@ webhooks:
                     x-classification: internal
                   payload:
                     $ref: '#/components/schemas/EventPurchasingRfqAwardedV1Payload'
+                    x-classification: internal
+      responses:
+        '200':
+          description: Consumer acknowledged (idempotent by event_id)
+  reporting.report_run.ready.v1:
+    post:
+      operationId: event_reporting_report_run_ready_v1
+      summary: Ejecución de informe lista (instantánea inmutable con corte del libro)
+      tags:
+      - Eventos
+      x-event-type: reporting.report_run.ready.v1
+      x-owner: P17
+      x-features:
+      - F-ACC-REPORTS
+      x-permission: reporting.event.read
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+              - $ref: '#/components/schemas/EventEnvelope'
+              - type: object
+                properties:
+                  event_type:
+                    const: reporting.report_run.ready.v1
+                    x-classification: internal
+                  payload:
+                    $ref: '#/components/schemas/EventReportingReportRunReadyV1Payload'
                     x-classification: internal
       responses:
         '200':

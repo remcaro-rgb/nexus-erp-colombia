@@ -1268,7 +1268,7 @@ x-modules:
   owner: P09
   base: /api/v1/inventory
   fragment: modules/inventory.yaml
-  operations: 155
+  operations: 157
 - module: ledger
   owner: P05
   base: /api/v1/ledger
@@ -1303,7 +1303,7 @@ x-modules:
   owner: P17
   base: /api/v1/reporting
   fragment: modules/reporting.yaml
-  operations: 33
+  operations: 35
 - module: sales
   owner: P10
   base: /api/v1/sales

@@ -10,7 +10,7 @@ resources:
     extra:
       - {path: '', method: POST, op: query, perm: read, returns: report, summary: Ejecutar consulta semántica (siempre vía iam.policy), errors: [semantic_query_invalid]}
     coll_actions: [{explain: {perm: read, returns: result, errors: [semantic_query_invalid]}}]
-  - {path: reports, kind: master, schema: SavedReport, fields: {definition: json internal req, schedule: string internal null, recipients: 'array(ref) internal'}, actions: [run, {schedule: {perm: update}}]}
+  - {path: reports, kind: master, schema: SavedReport, fields: {definition: json internal req, schedule: string internal null, recipients: 'array(ref) internal'}, actions: [run, {schedule: {perm: update}}, {publish: {perm: update}}, archive], features: [F-ACC-REPORTS]}
   # ---------------------------------------------------------------- F-ACC-REPORTS
   - &std
     path: standard/balance-general
@@ -66,6 +66,7 @@ resources:
          errors: [exogena_mapping_incomplete, exogena_party_data_missing, exogena_pack_not_verified], features: [F-ACC-EXO]}
   - {path: certificates, kind: process, perm: tax_certificate, coll_actions: [{generate: {perm: export}}]}
 events:
+  - {type: reporting.report_run.ready.v1, description: 'Ejecución de informe lista (instantánea inmutable con corte del libro)', features: [F-ACC-REPORTS], payload: {run_id: ref internal req, report: string internal req, ledger_cutoff_seq: int internal req, operation_id: ref internal}}
   - {type: reporting.exogena_run.generated.v1, description: Archivos de exógena generados (SINTÉTICO si el paquete no está verificado), features: [F-ACC-EXO], payload: {run_id: ref internal req, year: int internal req, synthetic: bool public req}}
   - {type: reporting.report.scheduled_run_completed.v1, description: Informe programado ejecutado, payload: {report_id: ref internal req, operation_id: ref internal req}}
 dataio:
