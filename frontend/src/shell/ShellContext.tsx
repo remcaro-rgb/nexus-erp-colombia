@@ -29,6 +29,8 @@ export interface ShellData {
   health: HealthState;
   logout: () => void;
   userId: string;
+  /** True while a company/period switch is loading its new context: data hooks wait instead of fetching. */
+  switching: boolean;
 }
 
 const ShellCtx = createContext<ShellData | null>(null);
@@ -46,7 +48,7 @@ export function useOptionalShell(): ShellData | null {
 type LoadState =
   | { phase: "loading" }
   | { phase: "error"; error: unknown }
-  | { phase: "ready"; context: UiContext; me: Me; modules: UiModules; companyId: string | null; period: PeriodRef | null };
+  | { phase: "ready"; context: UiContext; me: Me; modules: UiModules; companyId: string | null; period: PeriodRef | null; switching?: boolean };
 
 export interface ShellProviderProps {
   api: ApiClient;
@@ -126,10 +128,9 @@ export function ShellProvider({ api, children, descriptors, renderLoading, rende
     (companyId: string | null, period: PeriodRef | null) => {
       // Abort + clear BEFORE the new request so the previous company's data never renders while pending.
       storeRef.current.update({ companyId, periodId: period?.id ?? null });
-      setState((s) => (s.phase === "ready" ? { ...s, companyId, period } : s));
-      const ctrl = new AbortController();
+      setState((s) => (s.phase === "ready" ? { ...s, companyId, period, switching: true } : s));
       const signal = storeRef.current.signal;
-      load(companyId, period, ctrl.signal)
+      load(companyId, period, signal)
         .then((r) => {
           if (signal.aborted) return;
           const perms = toPermissionSet(r.me.permissions ?? r.context.permissions);
@@ -170,6 +171,7 @@ export function ShellProvider({ api, children, descriptors, renderLoading, rende
       },
       health,
       userId,
+      switching: Boolean(ready.switching),
       logout: () => {
         storeRef.current.clear();
         const url = (ready.context as UiContext & { logout_url?: string }).logout_url ?? "/auth/logout";
@@ -195,7 +197,7 @@ export interface Resource<T> {
 export function useResource<T>(endpoint: string | null, params: Record<string, string | number | null | undefined> = {}): Resource<T> {
   const shell = useShell();
   const { store, api } = shell;
-  const ctxKey = `${shell.companyId}|${shell.period?.id}|${store.current.permissionHash}`;
+  const ctxKey = `${shell.companyId}|${shell.period?.id}|${store.current.permissionHash}|${shell.switching ? "switching" : "ready"}`;
   const paramKey = JSON.stringify(params);
   const [nonce, setNonce] = useState(0);
   const [state, setState] = useState<{ key: string; data: T | null; error: unknown; loading: boolean }>({ key: "", data: null, error: null, loading: true });
@@ -204,6 +206,10 @@ export function useResource<T>(endpoint: string | null, params: Record<string, s
   useEffect(() => {
     if (!endpoint) {
       setState({ key, data: null, error: null, loading: false });
+      return;
+    }
+    if (shell.switching) {
+      setState({ key, data: null, error: null, loading: true });
       return;
     }
     let alive = true;

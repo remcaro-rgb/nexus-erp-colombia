@@ -25,7 +25,7 @@ export interface FakeOptions {
   permissions?: string[];
   companies?: Array<{ id: string; legal_name: string; nit?: string }>;
   portalKind?: "supplier" | "customer" | "employee" | null;
-  routes?: Record<string, (url: URL, init?: RequestInit) => unknown>;
+  routes?: Record<string, (url: URL, init?: RequestInit) => unknown | Promise<unknown>>;
   delayMs?: number;
 }
 
@@ -51,7 +51,7 @@ export function fakeApi(opts: FakeOptions = {}): FakeApi {
     if (init?.signal?.aborted) throw new DOMException("aborted", "AbortError");
     const custom = opts.routes?.[url.pathname];
     if (custom) {
-      const out = custom(url, init);
+      const out = await custom(url, init);
       return out instanceof Response ? out : json(out);
     }
     const companyId = url.searchParams.get("company_id") ?? companies[0]?.id ?? null;
