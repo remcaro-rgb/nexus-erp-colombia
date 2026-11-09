@@ -16,7 +16,7 @@ silent, the design is defensive and says so. Re-check these pages if the product
 | Topic | Documented (source) | Design consequence |
 |---|---|---|
 | Repo access | GitHub access through the **Claude GitHub App** installed on the repository, or `/web-setup` (sends your local `gh` token). Credentials stay outside the VM; a GitHub proxy injects them (S1, S2). | START-HERE step 1: install the Claude GitHub App on `remcaro-rgb/nexus-erp-colombia` (private repo). |
-| Branch pushes | The proxy **rejects branch deletions and pushes of anything other than a branch (e.g. tags)**. It **does not limit which branches a push can update**; use GitHub branch protection/rulesets for that (S2). | No tags: the RC is branch `release/rc-09`. Workers *can* technically push `main` (same account) → forbidden by prompt + CLAUDE.md + `.claude/settings.json` deny rules, and **detected** by `cloudctl audit-main` (every first-parent commit after the seed must carry `Nexus-Integrator:`). |
+| Branch pushes | The proxy **rejects branch deletions and pushes of anything other than a branch (e.g. tags)**. It **does not limit which branches a push can update**; use GitHub branch protection/rulesets for that (S2). | No tags: the RC is branch `release/rc-09`. Workers *can* technically push `main` (same account) → forbidden by prompt + CLAUDE.md + `.claude/settings.json` deny rules, and **detected** by `cloudctl audit-main` (every first-parent commit after the pinned seed must carry `Nexus-Integrator:` without touching tooling, or be a pinned owner maintenance commit). |
 | PRs / GitHub API | GraphQL is blocked (403); `gh pr` / `gh issue` fail; REST through `gh api repos/OWNER/REPO/...` works (S2). PRs can be created from the web UI (S1). | Acceptance never depends on PRs; the integrator merges locally and fast-forwards `main`. |
 | Branch names | Sessions work on a `claude/...` branch (S1). **Silent:** whether names are forced/stable. | `worker-start` uses the session's `claude/...` branch or creates `claude/TASK-aN-xxxx`; the integrator finds reports on **any** branch. |
 | Session duration / expiry | Idle VMs pause after a few minutes and can be **reclaimed** ("Environment expired"); reopening restores the conversation, not running processes (S1, S2). **Silent:** a hard maximum session length. | Workers push WIP + `docs/run/progress/TASK.md` (`attempt: N`) every ≤45 min; `RETRY-TASK.md` resumes from it. STATE lives in the repo. |
@@ -32,6 +32,15 @@ silent, the design is defensive and says so. Re-check these pages if the product
 | CLAUDE.md / rules | The repo's `CLAUDE.md`, `.claude/settings.json`, `.claude/rules` are loaded in cloud sessions (S1, S5). | Seed ships concise binding `CLAUDE.md` + deny rules. |
 | Permission modes | Cloud sessions offer Auto, Accept edits, Plan (S1). | Use the default/Auto; prompts never require approvals. |
 | Prefilled links | `https://claude.ai/code?prompt=…&repositories=owner/repo` (plus `prompt_url` needing CORS, `environment`) (S3). | Not used for the prompts (too long for a URL); START-HERE gives the plain repository link. |
+
+## Residual risk (honest)
+* `audit-main` is **detection, not authentication**. Trailers are plain text; pins are in `tools/cloudctl.py` on the same `main` the sessions can push.
+  Any session (or person) with your GitHub write access can still push to `main`, rewrite history, edit `tools/**` or remove the audit itself;
+  the audit then reports it only to sessions that still run an honest copy (integrators read the copy on `main` they just fetched).
+  A forged commit with a `Nexus-Integrator:` trailer that does not touch tooling is indistinguishable from a real integrator commit.
+* Real protection needs GitHub-side controls you own: block force-pushes/deletions on `main`, review `git log --first-parent main` after each wave.
+* Sessions already running 3.0.0/3.0.1 tools use the weaker trailer+path rule until they fetch 3.0.2 (they accept the 3.0.2 commit too).
+* Dependabot: its branches are ignored; merging one of its PRs into `main` makes the audit fail until REPAIR reverts it.
 
 ## Silent / uncertain (designed defensively)
 * **`make`**: the installed-tools table lists GCC, Clang, cmake, ninja — not GNU make. Sessions run `command -v make || sudo apt-get install -y make` (hook, prompts, optional setup script). Whether `sudo` is available to the session user is not documented; setup scripts do run as root.

@@ -16,7 +16,7 @@ Repository: https://github.com/remcaro-rgb/nexus-erp-colombia · default branch 
 * Need something outside your paths? Write a change request `contracts/change-requests/<T>-<n>.md` and use a typed fake behind `kernel.interfaces` meanwhile.
 
 ## Git
-* Work on the branch your session gave you (`claude/...`) or the one `cloudctl worker-start` created. Never push to `main` or `release/*`, never force-push, never delete branches, never push tags. Only the integrator advances `main` (it audits this).
+* Work on the branch your session gave you (`claude/...`) or the one `cloudctl worker-start` created. Never push to `main` or `release/*`, never force-push, never delete branches, never push tags. Only the integrator advances `main` (`cloudctl audit-main` checks it; only the owner's pinned maintenance commits may carry `Nexus-Seed:`). Never touch `dependabot/*` branches.
 * Commit early; push work in progress at least every 45 minutes with `docs/run/progress/<T>.md` containing a line `attempt: <N>`.
 
 ## Product rules that always hold (from docs/spec — they win over convenience)

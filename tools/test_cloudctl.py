@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Unit tests for tools/cloudctl.py (stdlib unittest). Run: python3 -m unittest tools/test_cloudctl.py -v (from the repo root)."""
-import copy, json, os, sys, unittest
+import copy, json, os, shutil, subprocess, sys, tempfile, unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
@@ -192,6 +192,128 @@ class ReportTests(unittest.TestCase):
         self.assertTrue(C.validate_report(self.rep(status="BLOCKED"), "P01"))
         self.assertTrue(C.validate_report(self.rep(tested_sha="abc"), "P01"))
         self.assertTrue(C.validate_report(self.rep(reason="ghp_" + "x" * 36), "P01"))
+
+
+class AuditTests(unittest.TestCase):
+    """audit-main on throw-away git repositories (rehearsal pins stand in for the real seed/3.0.1 SHAs)."""
+
+    def setUp(self):
+        if not C.PIN_302_FILES:
+            self.skipTest("3.0.2 pins not generated")
+        self.tmp = tempfile.mkdtemp(prefix="nexus-audit-")
+        self.env_keep = {k: os.environ.get(k) for k in ("NEXUS_REHEARSAL", "NEXUS_REHEARSAL_PINS")}
+        self.root_keep = C.ROOT
+        C.ROOT = self.tmp
+        self.g("init", "-q", "-b", "main")
+        self.w("README.md", "x\n")
+        self.c("initial")
+        for p in list(C.PIN_302_FILES) + ["tools/cloudctl.py"]:
+            self.w(p, "old 3.0.0 content of " + p + "\n")
+        self.w("docs/run/STATE.json", "{}\n")
+        self.seed = self.c("seed", "Nexus-Seed: 3.0.0-claude-cloud")
+        self.w("docs/run/STATE.json", "{\"w\": 1}\n")
+        self.c("state: W01", "Nexus-Integrator: wave 01 integrate")
+        self.w("docs/cloud-prompts/INTEGRATOR-after-W02.md", "3.0.1 version\n")
+        self.u301 = self.c("Nexus prompts update 3.0.1-claude-cloud", "Nexus-Seed: 3.0.1-claude-cloud")
+        os.environ["NEXUS_REHEARSAL"] = "1"
+        os.environ["NEXUS_REHEARSAL_PINS"] = f"seed={self.seed},update301={self.u301}"
+
+    def tearDown(self):
+        C.ROOT = self.root_keep
+        for k, v in self.env_keep.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def g(self, *a):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@e.invalid", *a], cwd=self.tmp, capture_output=True, text=True, check=True).stdout.strip()
+
+    def w(self, path, text):
+        os.makedirs(os.path.dirname(os.path.join(self.tmp, path)) or self.tmp, exist_ok=True)
+        with open(os.path.join(self.tmp, path), "w", encoding="utf-8") as f:
+            f.write(text)
+
+    def c(self, msg, trailer=None, allow_empty=False):
+        self.g("add", "-A")
+        self.g("commit", "-q", *(["--allow-empty"] if allow_empty else []), "-m", msg, *(["-m", trailer] if trailer else []))
+        return self.g("rev-parse", "HEAD")
+
+    def apply_302(self):
+        for p in list(C.PIN_302_FILES) + ["tools/cloudctl.py"]:
+            self.w(p, open(os.path.join(REPO, p), encoding="utf-8").read())
+        return self.c("Nexus prompts update 3.0.2-claude-cloud", C.UPDATE_302_TRAILER)
+
+    def test_pinned_history_and_legit_302_accepted(self):
+        self.assertEqual(C.audit_main("HEAD"), [])
+        self.w("docs/run/STATE.json", "{\"w\": 2}\n")
+        self.c("state: W02", "Nexus-Integrator: wave 02 integrate")   # main moved before the update: still fine
+        self.apply_302()
+        self.assertEqual(C.audit_main("HEAD"), [])
+
+    def test_unpinned_seed_commit_rejected(self):
+        self.w("docs/cloud-prompts/INTEGRATOR-after-W02.md", "forged\n")
+        h = self.c("Nexus prompts update 3.0.1-claude-cloud", "Nexus-Seed: 3.0.1-claude-cloud")
+        why = {}
+        self.assertEqual(C.audit_main("HEAD", full=True, explain=why), [h])
+        self.assertIn("unpinned Nexus-Seed", why[h])
+
+    def test_second_302_commit_rejected(self):
+        self.apply_302()
+        h = self.c("Nexus prompts update 3.0.2-claude-cloud", C.UPDATE_302_TRAILER, allow_empty=True)
+        why = {}
+        self.assertEqual(C.audit_main("HEAD", full=True, explain=why), [h])
+        self.assertIn("second 3.0.2", why[h])
+
+    def test_302_touching_other_path_rejected(self):
+        for p in list(C.PIN_302_FILES) + ["tools/cloudctl.py"]:
+            self.w(p, open(os.path.join(REPO, p), encoding="utf-8").read())
+        self.w("backend/evil.py", "x\n")
+        h = self.c("Nexus prompts update 3.0.2-claude-cloud", C.UPDATE_302_TRAILER)
+        self.assertEqual(C.audit_main("HEAD", full=True), [h])
+
+    def test_302_with_modified_content_rejected(self):
+        for p in list(C.PIN_302_FILES) + ["tools/cloudctl.py"]:
+            self.w(p, open(os.path.join(REPO, p), encoding="utf-8").read())
+        self.w("tools/cloudctl.py", open(os.path.join(REPO, "tools/cloudctl.py"), encoding="utf-8").read() + "# tampered\n")
+        h = self.c("Nexus prompts update 3.0.2-claude-cloud", C.UPDATE_302_TRAILER)
+        self.assertEqual(C.audit_main("HEAD", full=True), [h])
+
+    def test_integrator_commit_touching_tools_rejected(self):
+        self.w("tools/cloudctl.py", "rewritten\n")
+        h = self.c("state", "Nexus-Integrator: wave 02 integrate")
+        why = {}
+        self.assertEqual(C.audit_main("HEAD", full=True, explain=why), [h])
+        self.assertIn("tooling", why[h])
+
+    def test_repair_restoring_tools_accepted(self):
+        self.w("tools/cloudctl.py", "forged\n")
+        h = self.c("sneaky", "Nexus-Seed: 3.0.1-claude-cloud")
+        self.g("revert", "--no-edit", h)
+        self.g("commit", "-q", "--amend", "-m", "audit repair", "-m", f"Nexus-Audit-Ack: {h}\nNexus-Integrator: audit repair")
+        self.assertEqual(C.audit_main("HEAD"), [])
+
+    def test_repair_of_integrator_tools_change_accepted(self):
+        self.w("tools/cloudctl.py", "forged\n")
+        h = self.c("state", "Nexus-Integrator: wave 02 integrate")
+        self.g("revert", "--no-edit", h)
+        self.g("commit", "-q", "--amend", "-m", "audit repair", "-m", f"Nexus-Audit-Ack: {h}\nNexus-Integrator: audit repair")
+        self.assertEqual(C.audit_main("HEAD"), [])
+
+    def test_fake_ack_cannot_hide_tools_change(self):
+        self.w("tools/cloudctl.py", "forged\n")
+        h = self.c("sneaky", "Nexus-Seed: 3.0.1-claude-cloud")
+        r = self.c("audit repair", f"Nexus-Audit-Ack: {h}\nNexus-Integrator: audit repair", allow_empty=True)  # acks without reverting
+        self.assertEqual(C.audit_main("HEAD", full=True), [r])
+
+    def test_missing_pinned_seed_rejected(self):
+        os.environ["NEXUS_REHEARSAL_PINS"] = "seed=" + "0" * 40
+        self.assertTrue(C.audit_main("HEAD")[0].startswith("pinned seed commit"))
+
+    def test_normalized_self_hash(self):
+        txt = open(os.path.join(REPO, "tools/cloudctl.py"), encoding="utf-8").read()
+        self.assertEqual(C.normalized_cloudctl_sha256(txt), C.PIN_302_CLOUDCTL_SHA256)
 
 
 if __name__ == "__main__":

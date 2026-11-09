@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""cloudctl — wave/runbook control for Nexus ERP on Claude Code cloud sessions (edition 3.0.1-claude-cloud).
+"""cloudctl — wave/runbook control for Nexus ERP on Claude Code cloud sessions (edition 3.0.2-claude-cloud).
 
 Python 3.11+ standard library only. Run from the repository root (the git top level is used).
 
@@ -29,7 +29,7 @@ SEED_TRAILER = "Nexus-Seed:"
 INTEG_TRAILER = "Nexus-Integrator:"
 PROTECTED = ["CLAUDE.md", "docs/spec/**", "docs/prompt-pack/**", "docs/cloud-prompts/**", "docs/run/STATE.json", "docs/run/STATUS.md",
              "docs/run/plan-cloud.json", "docs/run/evidence/**", "tools/**", ".claude/**", "scripts/cloud/**", ".gitignore", "docs/ui-progress/**"]
-# owner maintenance commits (trailer Nexus-Seed:) after the initial seed may touch only these paths (prompt/tool updates, never product or state)
+# 3.0.1 maintenance paths (historical: the 3.0.1 update touched only these). Since 3.0.2 audit-main accepts only PINNED maintenance commits.
 MAINT_PATHS = ["docs/cloud-prompts/**", "docs/ui-progress/README.md", "tools/**", "CLAUDE.md", ".claude/settings.json"]
 SECRET_PATTERNS = [
     ("private key", re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----")),
@@ -430,8 +430,8 @@ def cmd_worker_start(a):
     resumed = None
     if a.resume:
         cands = []
-        for ref in git("for-each-ref", "--format=%(refname:short)", "refs/remotes/origin/").splitlines():
-            if ref in (f"origin/{main}", "origin/HEAD", f"origin/{br}") or ref.startswith("origin/release/"):
+        for ref in git("for-each-ref", "--format=%(refname:short)", "refs/remotes/origin/claude/").splitlines():
+            if ref == f"origin/{br}":
                 continue
             p = git("show", f"{ref}:docs/run/progress/{tid}.md", check=False)
             if p.returncode == 0 and re.search(rf"(?m)^attempt:\s*{s['attempt']}\s*$", p.stdout):
@@ -502,31 +502,246 @@ def cmd_worker_report(a):
 ACK_TRAILER = "Nexus-Audit-Ack:"
 
 
-def audit_main(ref, full=False):
-    """First-parent commits after the initial seed must be integrator commits (trailer Nexus-Integrator:), owner maintenance commits
-    (trailer Nexus-Seed:) that touch only MAINT_PATHS, or commits acknowledged (reverted) by a later integrator commit."""
+# Owner maintenance commits (trailer Nexus-Seed:) are accepted ONLY when pinned here. A trailer is not authentication: the audit detects
+# unauthorized writes to main (any session using the owner's GitHub account can push); REPAIR-audit-main reverts them.
+PINNED_SEED_COMMITS = {
+    "seed": "19a77d0840ac2d56d3d216ced5254a804f437f58",       # Nexus ERP seed 3.0.0-claude-cloud (initial seed of remcaro-rgb/nexus-erp-colombia)
+    "update301": "da85d6c90d49f60f38bb0c3a99f9ba5005e33da5",  # Nexus prompts update 3.0.1-claude-cloud
+}
+UPDATE_302_TRAILER = "Nexus-Seed: 3.0.2-claude-cloud"
+# The 3.0.2 tightening commit is pinned by CONTENT (its SHA cannot be known before it exists): exactly one first-parent commit after update301
+# with the exact trailer line, whose changed paths are all listed below (plus tools/cloudctl.py) and whose tree holds exactly these blobs.
+# tools/cloudctl.py is pinned by the sha256 of its own text with the PIN block (between the markers) removed.
+# >>> PIN-3.0.2
+PIN_302_FILES = {
+    'CLAUDE.md': 'f9f68499646f4336435d514fe420623c6bb0717e',
+    'docs/cloud-prompts/CLOUD-PLATFORM-NOTES.md': 'ce5fb111f2c14d53e0ed71fc9a3c1933dd046aa7',
+    'docs/cloud-prompts/INTEGRATOR-after-W01.md': '94d45ea02cc8609355111e0aa49d2d3862f8911a',
+    'docs/cloud-prompts/INTEGRATOR-after-W02.md': 'd2271e4c1a34cec89833b19aac98a9ab8e0bf4ca',
+    'docs/cloud-prompts/INTEGRATOR-after-W03.md': '5c5ef4c5a405a90d21e4f14fbf39dcd7a2e3cc5f',
+    'docs/cloud-prompts/INTEGRATOR-after-W04.md': '49dc5f5d451a80cc8765750f9a01191cd13c9bd9',
+    'docs/cloud-prompts/INTEGRATOR-after-W05.md': '480b6db89c28c006210ba097de2f6d23c77c2e6a',
+    'docs/cloud-prompts/INTEGRATOR-after-W06.md': '330d08c2326340febf672688f694aa5990f37ea2',
+    'docs/cloud-prompts/INTEGRATOR-after-W07.md': '4984afd0ed86e56030df08ee8ae575f263ab90fa',
+    'docs/cloud-prompts/INTEGRATOR-after-W08.md': 'be0bf3e91dbfb4e6307da2422c89cf7c19a1e873',
+    'docs/cloud-prompts/INTEGRATOR-after-W09.md': '21e7925a99cce127401ca5d0fe3c501b532bcbcb',
+    'docs/cloud-prompts/INTEGRATOR-after-W10.md': 'd872dc1263542b61731c9801cfe54c41e071f8bf',
+    'docs/cloud-prompts/REPAIR-audit-main.md': '2f4d288592a410d53a6921768a94102213b34366',
+    'docs/cloud-prompts/RETRY-DEV.md': 'fb5e94941b85e20636d54df55e5dfdbb01d7a0e7',
+    'docs/cloud-prompts/RETRY-P01.md': 'b1ed2ac1b098306a307505a817e7c07d98f76442',
+    'docs/cloud-prompts/RETRY-P02.md': '231d7589f69ca6a68e90fcdec39b96f7724d5654',
+    'docs/cloud-prompts/RETRY-P03.md': 'f90f1d9661d787f23d05c09fc578712b2f367a34',
+    'docs/cloud-prompts/RETRY-P04.md': '8d8ea9a032a91c57eebd59cb4a2cb6de96574525',
+    'docs/cloud-prompts/RETRY-P05.md': '6bba21fa162856f56c65cb6b3c1cd80dd0fe7907',
+    'docs/cloud-prompts/RETRY-P06.md': 'b08d790ad35f8d6193b1b9d7bc6f990c400ba8e8',
+    'docs/cloud-prompts/RETRY-P07.md': '933c8ad2f7cc4ebef180f4f87bc962e3df709daa',
+    'docs/cloud-prompts/RETRY-P08.md': 'd1561caa8863dfabd3e3f963d2d7e2fd6cba7b90',
+    'docs/cloud-prompts/RETRY-P09a.md': '4de886ad5213df58d7d7aa15b37ca2825efb2c9f',
+    'docs/cloud-prompts/RETRY-P09b.md': '9d5282eb7d7408efaa48364ab23e053746706dd9',
+    'docs/cloud-prompts/RETRY-P09c.md': '3f064c2a435714dc0393442570c584dbeeb80517',
+    'docs/cloud-prompts/RETRY-P10a.md': '82cd8d18246ff793b7c73f5471667361ebd2d20d',
+    'docs/cloud-prompts/RETRY-P10b.md': '58c7c01590ada761b485f8260a1dd351b6c66129',
+    'docs/cloud-prompts/RETRY-P11a.md': '7b2c13d5c60615428c8fd72bead1acdcff225439',
+    'docs/cloud-prompts/RETRY-P11b.md': '9847423f14bef2885db6b0ff589fc7a89bd7c2dc',
+    'docs/cloud-prompts/RETRY-P12.md': 'a96a359471dca59f53468544a805852e1279a0c8',
+    'docs/cloud-prompts/RETRY-P13a.md': '794d41cbc8a885aad8bf5b5cc17ea856cf67830e',
+    'docs/cloud-prompts/RETRY-P13b.md': '49aa88bbeaa92ebf47891af9fca1afa4884c6cdb',
+    'docs/cloud-prompts/RETRY-P14.md': '2b2110827cf454dae618b31e9d8ef86d7acbe47f',
+    'docs/cloud-prompts/RETRY-P15.md': 'de5b7b3ebbc77e88d01574368075992c955c241b',
+    'docs/cloud-prompts/RETRY-P16a.md': '748ff3d686db28ff63b56947d082ac0ddb522185',
+    'docs/cloud-prompts/RETRY-P16b.md': 'd8914f29401e3e636ff83aa35ab6aaef5132be0d',
+    'docs/cloud-prompts/RETRY-P17a.md': '1559c0441809548ff2233d53d2ab1ff8329f480e',
+    'docs/cloud-prompts/RETRY-P17b.md': 'b4e9a122041481c775435d38815860f0e55d40c3',
+    'docs/cloud-prompts/RETRY-P17c.md': '87a8718e584c75e7e1beff83abb9dfdd861c955b',
+    'docs/cloud-prompts/RETRY-P18.md': '56bfe100b3486583ac95054ce2a272d104eb0ae6',
+    'docs/cloud-prompts/RETRY-P19.md': '56339b3ea7434d44d8754c2b2f5c0b1b7a59260e',
+    'docs/cloud-prompts/RETRY-P20.md': 'd7c2f905936c091cff54dc5d3728e3ed278f740a',
+    'docs/cloud-prompts/RETRY-P21.md': '1e2d268926759e72b6289e53b129df83bdd39b08',
+    'docs/cloud-prompts/RETRY-P22a.md': '8ee8f482187ac0333ceb047c6a92a817d483ddc5',
+    'docs/cloud-prompts/RETRY-P22b.md': '4613904ce3dc044aa35bae079df2d62fb18e1e67',
+    'docs/cloud-prompts/RETRY-P22c.md': '9765fdc3ad02132249c7932e499af4563170db55',
+    'docs/cloud-prompts/RETRY-P22d.md': 'f6c8313e9db813958ec27a453e3ad9c6912b578e',
+    'docs/cloud-prompts/RETRY-P23.md': '44cbea81fe227bde576553f737dcbc21b683ff2a',
+    'docs/cloud-prompts/RUNBOOK.md': '7212a0dfb34b3eb40f0179de6678f5596c5635c9',
+    'docs/cloud-prompts/START-HERE.md': '852bf353ef64de4296485d789f3d612ef6e31c69',
+    'docs/cloud-prompts/W01-S1-P01-foundation-kernel.md': '874a8371ac897a8185b85287eec72650d52f9289',
+    'docs/cloud-prompts/W01-S2-P02-contract-freeze.md': '787ed3fc148f22a81c56c2a083379e77227a89bf',
+    'docs/cloud-prompts/W01-S3-P03-devops-ci.md': '3ec1c92dbfbb32f15de97d84bb43633fe5d0921d',
+    'docs/cloud-prompts/W02-S1-P04-iam-rls-field-security.md': '11614462c294dd07abdf82e51625c652c720eefc',
+    'docs/cloud-prompts/W02-S2-P05-ledger-posting-engine.md': '07d31105f362e72263edf3b543ef97e316922b50',
+    'docs/cloud-prompts/W02-S3-P07-workflow-audit-scheduler.md': '27904ba5c54635e47c0e97a044e7bc96a4f496ff',
+    'docs/cloud-prompts/W02-S4-P08-ux-shell-design-system.md': '6261d77fe576919d22b05dc2af33002c18d3cf84',
+    'docs/cloud-prompts/W02-S5-P06-tax-localization-co.md': '0249650cc1af6eaa00c49f321ae58f41e428eaa0',
+    'docs/cloud-prompts/W02-S6-P22a-qa-harness.md': '5c78f7fe39fe32bebb53425c7e45194c0e219b70',
+    'docs/cloud-prompts/W03-S1-P15-dian-einvoice-gateway.md': 'b0939f456e460e85127e9e1f6db0ca6ed01c8267',
+    'docs/cloud-prompts/W03-S2-P09a-inventory-core.md': '2c41df02dca724c9d83148d4262631b71cd6e2d0',
+    'docs/cloud-prompts/W03-S3-P13b-payroll-formulas.md': 'd9e83f1d82023d33c0eca795ded466cba7dfd784',
+    'docs/cloud-prompts/W03-S4-P11a-purchasing-ap-core.md': '9ba32c2cd5dd35a6f4325b6bed03af3eab3e1b85',
+    'docs/cloud-prompts/W03-S5-P13a-hr-timekeeping-employee-portal.md': '6dc2d42a59b0419e3c259515f6a449a461811bb3',
+    'docs/cloud-prompts/W03-S6-P14-fixed-assets.md': '17c4fafce12a648d9b31cea0ca5c6c6a0dc2803b',
+    'docs/cloud-prompts/W03-S7-P22b-qa-cross-module.md': 'dc9c68a7fc5532f7e36f00a077fa609158b3376b',
+    'docs/cloud-prompts/W04-S1-P10a-sales-ar-crm-core.md': 'f2943467d8f86ef77062c6eeb6442d9477a9f911',
+    'docs/cloud-prompts/W04-S2-P11b-requisitions-supplier-portal.md': '31076e2eeabc481db1b9f91c0329ba7635debebb',
+    'docs/cloud-prompts/W04-S3-P09c-inventory-bom-transformations.md': '09e4e29dc59cf9b0351a4c6d4cfd5af01bb0c143',
+    'docs/cloud-prompts/W04-S4-P09b-inventory-barcodes-issues.md': '05b44dfae611f446de1a08908948c7ea670233d1',
+    'docs/cloud-prompts/W05-S1-P16a-treasury-vouchers.md': '2121301b8be4858dfb2681b748d82004afe87ab3',
+    'docs/cloud-prompts/W05-S2-P12-pos.md': '03d0d51a798dc979f1e45487a68fba790f7d24a4',
+    'docs/cloud-prompts/W05-S3-P10b-customer-portal.md': 'f55045de6acf6ee26ab353178ba26d22980c1a6c',
+    'docs/cloud-prompts/W05-S4-P16b-intercompany-consolidation.md': '209e30eb8d05be593e608a3e99484f9b9f1941c2',
+    'docs/cloud-prompts/W06-S1-P18-bulk-import-export.md': '0d3058f51046c3c5368723e58b54985ad72325e2',
+    'docs/cloud-prompts/W06-S2-P22c-qa-leak-tests.md': '0b836d29ff81816bb7b232e59692c012200d4f67',
+    'docs/cloud-prompts/W06-S3-P17a-reporting-semantic-documents.md': 'dcb209197b4eedbd6b5221aca4676123947b3ebb',
+    'docs/cloud-prompts/W07-S1-P19-ai-business-agent.md': '5f7262fc225a02ee6be29b697418b1e0fa5d09aa',
+    'docs/cloud-prompts/W07-S2-P17b-financial-statements.md': 'f91987f1f4df7952edd9dd051bf0bdd9628bcee9',
+    'docs/cloud-prompts/W07-S3-P17c-exogena.md': '4d58d417cdc369691d2a58fae62642d465b465fc',
+    'docs/cloud-prompts/W08-S1-P21-ai-onboarding-agent.md': '7d5b50cf64b0fd0b36c838433b8e60335338ef59',
+    'docs/cloud-prompts/W08-S2-P20-mcp-server.md': 'f2f6f6abbc9eb235e6877239c25766900cbabb55',
+    'docs/cloud-prompts/W09-S1-P23-compliance-evidence.md': 'b7dba469a2314d234d81428dd102e820afff51a3',
+    'docs/cloud-prompts/W09-S2-P22d-qa-e2e-a11y-perf.md': '8be6e1adc1b50c9f375d421980e84224b2e0f3b0',
+    'docs/cloud-prompts/W10-S1-DEV-dev-runtime-local-run.md': '21ffe0b1d072ecbaf65914c8a7a62b59feda0669',
+    'tools/README.md': '65e0d8d89db1410cf920ee12a3c23c4a85fa43a4',
+    'tools/test_cloudctl.py': 'd6d87cd353a17fe291b141d4932d09a309488aad',
+}
+PIN_302_CLOUDCTL_SHA256 = '0178f7cd1ed983aa56518d8e8a9a09aed096a3164f5d2b41be53d0708705e2cf'
+# <<< PIN-3.0.2
+TOOLING_PATHS = ["tools/**", "CLAUDE.md", ".claude/**", "docs/spec/**", "docs/prompt-pack/**", "docs/cloud-prompts/**", "scripts/cloud/**", ".gitignore"]
+
+
+def pinned_shas():
+    pins = dict(PINNED_SEED_COMMITS)
+    extra = os.environ.get("NEXUS_REHEARSAL_PINS", "")
+    if os.environ.get("NEXUS_REHEARSAL") and extra:  # local rehearsals only: stand-ins for the real SHAs (role=sha,role=sha)
+        for kv in extra.split(","):
+            role, _, sha = kv.partition("=")
+            if role in pins and re.fullmatch(r"[0-9a-f]{40}", sha):
+                pins[role] = sha
+    return pins
+
+
+def normalized_cloudctl_sha256(text):
+    out, skip = [], False
+    for line in text.splitlines(keepends=True):
+        if line.startswith("# >>> PIN-3.0.2"):
+            skip = True
+        elif line.startswith("# <<< PIN-3.0.2"):
+            skip = False
+        elif not skip:
+            out.append(line)
+    return hashlib.sha256("".join(out).encode("utf-8")).hexdigest()
+
+
+def blob_at(commit, path):
+    p = git("rev-parse", "--verify", "-q", f"{commit}:{path}", check=False)
+    return p.stdout.strip() if p.returncode == 0 else None
+
+
+def changed_vs_first_parent(h):
+    return [p for p in git("diff-tree", "--no-commit-id", "--name-only", "-r", "-m", "--first-parent", "--no-renames", h).splitlines() if p]
+
+
+def tree_matches_302(h):
+    if not PIN_302_FILES or not PIN_302_CLOUDCTL_SHA256:
+        return False
+    if any(blob_at(h, p) != b for p, b in PIN_302_FILES.items()):
+        return False
+    c = git("show", f"{h}:tools/cloudctl.py", check=False)
+    return c.returncode == 0 and normalized_cloudctl_sha256(c.stdout) == PIN_302_CLOUDCTL_SHA256
+
+
+def is_302_commit(h, body):
+    if not re.search(rf"(?m)^{re.escape(UPDATE_302_TRAILER)}\s*$", body):
+        return False, "trailer"
+    allowed = set(PIN_302_FILES) | {"tools/cloudctl.py"}
+    extra = [p for p in changed_vs_first_parent(h) if p not in allowed]
+    if extra:
+        return False, f"3.0.2 commit touches unpinned paths {extra[:5]}"
+    if not tree_matches_302(h):
+        return False, "3.0.2 commit content differs from the pinned 3.0.2 files"
+    return True, ""
+
+
+def is_tooling(p):
+    return any(match(p, g) for g in TOOLING_PATHS)
+
+
+def repair_tooling_problem(commits, pos, i, h, acks):
+    """An integrator commit may change tooling paths only as an audit repair that restores them exactly: every tooling path changed by the
+    commit or by a commit it acknowledges must, at this commit, have the blob it had just before the oldest acknowledged commit that changed it
+    (and nothing else may have changed that path in between). Otherwise the ack would hide a tooling change."""
+    touched = {p for p in changed_vs_first_parent(h) if is_tooling(p)}
+    acked = sorted({pos[x] for x in acks if x in pos and pos[x] > i})
+    by_path = {}
+    for j in acked:
+        for p in changed_vs_first_parent(commits[j][0]):
+            if is_tooling(p):
+                by_path.setdefault(p, []).append(j)
+    if not touched and not by_path:
+        return ""
+    if touched - set(by_path):
+        return f"integrator commit modifies tooling paths {sorted(touched - set(by_path))[:5]}"
+    for p, js in by_path.items():
+        oldest = max(js)
+        for k in range(i + 1, oldest):
+            if k not in acked and p in changed_vs_first_parent(commits[k][0]):
+                return f"audit-repair cannot restore {p}: a non-acknowledged commit changed it too (operator must repair by hand)"
+        before = commits[oldest + 1][0] if oldest + 1 < len(commits) else None
+        if before is None or blob_at(h, p) != blob_at(before, p):
+            return f"audit-repair commit does not restore tooling path {p} exactly"
+    return ""
+
+
+def audit_main(ref, full=False, explain=None):
+    """First-parent history of `ref` after the pinned seed may contain only:
+       * integrator commits (trailer Nexus-Integrator:) that do not modify tooling paths (tools/**, CLAUDE.md, .claude/**, docs/spec/**,
+         docs/prompt-pack/**, docs/cloud-prompts/**, scripts/cloud/**, .gitignore) — except an audit-repair commit that restores them exactly;
+       * the pinned owner maintenance commits (PINNED_SEED_COMMITS, and at most one content-pinned 3.0.2 commit after update301);
+       * commits acknowledged (reverted) by a later audit-repair commit (trailer Nexus-Audit-Ack:).
+    Anything else — including any other Nexus-Seed-trailered commit — is reported."""
+    why = explain if explain is not None else {}
     commits = []
     for chunk in git("log", "--first-parent", "--format=%H%x1f%B%x1e", ref).split("\x1e"):
         chunk = chunk.strip()
         if chunk:
             commits.append(chunk.split("\x1f", 1))
-    seeds = [i for i, (_, b) in enumerate(commits) if SEED_TRAILER in b]
-    if not seeds:
-        return ["no seed commit (Nexus-Seed trailer) in the first-parent history"]
-    base = seeds[-1]  # the oldest seed commit is the initial seed
-    bad, acks = [], set()
-    for h, body in commits[:base]:
-        if INTEG_TRAILER in body:
-            acks |= set(re.findall(rf"(?m)^{ACK_TRAILER}\s*([0-9a-f]{{40}})", body))
+    pins = pinned_shas()
+    pos = {h: i for i, (h, _) in enumerate(commits)}
+    if pins["seed"] in pos:
+        base = pos[pins["seed"]]
+        fresh = False
+    else:
+        # a NEW repository seeded from the 3.0.2 seed: its oldest seed commit carries the 3.0.2 trailer and the pinned 3.0.2 content
+        seeds = [i for i, (h, b) in enumerate(commits) if SEED_TRAILER in b]
+        if not seeds or UPDATE_302_TRAILER not in commits[seeds[-1]][1] or not tree_matches_302(commits[seeds[-1]][0]):
+            return [f"pinned seed commit {pins['seed'][:12]} is not in the first-parent history of {ref}"]
+        base, fresh = seeds[-1], True
+    upd301 = pos.get(pins["update301"])
+    valid302 = [] if (fresh or upd301 is None) else [i for i, (h, b) in enumerate(commits[:upd301]) if INTEG_TRAILER not in b and SEED_TRAILER in b and is_302_commit(h, b)[0]]
+    accepted302 = max(valid302) if valid302 else None  # the oldest one; any later copy is a forgery
+    bad, acks = [], {}
+    def flag(h, reason):
+        bad.append(h if full else h[:12]); why[h] = reason
+    for i, (h, body) in enumerate(commits[:base]):  # newest first, stops before the seed
+        if h in acks:  # reverted by a later audit-repair commit (whose restore was verified above)
             continue
-        if h in acks:
+        if INTEG_TRAILER in body:
+            my_acks = re.findall(rf"(?m)^{ACK_TRAILER}\s*([0-9a-f]{{40}})", body)
+            for x in my_acks:
+                acks[x] = h
+            problem = repair_tooling_problem(commits, pos, i, h, my_acks)
+            if problem:
+                flag(h, problem)
             continue
         if SEED_TRAILER in body:
-            touched = [p for p in git("diff-tree", "--no-commit-id", "--name-only", "-r", "-m", "--first-parent", h).splitlines() if p]
-            outside = [p for p in touched if not any(match(p, g) for g in MAINT_PATHS)]
-            if not outside:
+            if not fresh and h == pins["update301"]:
                 continue
-        bad.append(h if full else h[:12])
+            if i == accepted302:
+                continue
+            if i in valid302:
+                flag(h, "a second 3.0.2 maintenance commit (only one is ever allowed)"); continue
+            if not fresh and upd301 is not None and i < upd301:
+                flag(h, f"unpinned Nexus-Seed commit ({is_302_commit(h, body)[1]})"); continue
+            flag(h, "unpinned Nexus-Seed commit"); continue
+        flag(h, "not an integrator commit")
     return bad
 
 
@@ -561,9 +776,8 @@ def cmd_audit_repair(a):
 
 def find_report(plan, st, tid):
     best = None
-    for ref in git("for-each-ref", "--format=%(refname:short)", "refs/remotes/origin/").splitlines():
-        if ref in (f"origin/{plan['default_branch']}", "origin/HEAD") or ref.startswith("origin/release/"):
-            continue
+    for ref in git("for-each-ref", "--format=%(refname:short)", "refs/remotes/origin/claude/").splitlines():
+        # only worker branches (claude/*); dependabot/*, release/* and any other branch are never candidates
         p = git("show", f"{ref}:docs/run/reports/{tid}.json", check=False)
         if p.returncode != 0:
             continue
@@ -860,8 +1074,12 @@ def main(argv=None):
               f"tests={len(reg['tests'])} features={len(reg['features'])} max_parallel_sessions={plan['limits']['max_parallel_sessions']}")
     elif a.cmd == "audit-main":
         fetch_retry()
-        bad = audit_main(f"origin/{load_plan()['default_branch']}")
-        print("AUDIT-OK" if not bad else f"AUDIT-FAILED {bad}"); sys.exit(0 if not bad else 5)
+        why = {}
+        bad = audit_main(f"origin/{load_plan()['default_branch']}", explain=why)
+        if bad:
+            for h, r in why.items():
+                print(f"  {h[:12]}: {r}")
+        print("AUDIT-OK" if not bad else f"AUDIT-FAILED {bad}  (paste prompts/REPAIR-audit-main.md)"); sys.exit(0 if not bad else 5)
     elif a.cmd == "next":
         print(next_text(load_plan(), load_state()))
     elif a.cmd == "status":

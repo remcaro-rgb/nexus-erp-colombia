@@ -1,4 +1,4 @@
-# START HERE — run Nexus ERP Colombia with Claude Code cloud sessions (edition 3.0.1-claude-cloud)
+# START HERE — run Nexus ERP Colombia with Claude Code cloud sessions (edition 3.0.2-claude-cloud)
 
 Nothing has been built yet. These files make the build **copy-paste only**: you open sessions and paste prompt files; the sessions do the rest.
 Repository: **https://github.com/remcaro-rgb/nexus-erp-colombia** (private).
@@ -14,7 +14,9 @@ Repository: **https://github.com/remcaro-rgb/nexus-erp-colombia** (private).
    `apt-get update && apt-get install -y make && uv python install 3.13` — `make` is not in the documented pre-installed list (sessions install it themselves if missing).
 4. **Repository rules on GitHub** (Settings → Rules, optional): you may block force-pushes and branch deletion on `main`. **Do not** require pull
    requests on `main` — the integrator session fast-forwards `main` and would be refused.
-5. **Plan usage**: all sessions share your Claude plan limits. Recommended peak: **5 worker sessions at once** (see PARALLELISM.md).
+5. **Dependabot** (enabled on the repo): its `dependabot/*` branches are ignored by every session. **Do not merge Dependabot PRs** into `main` —
+   the audit would report the merge (`BLOCKED-AUDIT`) and REPAIR would revert it. Optionally disable Dependabot version updates (Settings → Code security).
+6. **Plan usage**: all sessions share your Claude plan limits. Recommended peak: **5 worker sessions at once** (see PARALLELISM.md).
 
 ## How to run (every time)
 1. Open `PASTE-ORDER.md` (checklist) or `RUNBOOK.md` (table). Start with wave 01.
@@ -31,13 +33,16 @@ Repository: **https://github.com/remcaro-rgb/nexus-erp-colombia** (private).
 * Session expired before `RESULT` → run the integrator anyway; it lists the task as MISSING → paste `RETRY-TASK.md` (resumes pushed work).
 * `REWORK` → paste the named `RETRY-TASK.md`, then the integrator again.
 * `STOP-OPERATOR` (3 failed attempts) or `OPERATOR: … BLOCKED` → read `docs/run/STATUS.md` on GitHub; fix the named cause (or decide), then paste the RETRY file.
-* `BLOCKED-AUDIT` → a commit reached `main` without the integrator; paste `prompts/REPAIR-audit-main.md`, then the integrator again.
+* `BLOCKED-AUDIT` → a commit reached `main` without the integrator (or an unpinned `Nexus-Seed:` commit, or a change to `tools/**`); paste `prompts/REPAIR-audit-main.md`, then the integrator again.
 * Full table: RUNBOOK.md → "If something goes wrong".
 
 ## What is in this package
 * `prompts/` — 35 task prompts (`WNN-SK-TASK-name.md`, 34 workers + DEV), 35 `RETRY-TASK.md`, 10 `INTEGRATOR-after-WNN.md`, 1 `REPAIR-audit-main.md`.
 * `RUNBOOK.md`, `RUNBOOK.csv`, `PASTE-ORDER.md`, `PARALLELISM.md`, `CLOUD-PLATFORM-NOTES.md`.
-* `seed.tar.gz` (+ `.sha256`) — the exact tree of the first commit on `main` (spec, original prompt pack, tools, state, CLAUDE.md; no secrets).
+* `seed.tar.gz` (+ `.sha256`) — 3.0.2 seed tree for a NEW repository (spec, original prompt pack, tools, state, CLAUDE.md; no secrets).
+* `repo-update-3.0.1.tar.gz` (+ `.sha256`) — for the EXISTING repository seeded with 3.0.0: `apply.sh` adds the UI-preview tools and updated prompts (maintenance paths only).
+* `repo-update-3.0.2.tar.gz` (+ `.sha256`) — for the EXISTING repository (after 3.0.1): `apply.sh` commits the single pinned 3.0.2 tightening commit
+  (audit-main accepts `Nexus-Seed:` commits only by pin; Dependabot branches ignored). Apply it once; never commit another `Nexus-Seed:` trailer by hand.
 
 Honest limits: success is not guaranteed; every acceptance is based on tests the integrator re-ran itself; legal externals (DIAN, PILA, rates)
 stay labelled synthetic fixtures; DEV-only, never production.

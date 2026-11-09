@@ -1,6 +1,6 @@
 # RETRY — P16b — Treasury / intercompany / consolidation — intercompany consolidation
 
-Nexus ERP Colombia · edition 3.0.1-claude-cloud · wave 05 · worker prompt · resume/retry
+Nexus ERP Colombia · edition 3.0.2-claude-cloud · wave 05 · worker prompt · resume/retry
 
 > Paste this whole file, unchanged, as the first message of a NEW Claude Code session on the web (claude.ai/code), repository **remcaro-rgb/nexus-erp-colombia**, environment with network access **Trusted** (the default).
 > One file per session. The session works to the end by itself; you do not need to answer anything.
@@ -110,7 +110,8 @@ summary: 3-6 lines of what was built and decided
 
 ## Never
 * Never ask the user anything and never wait for an answer: decide with `docs/spec/DECISIONS-DEFAULTS.md` and the decision defaults in this prompt, write the decision in your handoff, continue.
-* Never push to `main` or to `release/*`, never merge into `main`, never force-push, never delete a branch, never push a tag. Only the integrator session advances `main`, and `cloudctl audit-main` detects any other commit.
+* Never push to `main` or to `release/*`, never merge into `main`, never force-push, never delete a branch, never push a tag. Only the integrator session advances `main`, and `cloudctl audit-main` detects any other commit (a `Nexus-Seed:` trailer is accepted only on the owner's pinned maintenance commits).
+* Never work on, merge or push `dependabot/*` or any branch other than your own `claude/...` branch.
 * Never edit protected paths: `CLAUDE.md`, `docs/spec/**`, `docs/prompt-pack/**`, `docs/cloud-prompts/**`, `docs/run/STATE.json`, `docs/run/STATUS.md`, `docs/run/plan-cloud.json`, `docs/run/evidence/**`, `tools/**`, `.claude/**`, `scripts/cloud/**`, `.gitignore`, `docs/ui-progress/**` (UI screenshots are written only by the integrator).
 * Never commit, print or paste secrets, tokens, private keys or demo passwords. Dev secrets are generated at run time into gitignored `deploy/dev/secrets/` (mode 0600); reports and logs name the file path only.
 * Never use production endpoints, real DIAN/PILA/bank/payment/e-mail services or real personal data; never invent official legal parameters (they are EXTERNAL, use labelled synthetic fixtures).

@@ -1,6 +1,9 @@
 # tools (Python 3.11+, standard library only; integrator/seed only — workers never edit tools/)
 
-* `cloudctl.py` — plan validation, worker start/check/report, integrator integrate/close-gates/publish, next/status. `python3 tools/cloudctl.py -h`
+* `cloudctl.py` — plan validation, worker start/check/report, integrator integrate/close-gates/publish, next/status, audit-main/audit-repair. `python3 tools/cloudctl.py -h`
+  audit-main accepts on `main` only integrator commits that leave tooling untouched, audit-repair reverts, and the owner's maintenance commits pinned
+  in `cloudctl.py` (seed 19a77d08, 3.0.1 da85d6c9 by SHA; the single 3.0.2 commit by trailer + exact file hashes). Detection, not authentication.
+  Worker branches are `claude/*` only; `dependabot/*` and other branches are ignored.
 * `featctl.py` — feature registry: `validate --root docs/spec`, `required`, `gate-check`, `collect` (JUnit XML / Playwright JSON → feature results)
 * `uictl.py` — UI overlay validation: `validate --root docs/spec`
 * `ui_snapshot.py` + `ui_snapshot.cjs` — integrator-only UI progress screenshots after each wave (system Chrome via a pinned playwright-core,
