@@ -87,7 +87,7 @@ class AtomicityProbe:
         with connections[self.using].cursor() as cur:
             # Order-independent digest of every row's text form (synthetic test tables only).
             cur.execute(
-                f"SELECT count(*), coalesce(md5(string_agg(md5(t::text), ',' ORDER BY md5(t::text))), '') "  # noqa: S608
+                f"SELECT count(*), coalesce(md5(string_agg(md5(t::text), ',' ORDER BY md5(t::text))), '') "
                 f"FROM {_quote(table)} AS t"
             )
             count, digest = cur.fetchone()
@@ -155,13 +155,11 @@ def sweep(
         return SweepResult(total, [], changed, violations)
     points = list(range(1, total + 1))
     if sample is not None and sample < total:
-        points = sorted(random.Random(seed).sample(points, sample))  # noqa: S311 - reproducible sampling
+        points = sorted(random.Random(seed).sample(points, sample))
     for k in points:
         with fail_after(k, using) as inj:
-            try:
+            with contextlib.suppress(InjectedFailure):
                 command()
-            except InjectedFailure:
-                pass
         if not inj.fired:
             violations.append(f"injection #{k} never fired (statement count not deterministic)")
             if reset is not None:

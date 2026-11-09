@@ -19,7 +19,11 @@ from reference_api import SUPPORTED, ReferenceApi
 
 def _fields(resource: str, n: int) -> dict[str, str]:
     if resource == "sales.party":
-        return {"code": f"C-{n:04d}", "legal_name": f"Cliente Andino SINTÉTICO {n} SAS", "email": f"cliente{n}@demo.invalid"}
+        return {
+            "code": f"C-{n:04d}",
+            "legal_name": f"Cliente Andino SINTÉTICO {n} SAS",
+            "email": f"cliente{n}@demo.invalid",
+        }
     if resource == "hr.employee":
         return {"code": f"E-{n:04d}", "full_name": f"Empleado SINTÉTICO {n}", "health_entity": f"EPS SINTÉTICA {n}"}
     return {"code": f"SYN-{n:04d}"}
@@ -122,4 +126,10 @@ def test_p22a_full_contract_case_generation_is_complete():
         if per_op_principals.get(key, set()) != expected:
             missing.append(key)
     assert not missing, missing[:5]
-    assert {c.op.channel for c in all_cases} >= {Channel.LIST, Channel.DETAIL, Channel.EXPORT, Channel.REPORT, Channel.AI}
+    assert {c.op.channel for c in all_cases} >= {
+        Channel.LIST,
+        Channel.DETAIL,
+        Channel.EXPORT,
+        Channel.REPORT,
+        Channel.AI,
+    }

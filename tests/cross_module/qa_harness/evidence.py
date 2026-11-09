@@ -22,7 +22,7 @@ import re
 import shutil
 import subprocess
 import sys
-import xml.etree.ElementTree as ET  # noqa: S405 - parses our own JUnit reports only
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
@@ -117,7 +117,9 @@ def collect(gate: str, label: str, source: Path = REPORTS, dest_root: Path = GAT
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(src, dst)
         data = dst.read_bytes()
-        files.append({"path": dst.relative_to(dest).as_posix(), "sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data)})
+        files.append(
+            {"path": dst.relative_to(dest).as_posix(), "sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data)}
+        )
     dest.mkdir(parents=True, exist_ok=True)
     index = {
         "gate": gate,

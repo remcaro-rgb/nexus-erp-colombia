@@ -20,7 +20,8 @@ def _tree(tmp_path):
     shutil.copyfile(tr.SHARED_08, shared / "08-traceability-matrix.md")
     demo = tmp_path / "tests" / "demo"
     demo.mkdir(parents=True)
-    (demo / "test_demo.py").write_text(textwrap.dedent('''
+    (demo / "test_demo.py").write_text(
+        textwrap.dedent("""
         import pytest
         pytestmark = pytest.mark.req("UR-01")
 
@@ -36,7 +37,9 @@ def _tree(tmp_path):
 
         def helper():
             pass
-    '''), encoding="utf-8")
+    """),
+        encoding="utf-8",
+    )
     (demo / "journey.spec.ts").write_text("test('venta completa @UR-09 @UR-11', async () => {});\n", encoding="utf-8")
     junit = tmp_path / "reports" / "junit"
     junit.mkdir(parents=True)
@@ -53,7 +56,7 @@ def test_p22a_requirements_parsed_from_shared_08():
 def test_p22a_markers_junit_and_playwright_are_joined(tmp_path, monkeypatch):
     root = _tree(tmp_path)
     monkeypatch.setattr(tr, "ROOT", root)
-    rows, reqs, tests = tr.generate(root=root)
+    rows, _reqs, _tests = tr.generate(root=root)
     got = {(r[0], r[5]): r[6] for r in rows}
     assert got[("UR-07", "test_a")] == "PASSED"
     assert got[("UR-14", "test_a")] == "PASSED"

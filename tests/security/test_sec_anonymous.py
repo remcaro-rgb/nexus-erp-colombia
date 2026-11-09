@@ -36,7 +36,7 @@ PROTECTED = _protected()
 
 def test_p22a_route_inventory_is_not_empty():
     templates = {r.template for r in implemented_routes()}
-    assert ALLOWED_ANONYMOUS <= templates
+    assert templates >= ALLOWED_ANONYMOUS
     assert PROTECTED, "at least /api/v1/ui/context is protected"
 
 

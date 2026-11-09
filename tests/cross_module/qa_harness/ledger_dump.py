@@ -61,7 +61,9 @@ def unbalanced_entries(lines: Iterable[Mapping[str, Any]]) -> dict[str, dict[str
             sums[entry]["functional"] += to_decimal(ln.get("debit_functional"), "debit_functional") - to_decimal(
                 ln.get("credit_functional"), "credit_functional"
             )
-    return {e: {c: v for c, v in by.items() if v != ZERO} for e, by in sums.items() if any(v != ZERO for v in by.values())}
+    return {
+        e: {c: v for c, v in by.items() if v != ZERO} for e, by in sums.items() if any(v != ZERO for v in by.values())
+    }
 
 
 def account_balances(lines: Iterable[Mapping[str, Any]]) -> dict[str, Decimal]:

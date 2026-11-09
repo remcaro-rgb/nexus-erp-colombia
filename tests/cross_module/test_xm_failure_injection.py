@@ -5,12 +5,12 @@ from __future__ import annotations
 
 import pytest
 from django.db import connection
+from qa_harness.failure_injection import AtomicityProbe, InjectedFailure, fail_after, sweep
 
 from kernel import sequences
 from kernel.models import IdempotencyRecord, OutboxMessage, Sequence
 from kernel.testing.tenancy import first_company, make_context
 from kernel.uow import run_in_unit_of_work, unit_of_work
-from qa_harness.failure_injection import AtomicityProbe, InjectedFailure, fail_after, sweep
 
 TABLES = [Sequence._meta.db_table, OutboxMessage._meta.db_table, IdempotencyRecord._meta.db_table]
 

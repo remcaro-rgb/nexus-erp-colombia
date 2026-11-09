@@ -24,7 +24,7 @@ import csv
 import json
 import re
 import sys
-import xml.etree.ElementTree as ET  # noqa: S405 - parses our own JUnit reports only
+import xml.etree.ElementTree as ET
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
@@ -101,19 +101,30 @@ def scan_pytest(roots: Iterable[Path]) -> list[TracedTest]:
         rel = path.relative_to(ROOT).as_posix()
         module_urs: list[str] = []
         for stmt in tree.body:
-            if isinstance(stmt, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "pytestmark" for t in stmt.targets):
+            if isinstance(stmt, ast.Assign) and any(
+                isinstance(t, ast.Name) and t.id == "pytestmark" for t in stmt.targets
+            ):
                 module_urs += _req_args(stmt.value)
         modname = rel[:-3].replace("/", ".")
 
-        def visit(body: list[ast.stmt], cls_urs: list[str], cls_prefix: str, mod: str = modname, f: str = rel) -> None:
+        def visit(
+            body: list[ast.stmt],
+            cls_urs: list[str],
+            cls_prefix: str,
+            mod: str = modname,
+            f: str = rel,
+            mod_urs: tuple[str, ...] = tuple(module_urs),
+        ) -> None:
             for node in body:
                 if isinstance(node, ast.ClassDef) and node.name.startswith("Test"):
                     urs = [u for d in node.decorator_list for u in _req_args(d)]
                     visit(node.body, cls_urs + urs, f"{cls_prefix}{node.name}.")
                 elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test"):
                     urs = [u for d in node.decorator_list for u in _req_args(d)]
-                    for ur in sorted(set(module_urs + cls_urs + urs)):
-                        found.append(TracedTest(ur, "pytest", f, node.name, mod + ("." + cls_prefix[:-1] if cls_prefix else "")))
+                    for ur in sorted(set(mod_urs) | set(cls_urs) | set(urs)):
+                        found.append(
+                            TracedTest(ur, "pytest", f, node.name, mod + ("." + cls_prefix[:-1] if cls_prefix else ""))
+                        )
 
         visit(tree.body, [], "")
     return found
@@ -182,7 +193,11 @@ def status_of(t: TracedTest, junit: dict[tuple[str, str], str], pw: dict[str, st
     if t.kind == "playwright":
         return pw.get(t.name, "NOT_RUN")
     # JUnit classnames are module paths relative to the rootdir (+ class); be tolerant of prefixes.
-    hits = [st for (cls, name), st in junit.items() if name == t.name and (cls == t.junit_class or cls.endswith(t.junit_class))]
+    hits = [
+        st
+        for (cls, name), st in junit.items()
+        if name == t.name and (cls == t.junit_class or cls.endswith(t.junit_class))
+    ]
     if not hits:
         return "NOT_RUN"
     return "FAILED" if "FAILED" in hits else ("PASSED" if "PASSED" in hits else "SKIPPED")
