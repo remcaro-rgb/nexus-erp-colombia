@@ -1,0 +1,4 @@
+# gitleaks ignore list (FIX-D-W01-1). One fingerprint per line: <commit>:<file>:<rule>:<line>. Keep it minimal.
+# tools/test_cloudctl.py:160 in the seed commit is the self-test of cloudctl's own secret scanner: the string is built
+# by concatenation ('{"api_' + 'key": ...}') and is a synthetic fixture, not a credential.
+19a77d0840ac2d56d3d216ced5254a804f437f58:tools/test_cloudctl.py:generic-api-key:160

@@ -60,10 +60,13 @@ policy_compose() {
   python3 scripts/ci/lint_compose.py
 }
 policy_gitleaks() {
-  docker run --rm -v "$PWD:/repo" -w /repo "$GITLEAKS_IMAGE" git --redact --no-banner /repo
+  # the ignore file lists single reviewed fingerprints (scanner self-test fixtures), never paths or rules
+  docker run --rm -v "$PWD:/repo" -w /repo "$GITLEAKS_IMAGE" git --redact --no-banner \
+    --gitleaks-ignore-path /repo/scripts/ci/gitleaks-allowlist.gitleaksignore /repo
 }
 policy_semgrep() {
-  uvx --from semgrep==1.142.0 semgrep scan --error --metrics=off --config p/django --config p/python --config p/secrets backend
+  # resolve semgrep's unpinned dependencies as of its release (a newer pydantic breaks semgrep 1.142.0's mcp import)
+  uvx --exclude-newer 2025-11-20T00:00:00Z --from semgrep==1.142.0 semgrep scan --error --metrics=off --config p/django --config p/python --config p/secrets backend
 }
 policy_audit() {
   local req; req="$(mktemp)"
