@@ -1,0 +1,2357 @@
+{
+  "schema": "nexus-cloud/plan/v1",
+  "edition": "3.0.0-claude-cloud",
+  "product_spec": "2.2.0-dev (docs/spec; unchanged scope)",
+  "repo_url": "https://github.com/remcaro-rgb/nexus-erp-colombia",
+  "repo_slug": "remcaro-rgb/nexus-erp-colombia",
+  "default_branch": "main",
+  "limits": {
+    "max_attempts": 3,
+    "max_parallel_sessions": 5
+  },
+  "common_paths_per_task": [
+    "docs/handoffs/{task}.md",
+    "contracts/change-requests/{task}-*",
+    "contracts/permissions/catalog.yaml",
+    "docs/run/reports/{task}.json",
+    "docs/run/progress/{task}.md"
+  ],
+  "union_merge_paths": [
+    "contracts/permissions/catalog.yaml",
+    "docs/traceability.csv"
+  ],
+  "mediated_overlaps": [
+    {
+      "paths": [
+        "contracts/**",
+        "contracts/openapi/modules/*",
+        "contracts/events/*",
+        "contracts/dataio/**"
+      ],
+      "rule": "P02 owns contracts/** until G0; afterwards each module owns only its own fragments; anything else is a CCR resolved by M5 (P00)."
+    },
+    {
+      "paths": [
+        "tests/contract/**"
+      ],
+      "rule": "P02 owns schema tests; P22 (M5) only runs them."
+    },
+    {
+      "paths": [
+        "deploy/**",
+        "deploy/keycloak/realm-template.json"
+      ],
+      "rule": "P04 owns the realm template file; compose wiring stays P03 via CCR."
+    },
+    {
+      "paths": [
+        "tests/regulatory/**",
+        "tests/regulatory/payroll/**",
+        "tests/regulatory/map.yaml"
+      ],
+      "rule": "P06 owns tests/regulatory/** except payroll/ (P13) and map.yaml (P23)."
+    },
+    {
+      "paths": [
+        "docs/compliance/**",
+        "docs/compliance/parameter-verification.md",
+        "docs/compliance/annex-versions.md"
+      ],
+      "rule": "P23 owns docs/compliance/** except the P06 and P15 files, which P23 only reviews."
+    },
+    {
+      "paths": [
+        "backend/kernel/**",
+        "backend/kernel/fixtures/demo_tenant.yaml"
+      ],
+      "rule": "P21 owns the demo tenant data file; loader code stays P01."
+    },
+    {
+      "paths": [
+        "contracts/permissions/catalog.yaml"
+      ],
+      "rule": "Append-only: each module adds only its own <module>.* codes; M5 checks the diff."
+    },
+    {
+      "paths": [
+        "contracts/permissions/catalog.yaml"
+      ],
+      "rule": "append-only, union-merged by the integrator"
+    }
+  ],
+  "waves": [
+    {
+      "n": 1,
+      "tasks": [
+        "P01",
+        "P02",
+        "P03"
+      ],
+      "closes": [
+        "G0"
+      ],
+      "integrator_file": "INTEGRATOR-after-W01.md"
+    },
+    {
+      "n": 2,
+      "tasks": [
+        "P04",
+        "P05",
+        "P07",
+        "P08",
+        "P06",
+        "P22a"
+      ],
+      "closes": [
+        "G1"
+      ],
+      "integrator_file": "INTEGRATOR-after-W02.md"
+    },
+    {
+      "n": 3,
+      "tasks": [
+        "P15",
+        "P09a",
+        "P13b",
+        "P11a",
+        "P13a",
+        "P14",
+        "P22b"
+      ],
+      "closes": [],
+      "integrator_file": "INTEGRATOR-after-W03.md"
+    },
+    {
+      "n": 4,
+      "tasks": [
+        "P10a",
+        "P11b",
+        "P09c",
+        "P09b"
+      ],
+      "closes": [],
+      "integrator_file": "INTEGRATOR-after-W04.md"
+    },
+    {
+      "n": 5,
+      "tasks": [
+        "P16a",
+        "P12",
+        "P10b",
+        "P16b"
+      ],
+      "closes": [
+        "G2"
+      ],
+      "integrator_file": "INTEGRATOR-after-W05.md"
+    },
+    {
+      "n": 6,
+      "tasks": [
+        "P18",
+        "P22c",
+        "P17a"
+      ],
+      "closes": [],
+      "integrator_file": "INTEGRATOR-after-W06.md"
+    },
+    {
+      "n": 7,
+      "tasks": [
+        "P19",
+        "P17b",
+        "P17c"
+      ],
+      "closes": [],
+      "integrator_file": "INTEGRATOR-after-W07.md"
+    },
+    {
+      "n": 8,
+      "tasks": [
+        "P21",
+        "P20"
+      ],
+      "closes": [
+        "G3"
+      ],
+      "integrator_file": "INTEGRATOR-after-W08.md"
+    },
+    {
+      "n": 9,
+      "tasks": [
+        "P23",
+        "P22d"
+      ],
+      "closes": [
+        "G4",
+        "RC"
+      ],
+      "integrator_file": "INTEGRATOR-after-W09.md"
+    },
+    {
+      "n": 10,
+      "tasks": [
+        "DEV"
+      ],
+      "closes": [],
+      "integrator_file": "INTEGRATOR-after-W10.md"
+    }
+  ],
+  "tasks": {
+    "P01": {
+      "kind": "worker",
+      "title": "Foundation / kernel / kernel.interfaces",
+      "source": [
+        "P01"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "pyproject.toml",
+        "uv.lock",
+        "backend/manage.py",
+        "backend/erp/**",
+        "backend/kernel/**",
+        "Makefile",
+        ".editorconfig",
+        ".pre-commit-config.yaml"
+      ],
+      "except": [],
+      "features": [],
+      "tests": [],
+      "slug": "foundation-kernel",
+      "requires": [],
+      "wave": 1,
+      "weight": 1.35,
+      "prompt_file": "W01-S1-P01-foundation-kernel.md",
+      "retry_file": "RETRY-P01.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P01-foundation-kernel.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md"
+      ]
+    },
+    "P02": {
+      "kind": "worker",
+      "title": "Contract freeze",
+      "source": [
+        "P02"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "contracts/**",
+        "tests/contract/**"
+      ],
+      "except": [],
+      "features": [],
+      "tests": [
+        "T-X-QA-06"
+      ],
+      "slug": "contract-freeze",
+      "requires": [],
+      "wave": 1,
+      "weight": 1.14,
+      "prompt_file": "W01-S2-P02-contract-freeze.md",
+      "retry_file": "RETRY-P02.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P02-contract-freeze.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-X-QA)"
+      ]
+    },
+    "P03": {
+      "kind": "worker",
+      "title": "DevOps / CI / compose",
+      "source": [
+        "P03"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "docker-compose*.yml",
+        "deploy/**",
+        ".github/**",
+        ".devcontainer/**",
+        "docs/runbooks/**",
+        "scripts/ci/**"
+      ],
+      "except": [],
+      "features": [],
+      "tests": [],
+      "slug": "devops-ci",
+      "requires": [],
+      "wave": 1,
+      "weight": 1.05,
+      "prompt_file": "W01-S3-P03-devops-ci.md",
+      "retry_file": "RETRY-P03.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P03-devops-ci.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/DEV-ADDENDUM.md"
+      ]
+    },
+    "G0": {
+      "kind": "gate",
+      "title": "Bootstrap reconciliation: contracts v1.0.0 + kernel + CI green",
+      "source": [
+        "G0"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "tests/gates/**",
+        "docs/gates/**"
+      ],
+      "except": [],
+      "features": [],
+      "tests": [
+        "T-X-QA-07"
+      ],
+      "slug": "g0",
+      "requires": [
+        "P01",
+        "P02",
+        "P03"
+      ],
+      "gate_tests": [
+        "T-X-QA-06",
+        "T-X-QA-07"
+      ],
+      "after_wave": 1,
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-X-QA)"
+      ]
+    },
+    "P22a": {
+      "kind": "worker",
+      "title": "P22 milestone a: harness, leak-test framework, contract runners",
+      "source": [
+        "P22a"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "tests/e2e/**",
+        "tests/cross_module/**",
+        "tests/security/**",
+        "tests/perf/**",
+        "docs/gates/G*-evidence/**",
+        "docs/traceability.csv"
+      ],
+      "except": [],
+      "features": [],
+      "tests": [],
+      "slug": "qa-harness",
+      "requires": [
+        "G0"
+      ],
+      "wave": 2,
+      "weight": 0.48,
+      "prompt_file": "W02-S6-P22a-qa-harness.md",
+      "retry_file": "RETRY-P22a.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P22-qa-security-e2e.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/DEV-ADDENDUM.md"
+      ]
+    },
+    "P04": {
+      "kind": "worker",
+      "title": "IAM / RLS / field security",
+      "source": [
+        "P04"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "backend/iam/**",
+        "deploy/keycloak/realm-template.json",
+        "frontend/src/features/iam/**",
+        "contracts/openapi/modules/iam.yaml",
+        "contracts/events/iam/**"
+      ],
+      "except": [],
+      "features": [
+        "F-ACC-BRANCH",
+        "F-PORTAL-CORE"
+      ],
+      "tests": [
+        "T-ACC-DIM-09",
+        "T-ACC-BRANCH-01",
+        "T-ACC-BRANCH-02",
+        "T-PORTAL-CORE-01",
+        "T-PORTAL-CORE-02",
+        "T-PORTAL-CORE-03"
+      ],
+      "slug": "iam-rls-field-security",
+      "requires": [
+        "G0"
+      ],
+      "wave": 2,
+      "weight": 1.93,
+      "prompt_file": "W02-S1-P04-iam-rls-field-security.md",
+      "retry_file": "RETRY-P04.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P04-iam-rls-field-security.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-ACC-BRANCH, F-PORTAL-CORE)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P04) + docs/spec/ui-reference/",
+        "docs/spec/DIMENSIONS-ADDENDUM.md"
+      ]
+    },
+    "P05": {
+      "kind": "worker",
+      "title": "Ledger / posting engine",
+      "source": [
+        "P05"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "backend/ledger/**",
+        "frontend/src/features/ledger/**",
+        "contracts/openapi/modules/ledger.yaml",
+        "contracts/events/ledger/**"
+      ],
+      "except": [],
+      "features": [
+        "F-ACC-DIM"
+      ],
+      "tests": [
+        "T-ACC-DIM-01",
+        "T-ACC-DIM-02",
+        "T-ACC-DIM-03",
+        "T-ACC-DIM-04",
+        "T-ACC-DIM-05",
+        "T-ACC-DIM-06",
+        "T-ACC-DIM-07",
+        "T-ACC-DIM-08"
+      ],
+      "slug": "ledger-posting-engine",
+      "requires": [
+        "G0"
+      ],
+      "wave": 2,
+      "weight": 1.91,
+      "prompt_file": "W02-S2-P05-ledger-posting-engine.md",
+      "retry_file": "RETRY-P05.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P05-ledger-posting-engine.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-ACC-DIM)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P05) + docs/spec/ui-reference/",
+        "docs/spec/DIMENSIONS-ADDENDUM.md"
+      ]
+    },
+    "P06": {
+      "kind": "worker",
+      "title": "Tax & localization CO",
+      "source": [
+        "P06"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "backend/tax/**",
+        "backend/localization_co/**",
+        "tests/regulatory/**",
+        "docs/compliance/parameter-verification.md",
+        "frontend/src/features/tax/**",
+        "contracts/openapi/modules/tax.yaml",
+        "contracts/events/tax/**"
+      ],
+      "except": [],
+      "features": [],
+      "tests": [
+        "T-ACC-EXO-01"
+      ],
+      "slug": "tax-localization-co",
+      "requires": [
+        "G0"
+      ],
+      "wave": 2,
+      "weight": 1.34,
+      "prompt_file": "W02-S5-P06-tax-localization-co.md",
+      "retry_file": "RETRY-P06.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P06-tax-localization-co.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-ACC-EXO)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P06) + docs/spec/ui-reference/"
+      ]
+    },
+    "P07": {
+      "kind": "worker",
+      "title": "Workflow / audit / scheduler",
+      "source": [
+        "P07"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "backend/workflow/**",
+        "frontend/src/features/workflow/**",
+        "contracts/openapi/modules/workflow.yaml",
+        "contracts/events/workflow/**"
+      ],
+      "except": [],
+      "features": [
+        "F-FORMULA-ENGINE"
+      ],
+      "tests": [
+        "T-FORMULA-ENGINE-01",
+        "T-FORMULA-ENGINE-02",
+        "T-FORMULA-ENGINE-03",
+        "T-FORMULA-ENGINE-04",
+        "T-FORMULA-ENGINE-05"
+      ],
+      "slug": "workflow-audit-scheduler",
+      "requires": [
+        "G0"
+      ],
+      "wave": 2,
+      "weight": 1.59,
+      "prompt_file": "W02-S3-P07-workflow-audit-scheduler.md",
+      "retry_file": "RETRY-P07.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P07-workflow-audit-scheduler.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-FORMULA-ENGINE)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P07) + docs/spec/ui-reference/"
+      ]
+    },
+    "P08": {
+      "kind": "worker",
+      "title": "UX shell / design system / PWA primitives",
+      "source": [
+        "P08"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "package.json",
+        "pnpm-lock.yaml",
+        "frontend/vite.config.ts",
+        "frontend/index.html",
+        "frontend/tsconfig.json",
+        "frontend/package.json",
+        "frontend/src/app/**",
+        "frontend/src/shell/**",
+        "frontend/src/design-system/**",
+        "frontend/src/lib/**",
+        "frontend/src/i18n/**"
+      ],
+      "except": [],
+      "features": [],
+      "tests": [
+        "T-ACC-DIM-12",
+        "T-FORMULA-ENGINE-06",
+        "T-PORTAL-CORE-04"
+      ],
+      "slug": "ux-shell-design-system",
+      "requires": [
+        "G0"
+      ],
+      "wave": 2,
+      "weight": 1.35,
+      "prompt_file": "W02-S4-P08-ux-shell-design-system.md",
+      "retry_file": "RETRY-P08.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P08-ux-shell-design-system.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-ACC-DIM, F-FORMULA-ENGINE, F-PORTAL-CORE)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P08) + docs/spec/ui-reference/",
+        "docs/spec/DIMENSIONS-ADDENDUM.md"
+      ]
+    },
+    "G1": {
+      "kind": "gate",
+      "title": "W1 gate: RLS/field policy, ledger invariants, tax, workflow, a11y; kernel.interfaces v1 frozen",
+      "source": [
+        "G1"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "tests/gates/**",
+        "docs/gates/**"
+      ],
+      "except": [],
+      "features": [],
+      "tests": [],
+      "slug": "g1",
+      "requires": [
+        "P22a",
+        "P04",
+        "P05",
+        "P06",
+        "P07",
+        "P08"
+      ],
+      "gate_tests": [
+        "T-ACC-BRANCH-01",
+        "T-ACC-BRANCH-02",
+        "T-ACC-DIM-01",
+        "T-ACC-DIM-02",
+        "T-ACC-DIM-03",
+        "T-ACC-DIM-04",
+        "T-ACC-DIM-05",
+        "T-ACC-DIM-06",
+        "T-ACC-DIM-07",
+        "T-ACC-DIM-08",
+        "T-ACC-DIM-09",
+        "T-ACC-DIM-12",
+        "T-ACC-EXO-01",
+        "T-FORMULA-ENGINE-01",
+        "T-FORMULA-ENGINE-02",
+        "T-FORMULA-ENGINE-03",
+        "T-FORMULA-ENGINE-04",
+        "T-FORMULA-ENGINE-05",
+        "T-FORMULA-ENGINE-06",
+        "T-PORTAL-CORE-01",
+        "T-PORTAL-CORE-02",
+        "T-PORTAL-CORE-03",
+        "T-PORTAL-CORE-04",
+        "T-X-QA-06",
+        "T-X-QA-07"
+      ],
+      "after_wave": 2,
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md"
+      ]
+    },
+    "P22b": {
+      "kind": "worker",
+      "title": "P22 milestone b: cross-module suite S1-S12 + concurrency/negative",
+      "source": [
+        "P22b"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "tests/e2e/**",
+        "tests/cross_module/**",
+        "tests/security/**",
+        "tests/perf/**",
+        "docs/gates/G*-evidence/**",
+        "docs/traceability.csv"
+      ],
+      "except": [],
+      "features": [],
+      "tests": [],
+      "slug": "qa-cross-module",
+      "requires": [
+        "G1"
+      ],
+      "wave": 3,
+      "weight": 0.48,
+      "prompt_file": "W03-S7-P22b-qa-cross-module.md",
+      "retry_file": "RETRY-P22b.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P22-qa-security-e2e.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/DEV-ADDENDUM.md"
+      ]
+    },
+    "P09a": {
+      "kind": "worker",
+      "title": "Inventory / costing — inventory core",
+      "source": [
+        "P09"
+      ],
+      "split_of": "P09",
+      "share": 0.45,
+      "scope": "Inventory core: items, units/presentations, warehouses and locations, stock ledger (immutable moves), costing (weighted average per D-defaults), transfers, reservations, branch dimension on stock postings, and the COMPLETE inventory API/event contract for all inventory features (later inventory sessions implement against it). Features F-INV-PRES and F-INV-LOC.",
+      "paths": [
+        "backend/inventory/**",
+        "frontend/src/features/inventory/**",
+        "contracts/openapi/modules/inventory.yaml",
+        "contracts/events/inventory/**"
+      ],
+      "except": [
+        "backend/inventory/barcodes/**",
+        "frontend/src/features/inventory/barcodes/**",
+        "backend/inventory/issues/**",
+        "frontend/src/features/inventory/issues/**",
+        "backend/inventory/bom/**",
+        "frontend/src/features/inventory/bom/**",
+        "backend/inventory/transformations/**",
+        "frontend/src/features/inventory/transformations/**"
+      ],
+      "features": [
+        "F-INV-PRES",
+        "F-INV-LOC"
+      ],
+      "tests": [
+        "T-INV-PRES-01",
+        "T-INV-PRES-02",
+        "T-INV-PRES-03",
+        "T-INV-LOC-01",
+        "T-INV-LOC-02",
+        "T-INV-LOC-03",
+        "T-INV-LOC-04",
+        "T-ACC-BRANCH-03",
+        "T-INV-REQ-04"
+      ],
+      "slug": "inventory-core",
+      "requires": [
+        "G1"
+      ],
+      "wave": 3,
+      "weight": 1.44,
+      "prompt_file": "W03-S2-P09a-inventory-core.md",
+      "retry_file": "RETRY-P09a.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P09-inventory-costing.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-INV-PRES, F-INV-LOC)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P09) + docs/spec/ui-reference/",
+        "docs/spec/DIMENSIONS-ADDENDUM.md"
+      ]
+    },
+    "P09b": {
+      "kind": "worker",
+      "title": "Inventory / costing — inventory barcodes issues",
+      "source": [
+        "P09"
+      ],
+      "split_of": "P09",
+      "share": 0.25,
+      "scope": "Barcodes/labels (scan input, print preview usage) and inventory issues (salidas por concepto) on top of the inventory core. Features F-INV-BARCODE and F-INV-ISSUE.",
+      "paths": [
+        "backend/inventory/barcodes/**",
+        "frontend/src/features/inventory/barcodes/**",
+        "backend/inventory/issues/**",
+        "frontend/src/features/inventory/issues/**"
+      ],
+      "except": [],
+      "features": [
+        "F-INV-BARCODE",
+        "F-INV-ISSUE"
+      ],
+      "tests": [
+        "T-INV-BARCODE-01",
+        "T-INV-BARCODE-02",
+        "T-INV-BARCODE-03",
+        "T-INV-ISSUE-01",
+        "T-INV-ISSUE-02",
+        "T-INV-ISSUE-03",
+        "T-INV-ISSUE-04"
+      ],
+      "slug": "inventory-barcodes-issues",
+      "requires": [
+        "G1",
+        "P09a"
+      ],
+      "wave": 4,
+      "weight": 1.14,
+      "prompt_file": "W04-S4-P09b-inventory-barcodes-issues.md",
+      "retry_file": "RETRY-P09b.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P09-inventory-costing.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-INV-BARCODE, F-INV-ISSUE)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P09) + docs/spec/ui-reference/",
+        "docs/spec/DIMENSIONS-ADDENDUM.md"
+      ]
+    },
+    "P09c": {
+      "kind": "worker",
+      "title": "Inventory / costing — inventory bom transformations",
+      "source": [
+        "P09"
+      ],
+      "split_of": "P09",
+      "share": 0.3,
+      "scope": "Recipes/BOM, transformations and portioning templates with atomic stock + valuation + GL postings. Features F-INV-BOM and F-INV-XFORM.",
+      "paths": [
+        "backend/inventory/bom/**",
+        "frontend/src/features/inventory/bom/**",
+        "backend/inventory/transformations/**",
+        "frontend/src/features/inventory/transformations/**"
+      ],
+      "except": [],
+      "features": [
+        "F-INV-BOM",
+        "F-INV-XFORM"
+      ],
+      "tests": [
+        "T-INV-BOM-01",
+        "T-INV-BOM-02",
+        "T-INV-XFORM-01",
+        "T-INV-XFORM-02",
+        "T-INV-XFORM-03",
+        "T-INV-XFORM-04",
+        "T-INV-XFORM-05",
+        "T-INV-XFORM-06",
+        "T-INV-XFORM-07",
+        "T-INV-XFORM-08"
+      ],
+      "slug": "inventory-bom-transformations",
+      "requires": [
+        "G1",
+        "P09a"
+      ],
+      "wave": 4,
+      "weight": 1.34,
+      "prompt_file": "W04-S3-P09c-inventory-bom-transformations.md",
+      "retry_file": "RETRY-P09c.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P09-inventory-costing.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-INV-BOM, F-INV-XFORM)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P09) + docs/spec/ui-reference/",
+        "docs/spec/DIMENSIONS-ADDENDUM.md"
+      ]
+    },
+    "P11a": {
+      "kind": "worker",
+      "title": "Purchasing / AP — purchasing ap core",
+      "source": [
+        "P11"
+      ],
+      "split_of": "P11",
+      "share": 0.6,
+      "scope": "Purchasing/AP core: suppliers, RFQ → quotations → comparison (F-PUR-CYCLE), purchase orders, receipts (stock via inventory interface), supplier invoices, AP; complete purchasing contract incl. requisition and supplier-portal endpoints.",
+      "paths": [
+        "backend/purchasing/**",
+        "frontend/src/features/purchasing/**",
+        "contracts/openapi/modules/purchasing.yaml",
+        "contracts/events/purchasing/**"
+      ],
+      "except": [
+        "backend/purchasing/requisitions/**",
+        "frontend/src/features/purchasing/requisitions/**",
+        "backend/purchasing/portal/**",
+        "frontend/src/features/purchasing/portal/**"
+      ],
+      "features": [
+        "F-PUR-CYCLE"
+      ],
+      "tests": [
+        "T-PUR-CYCLE-01",
+        "T-PUR-CYCLE-02",
+        "T-PUR-CYCLE-03",
+        "T-PUR-CYCLE-04",
+        "T-PUR-CYCLE-05",
+        "T-PUR-CYCLE-06"
+      ],
+      "slug": "purchasing-ap-core",
+      "requires": [
+        "G1"
+      ],
+      "wave": 3,
+      "weight": 1.23,
+      "prompt_file": "W03-S4-P11a-purchasing-ap-core.md",
+      "retry_file": "RETRY-P11a.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P11-purchasing-ap.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-PUR-CYCLE)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P11) + docs/spec/ui-reference/",
+        "docs/spec/DIMENSIONS-ADDENDUM.md"
+      ]
+    },
+    "P11b": {
+      "kind": "worker",
+      "title": "Purchasing / AP — requisitions supplier portal",
+      "source": [
+        "P11"
+      ],
+      "split_of": "P11",
+      "share": 0.4,
+      "scope": "Internal requisitions with approval/consolidation/replenishment (F-INV-REQ, uses inventory transfers) and the supplier portal (F-PORTAL-SUP).",
+      "paths": [
+        "backend/purchasing/requisitions/**",
+        "frontend/src/features/purchasing/requisitions/**",
+        "backend/purchasing/portal/**",
+        "frontend/src/features/purchasing/portal/**"
+      ],
+      "except": [],
+      "features": [
+        "F-INV-REQ",
+        "F-PORTAL-SUP"
+      ],
+      "tests": [
+        "T-INV-REQ-01",
+        "T-INV-REQ-02",
+        "T-INV-REQ-03",
+        "T-INV-REQ-05",
+        "T-PORTAL-SUP-01",
+        "T-PORTAL-SUP-02",
+        "T-PORTAL-SUP-03",
+        "T-PORTAL-SUP-04",
+        "T-PORTAL-SUP-05"
+      ],
+      "slug": "requisitions-supplier-portal",
+      "requires": [
+        "G1",
+        "P09a",
+        "P11a"
+      ],
+      "wave": 4,
+      "weight": 1.35,
+      "prompt_file": "W04-S2-P11b-requisitions-supplier-portal.md",
+      "retry_file": "RETRY-P11b.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P11-purchasing-ap.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-INV-REQ, F-PORTAL-SUP)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P11) + docs/spec/ui-reference/",
+        "docs/spec/DIMENSIONS-ADDENDUM.md"
+      ]
+    },
+    "P13a": {
+      "kind": "worker",
+      "title": "HR / payroll / timekeeping — hr timekeeping employee portal",
+      "source": [
+        "P13"
+      ],
+      "split_of": "P13",
+      "share": 0.45,
+      "scope": "HR (employees, contracts, novelties), timekeeping, and the employee portal (F-PORTAL-EMP); publishes the HR interface payroll consumes (kernel.interfaces) — payroll runs in a parallel session against that interface.",
+      "paths": [
+        "backend/hr/**",
+        "backend/timekeeping/**",
+        "frontend/src/features/hr/**",
+        "frontend/src/features/timekeeping/**",
+        "contracts/openapi/modules/hr.yaml",
+        "contracts/events/hr/**",
+        "contracts/openapi/modules/timekeeping.yaml",
+        "contracts/events/timekeeping/**"
+      ],
+      "except": [],
+      "features": [
+        "F-PORTAL-EMP"
+      ],
+      "tests": [
+        "T-PORTAL-EMP-01",
+        "T-PORTAL-EMP-02",
+        "T-PORTAL-EMP-03"
+      ],
+      "slug": "hr-timekeeping-employee-portal",
+      "requires": [
+        "G1"
+      ],
+      "wave": 3,
+      "weight": 1.15,
+      "prompt_file": "W03-S5-P13a-hr-timekeeping-employee-portal.md",
+      "retry_file": "RETRY-P13a.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P13-hr-payroll-timekeeping.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-PORTAL-EMP)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P13) + docs/spec/ui-reference/",
+        "docs/spec/DIMENSIONS-ADDENDUM.md"
+      ]
+    },
+    "P13b": {
+      "kind": "worker",
+      "title": "HR / payroll / timekeeping — payroll formulas",
+      "source": [
+        "P13"
+      ],
+      "split_of": "P13",
+      "share": 0.55,
+      "scope": "Payroll engine, Colombian payroll concepts with the formula engine (F-PAY-FORMULA), electronic payroll document data (official transmission stays EXTERNAL/blocked), regulatory payroll tests; uses the HR interface (fake allowed until G2, real at G2).",
+      "paths": [
+        "backend/payroll/**",
+        "tests/regulatory/payroll/**",
+        "frontend/src/features/payroll/**",
+        "contracts/openapi/modules/payroll.yaml",
+        "contracts/events/payroll/**"
+      ],
+      "except": [],
+      "features": [
+        "F-PAY-FORMULA"
+      ],
+      "tests": [
+        "T-PAY-FORMULA-01",
+        "T-PAY-FORMULA-02",
+        "T-PAY-FORMULA-03",
+        "T-PAY-FORMULA-04"
+      ],
+      "slug": "payroll-formulas",
+      "requires": [
+        "G1"
+      ],
+      "wave": 3,
+      "weight": 1.33,
+      "prompt_file": "W03-S3-P13b-payroll-formulas.md",
+      "retry_file": "RETRY-P13b.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P13-hr-payroll-timekeeping.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-PAY-FORMULA)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P13) + docs/spec/ui-reference/",
+        "docs/spec/DIMENSIONS-ADDENDUM.md"
+      ]
+    },
+    "P15": {
+      "kind": "worker",
+      "title": "DIAN e-documents gateway",
+      "source": [
+        "P15"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "backend/einvoice/**",
+        "specs/fiscal-hash/**",
+        "docs/compliance/annex-versions.md",
+        "frontend/src/features/einvoice/**",
+        "contracts/openapi/modules/einvoice.yaml",
+        "contracts/events/einvoice/**"
+      ],
+      "except": [],
+      "features": [
+        "F-PT-OPEN"
+      ],
+      "tests": [
+        "T-PT-OPEN-01",
+        "T-PT-OPEN-02"
+      ],
+      "slug": "dian-einvoice-gateway",
+      "requires": [
+        "G1"
+      ],
+      "wave": 3,
+      "weight": 1.67,
+      "prompt_file": "W03-S1-P15-dian-einvoice-gateway.md",
+      "retry_file": "RETRY-P15.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P15-dian-einvoice-gateway.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-PT-OPEN)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P15) + docs/spec/ui-reference/"
+      ]
+    },
+    "P10a": {
+      "kind": "worker",
+      "title": "Sales / AR / CRM / Party — sales ar crm core",
+      "source": [
+        "P10"
+      ],
+      "split_of": "P10",
+      "share": 0.7,
+      "scope": "Sales/AR/CRM/party core: quotes, orders, deliveries, invoices handoff to e-invoicing, AR, CRM pipeline, pricing lists (F-SAL-PRICING), sales of BOM kits; the complete sales/crm contract including the customer-portal endpoints.",
+      "paths": [
+        "backend/sales/**",
+        "backend/crm/**",
+        "frontend/src/features/sales/**",
+        "frontend/src/features/crm/**",
+        "contracts/openapi/modules/sales.yaml",
+        "contracts/events/sales/**",
+        "contracts/openapi/modules/crm.yaml",
+        "contracts/events/crm/**"
+      ],
+      "except": [
+        "backend/sales/portal/**",
+        "frontend/src/features/sales/portal/**"
+      ],
+      "features": [
+        "F-SAL-PRICING"
+      ],
+      "tests": [
+        "T-SAL-PRICING-01",
+        "T-SAL-PRICING-02",
+        "T-SAL-PRICING-03",
+        "T-SAL-PRICING-04",
+        "T-SAL-PRICING-05",
+        "T-INV-BOM-03"
+      ],
+      "slug": "sales-ar-crm-core",
+      "requires": [
+        "G1",
+        "P09a"
+      ],
+      "wave": 4,
+      "weight": 1.35,
+      "prompt_file": "W04-S1-P10a-sales-ar-crm-core.md",
+      "retry_file": "RETRY-P10a.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P10-sales-ar-crm.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-SAL-PRICING)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P10) + docs/spec/ui-reference/",
+        "docs/spec/DIMENSIONS-ADDENDUM.md"
+      ]
+    },
+    "P10b": {
+      "kind": "worker",
+      "title": "Sales / AR / CRM / Party — customer portal",
+      "source": [
+        "P10"
+      ],
+      "split_of": "P10",
+      "share": 0.3,
+      "scope": "Customer portal (F-PORTAL-CUS): quotes, orders, invoices/notes, payments/receipts, statement — external accounts only, server-side row scope.",
+      "paths": [
+        "backend/sales/portal/**",
+        "frontend/src/features/sales/portal/**"
+      ],
+      "except": [],
+      "features": [
+        "F-PORTAL-CUS"
+      ],
+      "tests": [
+        "T-PORTAL-CUS-01",
+        "T-PORTAL-CUS-02",
+        "T-PORTAL-CUS-03",
+        "T-PORTAL-CUS-04",
+        "T-PORTAL-CUS-05"
+      ],
+      "slug": "customer-portal",
+      "requires": [
+        "G1",
+        "P09a",
+        "P10a"
+      ],
+      "wave": 5,
+      "weight": 0.93,
+      "prompt_file": "W05-S3-P10b-customer-portal.md",
+      "retry_file": "RETRY-P10b.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P10-sales-ar-crm.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-PORTAL-CUS)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P10) + docs/spec/ui-reference/",
+        "docs/spec/DIMENSIONS-ADDENDUM.md"
+      ]
+    },
+    "P14": {
+      "kind": "worker",
+      "title": "Fixed assets",
+      "source": [
+        "P14"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "backend/assets/**",
+        "frontend/src/features/assets/**",
+        "contracts/openapi/modules/assets.yaml",
+        "contracts/events/assets/**"
+      ],
+      "except": [],
+      "features": [],
+      "tests": [],
+      "slug": "fixed-assets",
+      "requires": [
+        "G1"
+      ],
+      "wave": 3,
+      "weight": 0.97,
+      "prompt_file": "W03-S6-P14-fixed-assets.md",
+      "retry_file": "RETRY-P14.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P14-fixed-assets.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P14) + docs/spec/ui-reference/",
+        "docs/spec/DIMENSIONS-ADDENDUM.md"
+      ]
+    },
+    "P16a": {
+      "kind": "worker",
+      "title": "Treasury / intercompany / consolidation — treasury vouchers",
+      "source": [
+        "P16"
+      ],
+      "split_of": "P16",
+      "share": 0.6,
+      "scope": "Treasury: banks/cash, receipts (recibos de caja, F-TRE-RC), disbursement vouchers and payment batches (F-TRE-CE), bank reconciliation.",
+      "paths": [
+        "backend/treasury/**",
+        "frontend/src/features/treasury/**",
+        "contracts/openapi/modules/treasury.yaml",
+        "contracts/events/treasury/**"
+      ],
+      "except": [],
+      "features": [
+        "F-TRE-RC",
+        "F-TRE-CE"
+      ],
+      "tests": [
+        "T-TRE-RC-01",
+        "T-TRE-RC-02",
+        "T-TRE-RC-03",
+        "T-TRE-RC-04",
+        "T-TRE-RC-05",
+        "T-TRE-RC-06",
+        "T-TRE-CE-01",
+        "T-TRE-CE-02",
+        "T-TRE-CE-03",
+        "T-TRE-CE-04",
+        "T-TRE-CE-05"
+      ],
+      "slug": "treasury-vouchers",
+      "requires": [
+        "G1",
+        "P11a",
+        "P10a"
+      ],
+      "wave": 5,
+      "weight": 1.62,
+      "prompt_file": "W05-S1-P16a-treasury-vouchers.md",
+      "retry_file": "RETRY-P16a.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P16-treasury-intercompany-consolidation.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-TRE-RC, F-TRE-CE)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P16) + docs/spec/ui-reference/",
+        "docs/spec/DIMENSIONS-ADDENDUM.md"
+      ]
+    },
+    "P16b": {
+      "kind": "worker",
+      "title": "Treasury / intercompany / consolidation — intercompany consolidation",
+      "source": [
+        "P16"
+      ],
+      "split_of": "P16",
+      "share": 0.4,
+      "scope": "Intercompany transactions and consolidation (eliminations, consolidated statements data) per the original P16 prompt.",
+      "paths": [
+        "backend/consolidation/**",
+        "frontend/src/features/consolidation/**",
+        "contracts/openapi/modules/consolidation.yaml",
+        "contracts/events/consolidation/**"
+      ],
+      "except": [],
+      "features": [],
+      "tests": [],
+      "slug": "intercompany-consolidation",
+      "requires": [
+        "G1",
+        "P11a",
+        "P10a"
+      ],
+      "wave": 5,
+      "weight": 0.59,
+      "prompt_file": "W05-S4-P16b-intercompany-consolidation.md",
+      "retry_file": "RETRY-P16b.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P16-treasury-intercompany-consolidation.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P16) + docs/spec/ui-reference/",
+        "docs/spec/DIMENSIONS-ADDENDUM.md"
+      ]
+    },
+    "P12": {
+      "kind": "worker",
+      "title": "POS (online finalization)",
+      "source": [
+        "P12"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "backend/pos/**",
+        "frontend/src/features/pos/**",
+        "contracts/openapi/modules/pos.yaml",
+        "contracts/events/pos/**"
+      ],
+      "except": [],
+      "features": [],
+      "tests": [
+        "T-ACC-BRANCH-04",
+        "T-INV-PRES-04",
+        "T-INV-BARCODE-05"
+      ],
+      "slug": "pos",
+      "requires": [
+        "G1",
+        "P09a",
+        "P09b",
+        "P10a"
+      ],
+      "wave": 5,
+      "weight": 1.46,
+      "prompt_file": "W05-S2-P12-pos.md",
+      "retry_file": "RETRY-P12.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P12-pos.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-ACC-BRANCH, F-INV-BARCODE, F-INV-PRES)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P12) + docs/spec/ui-reference/",
+        "docs/spec/DIMENSIONS-ADDENDUM.md"
+      ]
+    },
+    "G2": {
+      "kind": "gate",
+      "title": "W2 gate: real implementations only; S1-S12 green; TB = sub-ledgers",
+      "source": [
+        "G2"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "tests/gates/**",
+        "docs/gates/**"
+      ],
+      "except": [],
+      "features": [],
+      "tests": [
+        "T-INV-REQ-06",
+        "T-PUR-CYCLE-07",
+        "T-X-QA-01",
+        "T-X-QA-02"
+      ],
+      "slug": "g2",
+      "requires": [
+        "P22b",
+        "P09a",
+        "P09b",
+        "P09c",
+        "P11a",
+        "P11b",
+        "P13a",
+        "P13b",
+        "P15",
+        "P10a",
+        "P10b",
+        "P14",
+        "P16a",
+        "P16b",
+        "P12"
+      ],
+      "gate_tests": [
+        "T-ACC-BRANCH-01",
+        "T-ACC-BRANCH-02",
+        "T-ACC-BRANCH-03",
+        "T-ACC-BRANCH-04",
+        "T-ACC-DIM-01",
+        "T-ACC-DIM-02",
+        "T-ACC-DIM-03",
+        "T-ACC-DIM-04",
+        "T-ACC-DIM-05",
+        "T-ACC-DIM-06",
+        "T-ACC-DIM-07",
+        "T-ACC-DIM-08",
+        "T-ACC-DIM-09",
+        "T-ACC-DIM-12",
+        "T-ACC-EXO-01",
+        "T-FORMULA-ENGINE-01",
+        "T-FORMULA-ENGINE-02",
+        "T-FORMULA-ENGINE-03",
+        "T-FORMULA-ENGINE-04",
+        "T-FORMULA-ENGINE-05",
+        "T-FORMULA-ENGINE-06",
+        "T-INV-BARCODE-01",
+        "T-INV-BARCODE-02",
+        "T-INV-BARCODE-03",
+        "T-INV-BARCODE-05",
+        "T-INV-BOM-01",
+        "T-INV-BOM-02",
+        "T-INV-BOM-03",
+        "T-INV-ISSUE-01",
+        "T-INV-ISSUE-02",
+        "T-INV-ISSUE-03",
+        "T-INV-ISSUE-04",
+        "T-INV-LOC-01",
+        "T-INV-LOC-02",
+        "T-INV-LOC-03",
+        "T-INV-LOC-04",
+        "T-INV-PRES-01",
+        "T-INV-PRES-02",
+        "T-INV-PRES-03",
+        "T-INV-PRES-04",
+        "T-INV-REQ-01",
+        "T-INV-REQ-02",
+        "T-INV-REQ-03",
+        "T-INV-REQ-04",
+        "T-INV-REQ-05",
+        "T-INV-REQ-06",
+        "T-INV-XFORM-01",
+        "T-INV-XFORM-02",
+        "T-INV-XFORM-03",
+        "T-INV-XFORM-04",
+        "T-INV-XFORM-05",
+        "T-INV-XFORM-06",
+        "T-INV-XFORM-07",
+        "T-INV-XFORM-08",
+        "T-PAY-FORMULA-01",
+        "T-PAY-FORMULA-02",
+        "T-PAY-FORMULA-03",
+        "T-PAY-FORMULA-04",
+        "T-PORTAL-CORE-01",
+        "T-PORTAL-CORE-02",
+        "T-PORTAL-CORE-03",
+        "T-PORTAL-CORE-04",
+        "T-PORTAL-CUS-01",
+        "T-PORTAL-CUS-02",
+        "T-PORTAL-CUS-03",
+        "T-PORTAL-CUS-04",
+        "T-PORTAL-CUS-05",
+        "T-PORTAL-EMP-01",
+        "T-PORTAL-EMP-02",
+        "T-PORTAL-EMP-03",
+        "T-PORTAL-SUP-01",
+        "T-PORTAL-SUP-02",
+        "T-PORTAL-SUP-03",
+        "T-PORTAL-SUP-04",
+        "T-PORTAL-SUP-05",
+        "T-PT-OPEN-01",
+        "T-PT-OPEN-02",
+        "T-PUR-CYCLE-01",
+        "T-PUR-CYCLE-02",
+        "T-PUR-CYCLE-03",
+        "T-PUR-CYCLE-04",
+        "T-PUR-CYCLE-05",
+        "T-PUR-CYCLE-06",
+        "T-PUR-CYCLE-07",
+        "T-SAL-PRICING-01",
+        "T-SAL-PRICING-02",
+        "T-SAL-PRICING-03",
+        "T-SAL-PRICING-04",
+        "T-SAL-PRICING-05",
+        "T-TRE-CE-01",
+        "T-TRE-CE-02",
+        "T-TRE-CE-03",
+        "T-TRE-CE-04",
+        "T-TRE-CE-05",
+        "T-TRE-RC-01",
+        "T-TRE-RC-02",
+        "T-TRE-RC-03",
+        "T-TRE-RC-04",
+        "T-TRE-RC-05",
+        "T-TRE-RC-06",
+        "T-X-QA-01",
+        "T-X-QA-02",
+        "T-X-QA-06",
+        "T-X-QA-07"
+      ],
+      "after_wave": 5,
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-INV-REQ, F-PUR-CYCLE, F-X-QA)"
+      ]
+    },
+    "P22c": {
+      "kind": "worker",
+      "title": "P22 milestone c: leak tests API/AI/MCP/export/report/search, prompt-injection suite",
+      "source": [
+        "P22c"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "tests/e2e/**",
+        "tests/cross_module/**",
+        "tests/security/**",
+        "tests/perf/**",
+        "docs/gates/G*-evidence/**",
+        "docs/traceability.csv"
+      ],
+      "except": [],
+      "features": [],
+      "tests": [
+        "T-ACC-BRANCH-06",
+        "T-TRE-RC-08",
+        "T-TRE-CE-07",
+        "T-INV-ISSUE-05",
+        "T-INV-PRES-05",
+        "T-INV-LOC-05",
+        "T-INV-BOM-04",
+        "T-INV-XFORM-09",
+        "T-INV-REQ-07",
+        "T-PUR-CYCLE-08",
+        "T-PAY-FORMULA-05",
+        "T-X-QA-03"
+      ],
+      "slug": "qa-leak-tests",
+      "requires": [
+        "G2"
+      ],
+      "wave": 6,
+      "weight": 1.08,
+      "prompt_file": "W06-S2-P22c-qa-leak-tests.md",
+      "retry_file": "RETRY-P22c.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P22-qa-security-e2e.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-ACC-BRANCH, F-INV-BOM, F-INV-ISSUE, F-INV-LOC, F-INV-PRES, F-INV-REQ, F-INV-XFORM, F-PAY-FORMULA, F-PUR-CYCLE, F-TRE-CE, F-TRE-RC, F-X-QA)",
+        "docs/spec/DEV-ADDENDUM.md"
+      ]
+    },
+    "P17a": {
+      "kind": "worker",
+      "title": "Reporting / semantic layer / documents — reporting semantic documents",
+      "source": [
+        "P17"
+      ],
+      "split_of": "P17",
+      "share": 0.5,
+      "scope": "Reporting core: semantic layer, query engine with row/field security, documents (PDF/print) service, KPI providers, report builder; the complete reporting contract.",
+      "paths": [
+        "backend/reporting/**",
+        "backend/documents/**",
+        "frontend/src/features/reporting/**",
+        "frontend/src/features/documents/**",
+        "contracts/openapi/modules/reporting.yaml",
+        "contracts/events/reporting/**",
+        "contracts/openapi/modules/documents.yaml",
+        "contracts/events/documents/**"
+      ],
+      "except": [
+        "backend/reporting/standard/**",
+        "frontend/src/features/reporting/standard/**",
+        "backend/reporting/exogena/**",
+        "frontend/src/features/reporting/exogena/**"
+      ],
+      "features": [],
+      "tests": [
+        "T-ACC-DIM-10",
+        "T-ACC-BRANCH-05",
+        "T-TRE-RC-07",
+        "T-TRE-CE-06",
+        "T-INV-BARCODE-04"
+      ],
+      "slug": "reporting-semantic-documents",
+      "requires": [
+        "G2"
+      ],
+      "wave": 6,
+      "weight": 0.96,
+      "prompt_file": "W06-S3-P17a-reporting-semantic-documents.md",
+      "retry_file": "RETRY-P17a.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P17-reporting-semantic-documents.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-ACC-BRANCH, F-ACC-DIM, F-INV-BARCODE, F-TRE-CE, F-TRE-RC)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P17) + docs/spec/ui-reference/",
+        "docs/spec/DIMENSIONS-ADDENDUM.md"
+      ]
+    },
+    "P17b": {
+      "kind": "worker",
+      "title": "Reporting / semantic layer / documents — financial statements",
+      "source": [
+        "P17"
+      ],
+      "split_of": "P17",
+      "share": 0.3,
+      "scope": "Standard financial statements and auxiliaries (F-ACC-REPORTS): balance sheet, income statement, cash flow, statement package, auxiliaries by account/cost center/third party.",
+      "paths": [
+        "backend/reporting/standard/**",
+        "frontend/src/features/reporting/standard/**"
+      ],
+      "except": [],
+      "features": [
+        "F-ACC-REPORTS"
+      ],
+      "tests": [
+        "T-ACC-REPORTS-01",
+        "T-ACC-REPORTS-02",
+        "T-ACC-REPORTS-03",
+        "T-ACC-REPORTS-04",
+        "T-ACC-REPORTS-05",
+        "T-ACC-REPORTS-06",
+        "T-ACC-REPORTS-07"
+      ],
+      "slug": "financial-statements",
+      "requires": [
+        "G2",
+        "P17a"
+      ],
+      "wave": 7,
+      "weight": 1.03,
+      "prompt_file": "W07-S2-P17b-financial-statements.md",
+      "retry_file": "RETRY-P17b.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P17-reporting-semantic-documents.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-ACC-REPORTS)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P17) + docs/spec/ui-reference/",
+        "docs/spec/DIMENSIONS-ADDENDUM.md"
+      ]
+    },
+    "P17c": {
+      "kind": "worker",
+      "title": "Reporting / semantic layer / documents — exogena",
+      "source": [
+        "P17"
+      ],
+      "split_of": "P17",
+      "share": 0.2,
+      "scope": "Exógena (F-ACC-EXO) reporting side: engine + synthetic, visibly non-certified fixture layouts; official DIAN layouts stay EXTERNAL (blocked, never invented).",
+      "paths": [
+        "backend/reporting/exogena/**",
+        "frontend/src/features/reporting/exogena/**"
+      ],
+      "except": [],
+      "features": [
+        "F-ACC-EXO"
+      ],
+      "tests": [
+        "T-ACC-EXO-02",
+        "T-ACC-EXO-03",
+        "T-ACC-EXO-04",
+        "T-ACC-EXO-05"
+      ],
+      "slug": "exogena",
+      "requires": [
+        "G2",
+        "P17a"
+      ],
+      "wave": 7,
+      "weight": 0.78,
+      "prompt_file": "W07-S3-P17c-exogena.md",
+      "retry_file": "RETRY-P17c.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P17-reporting-semantic-documents.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-ACC-EXO)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P17) + docs/spec/ui-reference/",
+        "docs/spec/DIMENSIONS-ADDENDUM.md"
+      ]
+    },
+    "P18": {
+      "kind": "worker",
+      "title": "Bulk import / export",
+      "source": [
+        "P18"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "backend/dataio/**",
+        "contracts/dataio/**",
+        "frontend/src/features/dataio/**",
+        "contracts/openapi/modules/dataio.yaml",
+        "contracts/events/dataio/**"
+      ],
+      "except": [],
+      "features": [
+        "F-X-DATAIO"
+      ],
+      "tests": [
+        "T-ACC-DIM-11",
+        "T-X-DATAIO-01",
+        "T-X-DATAIO-02"
+      ],
+      "slug": "bulk-import-export",
+      "requires": [
+        "G2"
+      ],
+      "wave": 6,
+      "weight": 1.34,
+      "prompt_file": "W06-S1-P18-bulk-import-export.md",
+      "retry_file": "RETRY-P18.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P18-bulk-import-export.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-X-DATAIO)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P18) + docs/spec/ui-reference/",
+        "docs/spec/DIMENSIONS-ADDENDUM.md"
+      ]
+    },
+    "P19": {
+      "kind": "worker",
+      "title": "AI business agent",
+      "source": [
+        "P19"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "backend/ai_agent/**",
+        "frontend/src/features/ai_agent/**",
+        "contracts/openapi/modules/ai_agent.yaml",
+        "contracts/events/ai_agent/**"
+      ],
+      "except": [],
+      "features": [
+        "F-X-AI-MCP"
+      ],
+      "tests": [
+        "T-X-AI-MCP-01",
+        "T-X-AI-MCP-02",
+        "T-X-AI-MCP-04"
+      ],
+      "slug": "ai-business-agent",
+      "requires": [
+        "G2",
+        "P17a",
+        "P18"
+      ],
+      "wave": 7,
+      "weight": 1.67,
+      "prompt_file": "W07-S1-P19-ai-business-agent.md",
+      "retry_file": "RETRY-P19.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P19-ai-business-agent.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-X-AI-MCP)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P19) + docs/spec/ui-reference/"
+      ]
+    },
+    "P20": {
+      "kind": "worker",
+      "title": "MCP server",
+      "source": [
+        "P20"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "mcp_server/**",
+        "frontend/src/features/mcp/**"
+      ],
+      "except": [],
+      "features": [],
+      "tests": [
+        "T-X-AI-MCP-03"
+      ],
+      "slug": "mcp-server",
+      "requires": [
+        "G2",
+        "P19"
+      ],
+      "wave": 8,
+      "weight": 1.41,
+      "prompt_file": "W08-S2-P20-mcp-server.md",
+      "retry_file": "RETRY-P20.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P20-mcp-server.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-X-AI-MCP)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P20) + docs/spec/ui-reference/"
+      ]
+    },
+    "P21": {
+      "kind": "worker",
+      "title": "AI onboarding agent",
+      "source": [
+        "P21"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "backend/onboarding/**",
+        "backend/kernel/fixtures/demo_tenant.yaml",
+        "frontend/src/features/onboarding/**",
+        "contracts/openapi/modules/onboarding.yaml",
+        "contracts/events/onboarding/**"
+      ],
+      "except": [],
+      "features": [
+        "F-X-SEED"
+      ],
+      "tests": [
+        "T-X-SEED-01",
+        "T-X-SEED-02"
+      ],
+      "slug": "ai-onboarding-agent",
+      "requires": [
+        "G2",
+        "P18",
+        "P19"
+      ],
+      "wave": 8,
+      "weight": 1.51,
+      "prompt_file": "W08-S1-P21-ai-onboarding-agent.md",
+      "retry_file": "RETRY-P21.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P21-ai-onboarding-agent.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-X-SEED)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P21) + docs/spec/ui-reference/"
+      ]
+    },
+    "G3": {
+      "kind": "gate",
+      "title": "W3 gate: leak + injection + import atomicity green",
+      "source": [
+        "G3"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "tests/gates/**",
+        "docs/gates/**"
+      ],
+      "except": [],
+      "features": [],
+      "tests": [],
+      "slug": "g3",
+      "requires": [
+        "P22c",
+        "P17a",
+        "P17b",
+        "P17c",
+        "P18",
+        "P19",
+        "P20",
+        "P21"
+      ],
+      "gate_tests": [
+        "T-ACC-BRANCH-01",
+        "T-ACC-BRANCH-02",
+        "T-ACC-BRANCH-03",
+        "T-ACC-BRANCH-04",
+        "T-ACC-BRANCH-05",
+        "T-ACC-BRANCH-06",
+        "T-ACC-DIM-01",
+        "T-ACC-DIM-02",
+        "T-ACC-DIM-03",
+        "T-ACC-DIM-04",
+        "T-ACC-DIM-05",
+        "T-ACC-DIM-06",
+        "T-ACC-DIM-07",
+        "T-ACC-DIM-08",
+        "T-ACC-DIM-09",
+        "T-ACC-DIM-10",
+        "T-ACC-DIM-11",
+        "T-ACC-DIM-12",
+        "T-ACC-EXO-01",
+        "T-ACC-EXO-02",
+        "T-ACC-EXO-03",
+        "T-ACC-EXO-04",
+        "T-ACC-EXO-05",
+        "T-ACC-REPORTS-01",
+        "T-ACC-REPORTS-02",
+        "T-ACC-REPORTS-03",
+        "T-ACC-REPORTS-04",
+        "T-ACC-REPORTS-05",
+        "T-ACC-REPORTS-06",
+        "T-ACC-REPORTS-07",
+        "T-FORMULA-ENGINE-01",
+        "T-FORMULA-ENGINE-02",
+        "T-FORMULA-ENGINE-03",
+        "T-FORMULA-ENGINE-04",
+        "T-FORMULA-ENGINE-05",
+        "T-FORMULA-ENGINE-06",
+        "T-INV-BARCODE-01",
+        "T-INV-BARCODE-02",
+        "T-INV-BARCODE-03",
+        "T-INV-BARCODE-04",
+        "T-INV-BARCODE-05",
+        "T-INV-BOM-01",
+        "T-INV-BOM-02",
+        "T-INV-BOM-03",
+        "T-INV-BOM-04",
+        "T-INV-ISSUE-01",
+        "T-INV-ISSUE-02",
+        "T-INV-ISSUE-03",
+        "T-INV-ISSUE-04",
+        "T-INV-ISSUE-05",
+        "T-INV-LOC-01",
+        "T-INV-LOC-02",
+        "T-INV-LOC-03",
+        "T-INV-LOC-04",
+        "T-INV-LOC-05",
+        "T-INV-PRES-01",
+        "T-INV-PRES-02",
+        "T-INV-PRES-03",
+        "T-INV-PRES-04",
+        "T-INV-PRES-05",
+        "T-INV-REQ-01",
+        "T-INV-REQ-02",
+        "T-INV-REQ-03",
+        "T-INV-REQ-04",
+        "T-INV-REQ-05",
+        "T-INV-REQ-06",
+        "T-INV-REQ-07",
+        "T-INV-XFORM-01",
+        "T-INV-XFORM-02",
+        "T-INV-XFORM-03",
+        "T-INV-XFORM-04",
+        "T-INV-XFORM-05",
+        "T-INV-XFORM-06",
+        "T-INV-XFORM-07",
+        "T-INV-XFORM-08",
+        "T-INV-XFORM-09",
+        "T-PAY-FORMULA-01",
+        "T-PAY-FORMULA-02",
+        "T-PAY-FORMULA-03",
+        "T-PAY-FORMULA-04",
+        "T-PAY-FORMULA-05",
+        "T-PORTAL-CORE-01",
+        "T-PORTAL-CORE-02",
+        "T-PORTAL-CORE-03",
+        "T-PORTAL-CORE-04",
+        "T-PORTAL-CUS-01",
+        "T-PORTAL-CUS-02",
+        "T-PORTAL-CUS-03",
+        "T-PORTAL-CUS-04",
+        "T-PORTAL-CUS-05",
+        "T-PORTAL-EMP-01",
+        "T-PORTAL-EMP-02",
+        "T-PORTAL-EMP-03",
+        "T-PORTAL-SUP-01",
+        "T-PORTAL-SUP-02",
+        "T-PORTAL-SUP-03",
+        "T-PORTAL-SUP-04",
+        "T-PORTAL-SUP-05",
+        "T-PT-OPEN-01",
+        "T-PT-OPEN-02",
+        "T-PUR-CYCLE-01",
+        "T-PUR-CYCLE-02",
+        "T-PUR-CYCLE-03",
+        "T-PUR-CYCLE-04",
+        "T-PUR-CYCLE-05",
+        "T-PUR-CYCLE-06",
+        "T-PUR-CYCLE-07",
+        "T-PUR-CYCLE-08",
+        "T-SAL-PRICING-01",
+        "T-SAL-PRICING-02",
+        "T-SAL-PRICING-03",
+        "T-SAL-PRICING-04",
+        "T-SAL-PRICING-05",
+        "T-TRE-CE-01",
+        "T-TRE-CE-02",
+        "T-TRE-CE-03",
+        "T-TRE-CE-04",
+        "T-TRE-CE-05",
+        "T-TRE-CE-06",
+        "T-TRE-CE-07",
+        "T-TRE-RC-01",
+        "T-TRE-RC-02",
+        "T-TRE-RC-03",
+        "T-TRE-RC-04",
+        "T-TRE-RC-05",
+        "T-TRE-RC-06",
+        "T-TRE-RC-07",
+        "T-TRE-RC-08",
+        "T-X-AI-MCP-01",
+        "T-X-AI-MCP-02",
+        "T-X-AI-MCP-03",
+        "T-X-AI-MCP-04",
+        "T-X-DATAIO-01",
+        "T-X-DATAIO-02",
+        "T-X-QA-01",
+        "T-X-QA-02",
+        "T-X-QA-03",
+        "T-X-QA-06",
+        "T-X-QA-07",
+        "T-X-SEED-01",
+        "T-X-SEED-02"
+      ],
+      "after_wave": 8,
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md"
+      ]
+    },
+    "P23": {
+      "kind": "worker",
+      "title": "Compliance evidence / legal packet",
+      "source": [
+        "P23"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "docs/compliance/**",
+        "tests/regulatory/map.yaml"
+      ],
+      "except": [],
+      "features": [
+        "F-X-COMPLIANCE"
+      ],
+      "tests": [
+        "T-ACC-EXO-06",
+        "T-X-COMPLIANCE-01"
+      ],
+      "slug": "compliance-evidence",
+      "requires": [
+        "G3"
+      ],
+      "wave": 9,
+      "weight": 1.36,
+      "prompt_file": "W09-S1-P23-compliance-evidence.md",
+      "retry_file": "RETRY-P23.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P23-compliance-evidence-legal-packet.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-X-COMPLIANCE)"
+      ]
+    },
+    "P22d": {
+      "kind": "worker",
+      "title": "P22 milestone d: full E2E, a11y, perf, security scans, backup/restore drill",
+      "source": [
+        "P22d"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "tests/e2e/**",
+        "tests/cross_module/**",
+        "tests/security/**",
+        "tests/perf/**",
+        "docs/gates/G*-evidence/**",
+        "docs/traceability.csv"
+      ],
+      "except": [],
+      "features": [
+        "F-X-QA"
+      ],
+      "tests": [
+        "T-INV-BARCODE-06",
+        "T-PORTAL-CORE-05",
+        "T-PORTAL-SUP-06",
+        "T-PORTAL-CUS-06",
+        "T-PORTAL-EMP-04",
+        "T-X-QA-04",
+        "T-X-QA-05"
+      ],
+      "slug": "qa-e2e-a11y-perf",
+      "requires": [
+        "G3"
+      ],
+      "wave": 9,
+      "weight": 0.98,
+      "prompt_file": "W09-S2-P22d-qa-e2e-a11y-perf.md",
+      "retry_file": "RETRY-P22d.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/prompts/P22-qa-security-e2e.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-X-QA)",
+        "docs/spec/UI-CONTRACT.md + docs/spec/ui/ (module-registry.json, tokens.json, task-matrix.json row P22d) + docs/spec/ui-reference/",
+        "docs/spec/DEV-ADDENDUM.md"
+      ]
+    },
+    "G4": {
+      "kind": "gate",
+      "title": "Release candidate gate (shared/10)",
+      "source": [
+        "G4"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [
+        "tests/gates/**",
+        "docs/gates/**"
+      ],
+      "except": [],
+      "features": [],
+      "tests": [
+        "T-X-COMPLIANCE-02"
+      ],
+      "slug": "g4",
+      "requires": [
+        "G3",
+        "P23",
+        "P22d"
+      ],
+      "gate_tests": [
+        "T-ACC-BRANCH-01",
+        "T-ACC-BRANCH-02",
+        "T-ACC-BRANCH-03",
+        "T-ACC-BRANCH-04",
+        "T-ACC-BRANCH-05",
+        "T-ACC-BRANCH-06",
+        "T-ACC-DIM-01",
+        "T-ACC-DIM-02",
+        "T-ACC-DIM-03",
+        "T-ACC-DIM-04",
+        "T-ACC-DIM-05",
+        "T-ACC-DIM-06",
+        "T-ACC-DIM-07",
+        "T-ACC-DIM-08",
+        "T-ACC-DIM-09",
+        "T-ACC-DIM-10",
+        "T-ACC-DIM-11",
+        "T-ACC-DIM-12",
+        "T-ACC-EXO-01",
+        "T-ACC-EXO-02",
+        "T-ACC-EXO-03",
+        "T-ACC-EXO-04",
+        "T-ACC-EXO-05",
+        "T-ACC-EXO-06",
+        "T-ACC-REPORTS-01",
+        "T-ACC-REPORTS-02",
+        "T-ACC-REPORTS-03",
+        "T-ACC-REPORTS-04",
+        "T-ACC-REPORTS-05",
+        "T-ACC-REPORTS-06",
+        "T-ACC-REPORTS-07",
+        "T-FORMULA-ENGINE-01",
+        "T-FORMULA-ENGINE-02",
+        "T-FORMULA-ENGINE-03",
+        "T-FORMULA-ENGINE-04",
+        "T-FORMULA-ENGINE-05",
+        "T-FORMULA-ENGINE-06",
+        "T-INV-BARCODE-01",
+        "T-INV-BARCODE-02",
+        "T-INV-BARCODE-03",
+        "T-INV-BARCODE-04",
+        "T-INV-BARCODE-05",
+        "T-INV-BARCODE-06",
+        "T-INV-BOM-01",
+        "T-INV-BOM-02",
+        "T-INV-BOM-03",
+        "T-INV-BOM-04",
+        "T-INV-ISSUE-01",
+        "T-INV-ISSUE-02",
+        "T-INV-ISSUE-03",
+        "T-INV-ISSUE-04",
+        "T-INV-ISSUE-05",
+        "T-INV-LOC-01",
+        "T-INV-LOC-02",
+        "T-INV-LOC-03",
+        "T-INV-LOC-04",
+        "T-INV-LOC-05",
+        "T-INV-PRES-01",
+        "T-INV-PRES-02",
+        "T-INV-PRES-03",
+        "T-INV-PRES-04",
+        "T-INV-PRES-05",
+        "T-INV-REQ-01",
+        "T-INV-REQ-02",
+        "T-INV-REQ-03",
+        "T-INV-REQ-04",
+        "T-INV-REQ-05",
+        "T-INV-REQ-06",
+        "T-INV-REQ-07",
+        "T-INV-XFORM-01",
+        "T-INV-XFORM-02",
+        "T-INV-XFORM-03",
+        "T-INV-XFORM-04",
+        "T-INV-XFORM-05",
+        "T-INV-XFORM-06",
+        "T-INV-XFORM-07",
+        "T-INV-XFORM-08",
+        "T-INV-XFORM-09",
+        "T-PAY-FORMULA-01",
+        "T-PAY-FORMULA-02",
+        "T-PAY-FORMULA-03",
+        "T-PAY-FORMULA-04",
+        "T-PAY-FORMULA-05",
+        "T-PORTAL-CORE-01",
+        "T-PORTAL-CORE-02",
+        "T-PORTAL-CORE-03",
+        "T-PORTAL-CORE-04",
+        "T-PORTAL-CORE-05",
+        "T-PORTAL-CUS-01",
+        "T-PORTAL-CUS-02",
+        "T-PORTAL-CUS-03",
+        "T-PORTAL-CUS-04",
+        "T-PORTAL-CUS-05",
+        "T-PORTAL-CUS-06",
+        "T-PORTAL-EMP-01",
+        "T-PORTAL-EMP-02",
+        "T-PORTAL-EMP-03",
+        "T-PORTAL-EMP-04",
+        "T-PORTAL-SUP-01",
+        "T-PORTAL-SUP-02",
+        "T-PORTAL-SUP-03",
+        "T-PORTAL-SUP-04",
+        "T-PORTAL-SUP-05",
+        "T-PORTAL-SUP-06",
+        "T-PT-OPEN-01",
+        "T-PT-OPEN-02",
+        "T-PUR-CYCLE-01",
+        "T-PUR-CYCLE-02",
+        "T-PUR-CYCLE-03",
+        "T-PUR-CYCLE-04",
+        "T-PUR-CYCLE-05",
+        "T-PUR-CYCLE-06",
+        "T-PUR-CYCLE-07",
+        "T-PUR-CYCLE-08",
+        "T-SAL-PRICING-01",
+        "T-SAL-PRICING-02",
+        "T-SAL-PRICING-03",
+        "T-SAL-PRICING-04",
+        "T-SAL-PRICING-05",
+        "T-TRE-CE-01",
+        "T-TRE-CE-02",
+        "T-TRE-CE-03",
+        "T-TRE-CE-04",
+        "T-TRE-CE-05",
+        "T-TRE-CE-06",
+        "T-TRE-CE-07",
+        "T-TRE-RC-01",
+        "T-TRE-RC-02",
+        "T-TRE-RC-03",
+        "T-TRE-RC-04",
+        "T-TRE-RC-05",
+        "T-TRE-RC-06",
+        "T-TRE-RC-07",
+        "T-TRE-RC-08",
+        "T-X-AI-MCP-01",
+        "T-X-AI-MCP-02",
+        "T-X-AI-MCP-03",
+        "T-X-AI-MCP-04",
+        "T-X-COMPLIANCE-01",
+        "T-X-COMPLIANCE-02",
+        "T-X-DATAIO-01",
+        "T-X-DATAIO-02",
+        "T-X-QA-01",
+        "T-X-QA-02",
+        "T-X-QA-03",
+        "T-X-QA-04",
+        "T-X-QA-05",
+        "T-X-QA-06",
+        "T-X-QA-07",
+        "T-X-SEED-01",
+        "T-X-SEED-02"
+      ],
+      "after_wave": 9,
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-X-COMPLIANCE)"
+      ]
+    },
+    "RC": {
+      "kind": "release",
+      "title": "Build RC images from the accepted head; record image IDs/digests, SBOM, migration manifest (no deployment)",
+      "source": [
+        "RC"
+      ],
+      "scope": "The complete scope of the original prompt (see docs/prompt-pack) as amended by docs/spec addenda.",
+      "paths": [],
+      "except": [],
+      "features": [],
+      "tests": [],
+      "slug": "rc",
+      "requires": [
+        "G4"
+      ],
+      "after_wave": 9,
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/DEV-ADDENDUM.md"
+      ]
+    },
+    "DEV": {
+      "kind": "dev",
+      "title": "DEV runtime: build the RC, run the dev stack in this cloud VM as far as the platform allows, verify login/print/visual+a11y, ship LOCAL-RUN for the Mac",
+      "source": [
+        "DEV"
+      ],
+      "scope": "Build images from the release candidate, start the dev stack (Docker Compose, loopback only), migrate, seed the synthetic demo tenant, run the mandatory runtime tests, and write the exact local-run procedure for the operator's Apple-Silicon Mac.",
+      "paths": [
+        "scripts/local/**",
+        "docs/run/LOCAL-RUN.md",
+        "docs/run/DEV-EVIDENCE.md",
+        "tests/runtime/**",
+        "docker-compose*.yml",
+        "deploy/**",
+        "scripts/ci/**"
+      ],
+      "except": [],
+      "features": [
+        "F-X-RUNTIME"
+      ],
+      "tests": [
+        "T-X-RUNTIME-01",
+        "T-X-RUNTIME-02",
+        "T-X-RUNTIME-03"
+      ],
+      "slug": "dev-runtime-local-run",
+      "requires": [
+        "RC"
+      ],
+      "wave": 10,
+      "weight": 1.3,
+      "prompt_file": "W10-S1-DEV-dev-runtime-local-run.md",
+      "retry_file": "RETRY-DEV.md",
+      "docs": [
+        "CLAUDE.md",
+        "docs/spec/CLOUD-ADDENDUM.md",
+        "docs/prompt-pack/shared/ (the shared documents the prompt header names)",
+        "docs/spec/DECISIONS-DEFAULTS.md",
+        "docs/spec/FEATURES-ADDENDUM.md (sections of: F-X-RUNTIME)",
+        "docs/spec/DEV-ADDENDUM.md"
+      ]
+    }
+  }
+}

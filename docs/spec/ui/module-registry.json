@@ -1,0 +1,2658 @@
+{
+  "schema": "erp-ui/module-registry/v1",
+  "version": "2.2.0-dev",
+  "groups": [
+    "Inicio",
+    "Finanzas",
+    "Comercial",
+    "Operaciones",
+    "Personas",
+    "Análisis",
+    "Sistema"
+  ],
+  "required_modules": [
+    "inicio",
+    "contabilidad",
+    "tesoreria",
+    "activos",
+    "ventas",
+    "facturacion",
+    "pos",
+    "inventario",
+    "compras",
+    "talento",
+    "reportes",
+    "aprobaciones",
+    "datos",
+    "puesta-en-marcha",
+    "administracion"
+  ],
+  "shell": {
+    "owner_task": "P08",
+    "files": [
+      "frontend/src/shell/**"
+    ],
+    "registry_loader": "frontend/src/shell/registry.ts",
+    "rule": "Exactly one shell (header + sidebar + module bar + AI panel). Modules register descriptors; no module renders its own nav, header or AI widget."
+  },
+  "kpi_semantics": {
+    "flow": "Sum/count over the selected period [start, end]; for an open current period: start..today (America/Bogota).",
+    "snapshot": "Value as of the cut-off = period end, or now if the period contains today.",
+    "previous_period": "Same-length period immediately before; for an open month: day 1..same day-of-month of the previous month. Delta % = (cur − prev) ÷ |prev|; prev = 0 → show '—' (zero_denominator rule).",
+    "none": "No comparison shown.",
+    "units": {
+      "COP": "Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}); compact form '$ 1,3 M' only with full value in aria-label/tooltip",
+      "count": "es-CO integer",
+      "percent": "es-CO 1 decimal",
+      "ratio": "es-CO 1 decimal + 'x'",
+      "days": "es-CO integer + ' días'",
+      "hours": "es-CO 1 decimal + ' h'"
+    },
+    "no_invented_metrics": "No NPS, satisfaction, uptime or performance figures unless backed by stored data (the reference's 'Customer Satisfaction 96.4% / NPS 72' tile is NOT carried over)."
+  },
+  "api": {
+    "context": "GET /api/v1/ui/context -> {tenant, companies[] (allowed only), company_id, period {id,start,end,status}, roles, permissions[], feature_flags, environment:'dev', brand}",
+    "modules": "GET /api/v1/ui/modules?company_id= -> registry filtered server-side by permission (unauthorized modules are absent, not disabled)",
+    "kpis": "GET /api/v1/kpis/{module_id}?company_id=&period_id=&compare=previous -> {as_of, kpis:[{id, value|null, previous|null, delta|null, unit, state:'ok'|'no_data'|'not_available'|'forbidden_field', formula_ref}], generated_at}",
+    "panel": "GET /api/v1/kpis/{module_id}/panels/{panel_id}?company_id=&period_id=&range=",
+    "search": "GET /api/v1/search?q=&company_id=&limit= -> results only from objects the user can read; masked fields never matched",
+    "notifications": "GET /api/v1/notifications?company_id= ; POST /api/v1/notifications/read",
+    "ai": "POST /api/v1/ai/sessions, POST /api/v1/ai/sessions/{id}/messages (streamed), proposals via POST /api/v1/ai/proposals/{id}/confirm (P19)",
+    "export": "POST /api/v1/exports (P18; policy-applied)",
+    "headers": "Company and period travel as explicit params (company_id, period_id); the server re-checks membership on every call",
+    "owner": "P02 freezes these contracts at G0 (OpenAPI); providers implement per module; P17 may add aggregate endpoints later without changing these"
+  },
+  "modules": [
+    {
+      "id": "inicio",
+      "label": "Inicio",
+      "icon": "layout-dashboard",
+      "group": "Inicio",
+      "owner_task": "P08",
+      "descriptor_file": "frontend/src/shell/modules/inicio.module.ts",
+      "route": "/m/inicio",
+      "permission": "shell.access",
+      "nav_visibility": "hidden when the user lacks the module permission",
+      "submenus": [
+        {
+          "id": "resumen",
+          "label": "Resumen",
+          "route": "/m/inicio",
+          "permission": "shell.access"
+        },
+        {
+          "id": "analitica",
+          "label": "Analítica",
+          "route": "/m/inicio/analitica",
+          "permission": "reporting.read",
+          "owner_task": "P17"
+        },
+        {
+          "id": "reportes",
+          "label": "Reportes",
+          "route": "/m/inicio/reportes",
+          "permission": "reporting.read",
+          "owner_task": "P17"
+        },
+        {
+          "id": "actividad",
+          "label": "Actividad",
+          "route": "/m/inicio/actividad",
+          "permission": "audit.read",
+          "owner_task": "P07"
+        }
+      ],
+      "dashboard": {
+        "route": "/m/inicio",
+        "kpis": [
+          {
+            "id": "ventas_netas",
+            "label": "Ventas netas",
+            "formula": "Σ créditos − débitos de cuentas de ingresos operacionales (clase 41, PUC) contabilizados en el periodo, empresa seleccionada",
+            "unit": "COP",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "sales.kpi.read",
+            "provider_task": "P10",
+            "source": "ledger postings (journal) filtered by account class 41",
+            "drill": "/m/ventas/facturas?period={period}"
+          },
+          {
+            "id": "caja_bancos",
+            "label": "Caja y bancos",
+            "formula": "Saldo al cierre del periodo (o hoy si el periodo está abierto) de cuentas 1105 + 1110 + 1120",
+            "unit": "COP",
+            "semantics": "snapshot",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "treasury.kpi.read",
+            "provider_task": "P05",
+            "source": "ledger balances",
+            "drill": "/m/contabilidad/mayor?accounts=1105,1110,1120"
+          },
+          {
+            "id": "cartera_vencida",
+            "label": "Cartera vencida",
+            "formula": "Σ saldo abierto de documentos CxC con fecha de vencimiento < fecha de corte",
+            "unit": "COP",
+            "semantics": "snapshot",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "receivables.kpi.read",
+            "provider_task": "P10",
+            "source": "AR open items",
+            "drill": "/m/ventas/cartera?vencida=1"
+          },
+          {
+            "id": "inventario_costo",
+            "label": "Inventario al costo",
+            "formula": "Σ cantidad disponible × costo unitario de la capa de valoración a la fecha de corte",
+            "unit": "COP",
+            "semantics": "snapshot",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "inventory.cost.read",
+            "provider_task": "P09",
+            "source": "inventory valuation layers",
+            "drill": "/m/inventario/valoracion",
+            "sensitive_fields": [
+              "unit_cost"
+            ]
+          }
+        ],
+        "panels": [
+          {
+            "id": "ingresos_vs_gastos",
+            "title": "Ingresos vs. gastos operacionales",
+            "type": "line",
+            "series": [
+              {
+                "id": "ingresos",
+                "style": "chart.revenue",
+                "formula": "Σ clase 4 por mes"
+              },
+              {
+                "id": "gastos",
+                "style": "chart.expenses",
+                "formula": "Σ clases 5 + 6 por mes"
+              }
+            ],
+            "range_selector": [
+              "Últimos 6 meses",
+              "Año fiscal"
+            ],
+            "provider_task": "P05",
+            "permission": "ledger.kpi.read",
+            "drill": "/m/contabilidad/resultados?month={x}"
+          },
+          {
+            "id": "actividad_reciente",
+            "title": "Actividad reciente",
+            "type": "feed",
+            "source": "audit log, policy-scoped (only events the user may see)",
+            "provider_task": "P07",
+            "permission": "audit.read",
+            "drill": "/m/aprobaciones/auditoria/{event_id}"
+          }
+        ],
+        "empty_state": "Sin movimientos en el periodo. Acciones: 'Importar datos' (/m/datos) o 'Iniciar puesta en marcha' (/m/puesta-en-marcha)."
+      },
+      "quick_action": {
+        "id": "nuevo_reporte",
+        "label": "Nuevo reporte",
+        "permission": "reporting.write",
+        "action": "route:/m/reportes/nuevo"
+      },
+      "composition": "Tiles are KPIs registered by their provider modules; a provider not yet accepted renders the honest state 'Módulo aún no disponible' (never invented numbers). P17 may later add aggregates; it never blocks this dashboard."
+    },
+    {
+      "id": "contabilidad",
+      "label": "Contabilidad",
+      "icon": "landmark",
+      "group": "Finanzas",
+      "owner_task": "P05",
+      "descriptor_file": "frontend/src/features/ledger/module.ts",
+      "route": "/m/contabilidad",
+      "permission": "ledger.read",
+      "nav_visibility": "hidden when the user lacks the module permission",
+      "submenus": [
+        {
+          "id": "resumen",
+          "label": "Resumen",
+          "route": "/m/contabilidad",
+          "permission": "ledger.read"
+        },
+        {
+          "id": "mayor",
+          "label": "Libro mayor",
+          "route": "/m/contabilidad/mayor",
+          "permission": "ledger.read"
+        },
+        {
+          "id": "comprobantes",
+          "label": "Comprobantes",
+          "route": "/m/contabilidad/comprobantes",
+          "permission": "ledger.read"
+        },
+        {
+          "id": "cierres",
+          "label": "Cierres de periodo",
+          "route": "/m/contabilidad/cierres",
+          "permission": "ledger.close"
+        },
+        {
+          "id": "dimensiones",
+          "label": "Dimensiones contables",
+          "route": "/m/contabilidad/dimensiones",
+          "permission": "ledger.dimension.read",
+          "owner_task": "P05",
+          "tabs": [
+            {
+              "id": "centros-costo",
+              "label": "Centros de costo",
+              "route": "/m/contabilidad/dimensiones/centros-costo",
+              "permission": "ledger.dimension.read",
+              "feature": "F-ACC-DIM"
+            },
+            {
+              "id": "unidades-negocio",
+              "label": "Unidades de negocio",
+              "route": "/m/contabilidad/dimensiones/unidades-negocio",
+              "permission": "ledger.dimension.read",
+              "feature": "F-ACC-DIM"
+            },
+            {
+              "id": "auxiliares-abiertos",
+              "label": "Auxiliares abiertos",
+              "route": "/m/contabilidad/dimensiones/auxiliares-abiertos",
+              "permission": "ledger.dimension.read",
+              "feature": "F-ACC-DIM"
+            },
+            {
+              "id": "items-contables",
+              "label": "Ítems contables",
+              "route": "/m/contabilidad/dimensiones/items-contables",
+              "permission": "ledger.dimension.read",
+              "feature": "F-ACC-DIM"
+            }
+          ]
+        },
+        {
+          "id": "impuestos",
+          "label": "Impuestos",
+          "route": "/m/contabilidad/impuestos",
+          "permission": "tax.read",
+          "owner_task": "P06",
+          "tabs": [
+            {
+              "id": "exogena",
+              "label": "Exógena",
+              "route": "/m/contabilidad/impuestos/exogena",
+              "permission": "reporting.exogena.read",
+              "feature": "F-ACC-EXO",
+              "owner_task": "P17"
+            }
+          ]
+        }
+      ],
+      "dashboard": {
+        "route": "/m/contabilidad",
+        "kpis": [
+          {
+            "id": "comprobantes_periodo",
+            "label": "Comprobantes contabilizados",
+            "formula": "Número de comprobantes en estado contabilizado con fecha contable en el periodo",
+            "unit": "count",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "ledger.read",
+            "provider_task": "P05",
+            "source": "journal entries",
+            "drill": "/m/contabilidad/comprobantes?period={period}"
+          },
+          {
+            "id": "ingresos_periodo",
+            "label": "Ingresos",
+            "formula": "Σ movimiento neto crédito de cuentas clase 4 en el periodo",
+            "unit": "COP",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "ledger.kpi.read",
+            "provider_task": "P05",
+            "source": "ledger postings",
+            "drill": "/m/contabilidad/mayor?class=4"
+          },
+          {
+            "id": "gastos_costos_periodo",
+            "label": "Gastos y costos",
+            "formula": "Σ movimiento neto débito de cuentas clases 5, 6 y 7 en el periodo",
+            "unit": "COP",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "ledger.kpi.read",
+            "provider_task": "P05",
+            "source": "ledger postings",
+            "drill": "/m/contabilidad/mayor?class=5,6,7"
+          },
+          {
+            "id": "resultado_periodo",
+            "label": "Resultado del periodo",
+            "formula": "Ingresos − (gastos + costos) del mismo periodo",
+            "unit": "COP",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "ledger.kpi.read",
+            "provider_task": "P05",
+            "source": "derived",
+            "drill": "/m/contabilidad/resultados"
+          },
+          {
+            "id": "descuadres_auxiliares",
+            "label": "Descuadres con auxiliares",
+            "formula": "Número de cuentas de control cuyo saldo difiere del total de su auxiliar (CxC, CxP, inventario, activos) a la fecha de corte; objetivo 0",
+            "unit": "count",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "ledger.read",
+            "provider_task": "P05",
+            "source": "control-account reconciliation",
+            "drill": "/m/contabilidad/conciliacion-auxiliares"
+          }
+        ],
+        "panels": [
+          {
+            "id": "resultado_mensual",
+            "title": "Ingresos vs. gastos",
+            "type": "line",
+            "series": [
+              {
+                "id": "ingresos",
+                "style": "chart.revenue"
+              },
+              {
+                "id": "gastos",
+                "style": "chart.expenses"
+              }
+            ],
+            "provider_task": "P05",
+            "permission": "ledger.kpi.read",
+            "drill": "/m/contabilidad/resultados?month={x}"
+          }
+        ],
+        "empty_state": "Aún no hay comprobantes en este periodo. Acciones: 'Nuevo comprobante', 'Importar saldos iniciales' (/m/datos/importar?tipo=saldos)."
+      },
+      "quick_action": {
+        "id": "nuevo_comprobante",
+        "label": "Nuevo comprobante",
+        "permission": "ledger.post",
+        "action": "route:/m/contabilidad/comprobantes/nuevo"
+      }
+    },
+    {
+      "id": "tesoreria",
+      "label": "Tesorería",
+      "icon": "wallet",
+      "group": "Finanzas",
+      "owner_task": "P16",
+      "descriptor_file": "frontend/src/features/treasury/module.ts",
+      "route": "/m/tesoreria",
+      "permission": "treasury.read",
+      "nav_visibility": "hidden when the user lacks the module permission",
+      "submenus": [
+        {
+          "id": "resumen",
+          "label": "Resumen",
+          "route": "/m/tesoreria",
+          "permission": "treasury.read"
+        },
+        {
+          "id": "recibos",
+          "label": "Recibos de caja",
+          "route": "/m/tesoreria/recibos",
+          "permission": "treasury.receipt.read",
+          "tabs": [
+            {
+              "id": "recibos",
+              "label": "Recibos",
+              "route": "/m/tesoreria/recibos/lista",
+              "permission": "treasury.receipt.read",
+              "feature": "F-TRE-RC"
+            },
+            {
+              "id": "conceptos",
+              "label": "Conceptos de tesorería",
+              "route": "/m/tesoreria/recibos/conceptos",
+              "permission": "treasury.concept.read",
+              "feature": "F-TRE-RC"
+            }
+          ]
+        },
+        {
+          "id": "egresos",
+          "label": "Comprobantes de egreso",
+          "route": "/m/tesoreria/egresos",
+          "permission": "treasury.disbursement.read",
+          "tabs": [
+            {
+              "id": "comprobantes",
+              "label": "Comprobantes",
+              "route": "/m/tesoreria/egresos/lista",
+              "permission": "treasury.disbursement.read",
+              "feature": "F-TRE-CE"
+            },
+            {
+              "id": "lotes",
+              "label": "Lotes de pago",
+              "route": "/m/tesoreria/egresos/lotes",
+              "permission": "treasury.disbursement.read",
+              "feature": "F-TRE-CE"
+            }
+          ]
+        },
+        {
+          "id": "bancos",
+          "label": "Bancos y cajas",
+          "route": "/m/tesoreria/bancos",
+          "permission": "treasury.read"
+        },
+        {
+          "id": "conciliacion",
+          "label": "Conciliación bancaria",
+          "route": "/m/tesoreria/conciliacion",
+          "permission": "treasury.reconcile"
+        },
+        {
+          "id": "intercompania",
+          "label": "Intercompañía y consolidación",
+          "route": "/m/tesoreria/intercompania",
+          "permission": "consolidation.read"
+        }
+      ],
+      "dashboard": {
+        "route": "/m/tesoreria",
+        "kpis": [
+          {
+            "id": "saldo_disponible",
+            "label": "Saldo disponible",
+            "formula": "Σ saldo contable de cuentas bancarias y cajas de la empresa a la fecha de corte",
+            "unit": "COP",
+            "semantics": "snapshot",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "treasury.kpi.read",
+            "provider_task": "P16",
+            "source": "ledger balances of treasury accounts",
+            "drill": "/m/tesoreria/bancos"
+          },
+          {
+            "id": "recaudos_periodo",
+            "label": "Recaudos",
+            "formula": "Σ recibos de caja contabilizados en el periodo",
+            "unit": "COP",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "treasury.kpi.read",
+            "provider_task": "P16",
+            "source": "receipts",
+            "drill": "/m/tesoreria/recibos/lista"
+          },
+          {
+            "id": "pagos_periodo",
+            "label": "Pagos",
+            "formula": "Σ egresos contabilizados en el periodo",
+            "unit": "COP",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "treasury.kpi.read",
+            "provider_task": "P16",
+            "source": "disbursements",
+            "drill": "/m/tesoreria/egresos/lista"
+          },
+          {
+            "id": "partidas_sin_conciliar",
+            "label": "Partidas sin conciliar",
+            "formula": "Número de líneas de extracto importado sin cruce contable a la fecha de corte",
+            "unit": "count",
+            "semantics": "snapshot",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "treasury.reconcile",
+            "provider_task": "P16",
+            "source": "imported bank statements (CSV, no live bank)",
+            "drill": "/m/tesoreria/conciliacion"
+          },
+          {
+            "id": "saldos_intercompania",
+            "label": "Diferencias intercompañía",
+            "formula": "Σ |saldo por cobrar a vinculada − saldo por pagar espejo| entre empresas del grupo a la fecha de corte",
+            "unit": "COP",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "consolidation.read",
+            "provider_task": "P16",
+            "source": "intercompany balances",
+            "drill": "/m/tesoreria/intercompania"
+          }
+        ],
+        "panels": [
+          {
+            "id": "flujo_caja",
+            "title": "Recaudos vs. pagos",
+            "type": "line",
+            "series": [
+              {
+                "id": "recaudos",
+                "style": "chart.revenue"
+              },
+              {
+                "id": "pagos",
+                "style": "chart.expenses"
+              }
+            ],
+            "provider_task": "P16",
+            "permission": "treasury.kpi.read",
+            "drill": "/m/tesoreria/egresos/lista?month={x}"
+          }
+        ],
+        "empty_state": "No hay cuentas bancarias configuradas. Acción: 'Crear cuenta bancaria' o 'Importar extracto (CSV)'. En dev no existe conexión con bancos reales."
+      },
+      "quick_action": {
+        "id": "nuevo_pago",
+        "label": "Nuevo pago",
+        "permission": "treasury.pay",
+        "action": "route:/m/tesoreria/egresos/nuevo"
+      }
+    },
+    {
+      "id": "activos",
+      "label": "Activos fijos",
+      "icon": "building-2",
+      "group": "Finanzas",
+      "owner_task": "P14",
+      "descriptor_file": "frontend/src/features/assets/module.ts",
+      "route": "/m/activos",
+      "permission": "assets.read",
+      "nav_visibility": "hidden when the user lacks the module permission",
+      "submenus": [
+        {
+          "id": "resumen",
+          "label": "Resumen",
+          "route": "/m/activos",
+          "permission": "assets.read"
+        },
+        {
+          "id": "registro",
+          "label": "Registro de activos",
+          "route": "/m/activos/registro",
+          "permission": "assets.read"
+        },
+        {
+          "id": "depreciacion",
+          "label": "Depreciación",
+          "route": "/m/activos/depreciacion",
+          "permission": "assets.depreciate"
+        },
+        {
+          "id": "bajas",
+          "label": "Bajas y traslados",
+          "route": "/m/activos/bajas",
+          "permission": "assets.write"
+        }
+      ],
+      "dashboard": {
+        "route": "/m/activos",
+        "kpis": [
+          {
+            "id": "costo_historico",
+            "label": "Costo histórico",
+            "formula": "Σ costo de adquisición de activos activos a la fecha de corte",
+            "unit": "COP",
+            "semantics": "snapshot",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "assets.read",
+            "provider_task": "P14",
+            "source": "asset register",
+            "drill": "/m/activos/registro"
+          },
+          {
+            "id": "depreciacion_periodo",
+            "label": "Depreciación del periodo",
+            "formula": "Σ depreciación contabilizada en el periodo (todas las bases: NIIF y fiscal se muestran por separado)",
+            "unit": "COP",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "assets.read",
+            "provider_task": "P14",
+            "source": "depreciation runs",
+            "drill": "/m/activos/depreciacion?period={period}"
+          },
+          {
+            "id": "valor_neto",
+            "label": "Valor neto en libros",
+            "formula": "Costo histórico − depreciación acumulada − deterioro acumulado a la fecha de corte",
+            "unit": "COP",
+            "semantics": "snapshot",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "assets.read",
+            "provider_task": "P14",
+            "source": "asset register",
+            "drill": "/m/activos/registro?orden=valor_neto"
+          },
+          {
+            "id": "sin_depreciar",
+            "label": "Activos pendientes de depreciación",
+            "formula": "Número de activos en uso sin corrida de depreciación para el periodo",
+            "unit": "count",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "assets.depreciate",
+            "provider_task": "P14",
+            "source": "depreciation runs",
+            "drill": "/m/activos/depreciacion?pendientes=1"
+          }
+        ],
+        "panels": [
+          {
+            "id": "depreciacion_mensual",
+            "title": "Depreciación mensual",
+            "type": "bar",
+            "provider_task": "P14",
+            "permission": "assets.read",
+            "drill": "/m/activos/depreciacion?month={x}"
+          }
+        ],
+        "empty_state": "No hay activos registrados. Acciones: 'Nuevo activo' o 'Importar activos' (/m/datos/importar?tipo=activos)."
+      },
+      "quick_action": {
+        "id": "nuevo_activo",
+        "label": "Nuevo activo",
+        "permission": "assets.write",
+        "action": "route:/m/activos/registro/nuevo"
+      }
+    },
+    {
+      "id": "ventas",
+      "label": "Ventas y CRM",
+      "icon": "users",
+      "group": "Comercial",
+      "owner_task": "P10",
+      "descriptor_file": "frontend/src/features/sales/module.ts",
+      "route": "/m/ventas",
+      "permission": "sales.read",
+      "nav_visibility": "hidden when the user lacks the module permission",
+      "submenus": [
+        {
+          "id": "resumen",
+          "label": "Resumen",
+          "route": "/m/ventas",
+          "permission": "sales.read"
+        },
+        {
+          "id": "oportunidades",
+          "label": "Oportunidades",
+          "route": "/m/ventas/oportunidades",
+          "permission": "crm.read"
+        },
+        {
+          "id": "clientes",
+          "label": "Clientes y precios",
+          "route": "/m/ventas/clientes",
+          "permission": "party.read",
+          "tabs": [
+            {
+              "id": "clientes",
+              "label": "Clientes",
+              "route": "/m/ventas/clientes/lista",
+              "permission": "party.read",
+              "feature": "F-PORTAL-CUS"
+            },
+            {
+              "id": "formulas-precio",
+              "label": "Fórmulas de precio",
+              "route": "/m/ventas/clientes/formulas-precio",
+              "permission": "sales.pricing.read",
+              "feature": "F-SAL-PRICING"
+            }
+          ]
+        },
+        {
+          "id": "pedidos",
+          "label": "Pedidos",
+          "route": "/m/ventas/pedidos",
+          "permission": "sales.read"
+        },
+        {
+          "id": "facturas",
+          "label": "Facturas de venta",
+          "route": "/m/ventas/facturas",
+          "permission": "sales.read"
+        },
+        {
+          "id": "cartera",
+          "label": "Cartera",
+          "route": "/m/ventas/cartera",
+          "permission": "receivables.read"
+        }
+      ],
+      "dashboard": {
+        "route": "/m/ventas",
+        "kpis": [
+          {
+            "id": "ventas_netas_v",
+            "label": "Ventas netas",
+            "formula": "Σ subtotal de facturas de venta contabilizadas − notas crédito del periodo (sin impuestos)",
+            "unit": "COP",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "sales.kpi.read",
+            "provider_task": "P10",
+            "source": "sales invoices",
+            "drill": "/m/ventas/facturas?period={period}"
+          },
+          {
+            "id": "pedidos_abiertos",
+            "label": "Pedidos abiertos",
+            "formula": "Número de pedidos confirmados no facturados totalmente a la fecha de corte",
+            "unit": "count",
+            "semantics": "snapshot",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "sales.read",
+            "provider_task": "P10",
+            "source": "sales orders",
+            "drill": "/m/ventas/pedidos?estado=abierto"
+          },
+          {
+            "id": "pipeline_ponderado",
+            "label": "Pipeline ponderado",
+            "formula": "Σ valor × probabilidad registrada de oportunidades abiertas a la fecha de corte",
+            "unit": "COP",
+            "semantics": "snapshot",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "crm.read",
+            "provider_task": "P10",
+            "source": "CRM opportunities",
+            "drill": "/m/ventas/oportunidades"
+          },
+          {
+            "id": "cartera_vencida_v",
+            "label": "Cartera vencida",
+            "formula": "Σ saldo de CxC vencido a la fecha de corte",
+            "unit": "COP",
+            "semantics": "snapshot",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "receivables.kpi.read",
+            "provider_task": "P10",
+            "source": "AR open items",
+            "drill": "/m/ventas/cartera?vencida=1"
+          },
+          {
+            "id": "dso",
+            "label": "Días de cartera (DSO)",
+            "formula": "Saldo promedio de CxC del periodo ÷ (ventas a crédito del periodo ÷ días del periodo)",
+            "unit": "days",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "show '—' with tooltip 'Sin base para calcular' (never 0, ∞ or NaN)",
+            "permission": "receivables.kpi.read",
+            "provider_task": "P10",
+            "source": "AR + sales invoices",
+            "drill": "/m/ventas/cartera"
+          }
+        ],
+        "panels": [
+          {
+            "id": "ventas_mensuales",
+            "title": "Ventas netas por mes",
+            "type": "line",
+            "series": [
+              {
+                "id": "ventas",
+                "style": "chart.revenue"
+              },
+              {
+                "id": "notas_credito",
+                "style": "chart.expenses"
+              }
+            ],
+            "provider_task": "P10",
+            "permission": "sales.kpi.read",
+            "drill": "/m/ventas/facturas?month={x}"
+          },
+          {
+            "id": "embudo",
+            "title": "Oportunidades por etapa",
+            "type": "bar",
+            "provider_task": "P10",
+            "permission": "crm.read",
+            "drill": "/m/ventas/oportunidades?etapa={x}"
+          }
+        ],
+        "empty_state": "Sin ventas en el periodo. Acciones: 'Nueva oportunidad', 'Crear cliente', 'Importar clientes'."
+      },
+      "quick_action": {
+        "id": "nueva_oportunidad",
+        "label": "Nueva oportunidad",
+        "permission": "crm.write",
+        "action": "route:/m/ventas/oportunidades/nueva"
+      }
+    },
+    {
+      "id": "facturacion",
+      "label": "Facturación electrónica",
+      "icon": "file-text",
+      "group": "Comercial",
+      "owner_task": "P15",
+      "descriptor_file": "frontend/src/features/einvoice/module.ts",
+      "route": "/m/facturacion",
+      "permission": "einvoice.read",
+      "nav_visibility": "hidden when the user lacks the module permission",
+      "submenus": [
+        {
+          "id": "resumen",
+          "label": "Resumen",
+          "route": "/m/facturacion",
+          "permission": "einvoice.read"
+        },
+        {
+          "id": "documentos",
+          "label": "Documentos",
+          "route": "/m/facturacion/documentos",
+          "permission": "einvoice.read"
+        },
+        {
+          "id": "rechazos",
+          "label": "Rechazos y contingencias",
+          "route": "/m/facturacion/rechazos",
+          "permission": "einvoice.read"
+        },
+        {
+          "id": "numeracion",
+          "label": "Numeración y proveedores",
+          "route": "/m/facturacion/numeracion",
+          "permission": "einvoice.read",
+          "tabs": [
+            {
+              "id": "proveedores-tecnologicos",
+              "label": "Proveedores tecnológicos",
+              "route": "/m/facturacion/numeracion/proveedores",
+              "permission": "einvoice.provider.read",
+              "feature": "F-PT-OPEN"
+            }
+          ]
+        }
+      ],
+      "dashboard": {
+        "route": "/m/facturacion",
+        "kpis": [
+          {
+            "id": "docs_emitidos",
+            "label": "Documentos emitidos",
+            "formula": "Número de documentos electrónicos (FE, NC, ND, DS, POS-E) generados en el periodo",
+            "unit": "count",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "einvoice.read",
+            "provider_task": "P15",
+            "source": "e-document store",
+            "drill": "/m/facturacion/documentos?period={period}"
+          },
+          {
+            "id": "docs_validados_pct",
+            "label": "Validados",
+            "formula": "Documentos con estado validado ÷ documentos enviados en el periodo",
+            "unit": "percent",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "show '—' with tooltip 'Sin base para calcular' (never 0, ∞ or NaN)",
+            "permission": "einvoice.read",
+            "provider_task": "P15",
+            "source": "e-document status (simulated validator in dev)",
+            "drill": "/m/facturacion/documentos?estado=validado",
+            "note": "En dev el estado proviene del simulador/fixture; la tarjeta muestra la etiqueta 'Simulado'."
+          },
+          {
+            "id": "docs_rechazados",
+            "label": "Rechazados o pendientes",
+            "formula": "Número de documentos rechazados o sin respuesta a la fecha de corte",
+            "unit": "count",
+            "semantics": "snapshot",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "einvoice.read",
+            "provider_task": "P15",
+            "source": "e-document status",
+            "drill": "/m/facturacion/rechazos"
+          },
+          {
+            "id": "numeracion_restante",
+            "label": "Numeración disponible",
+            "formula": "Mínimo de (rango autorizado − último consecutivo usado) entre resoluciones vigentes",
+            "unit": "count",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "einvoice.admin",
+            "provider_task": "P15",
+            "source": "numbering resolutions",
+            "drill": "/m/facturacion/numeracion"
+          }
+        ],
+        "panels": [
+          {
+            "id": "estado_documentos",
+            "title": "Documentos por estado",
+            "type": "bar",
+            "provider_task": "P15",
+            "permission": "einvoice.read",
+            "drill": "/m/facturacion/documentos?estado={x}"
+          }
+        ],
+        "empty_state": "No hay documentos electrónicos en el periodo. Se generan al contabilizar facturas en Ventas o POS. Acción: 'Ir a Facturas de venta'."
+      },
+      "quick_action": {
+        "id": "ver_documentos",
+        "label": "Ver documentos",
+        "permission": "einvoice.read",
+        "action": "route:/m/facturacion/documentos"
+      }
+    },
+    {
+      "id": "pos",
+      "label": "Punto de venta",
+      "icon": "store",
+      "group": "Comercial",
+      "owner_task": "P12",
+      "descriptor_file": "frontend/src/features/pos/module.ts",
+      "route": "/m/pos",
+      "permission": "pos.read",
+      "nav_visibility": "hidden when the user lacks the module permission",
+      "submenus": [
+        {
+          "id": "resumen",
+          "label": "Resumen",
+          "route": "/m/pos",
+          "permission": "pos.read"
+        },
+        {
+          "id": "vender",
+          "label": "Vender",
+          "route": "/m/pos/vender",
+          "permission": "pos.sell"
+        },
+        {
+          "id": "turnos",
+          "label": "Turnos y arqueos",
+          "route": "/m/pos/turnos",
+          "permission": "pos.read"
+        },
+        {
+          "id": "tiquetes",
+          "label": "Tiquetes",
+          "route": "/m/pos/tiquetes",
+          "permission": "pos.read"
+        }
+      ],
+      "dashboard": {
+        "route": "/m/pos",
+        "kpis": [
+          {
+            "id": "ventas_pos",
+            "label": "Ventas POS",
+            "formula": "Σ total sin impuestos de tiquetes POS finalizados en el periodo",
+            "unit": "COP",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "pos.kpi.read",
+            "provider_task": "P12",
+            "source": "POS tickets",
+            "drill": "/m/pos/tiquetes?period={period}"
+          },
+          {
+            "id": "tiquetes",
+            "label": "Tiquetes",
+            "formula": "Número de tiquetes finalizados en el periodo",
+            "unit": "count",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "pos.read",
+            "provider_task": "P12",
+            "source": "POS tickets",
+            "drill": "/m/pos/tiquetes"
+          },
+          {
+            "id": "ticket_promedio",
+            "label": "Ticket promedio",
+            "formula": "Ventas POS ÷ tiquetes del periodo",
+            "unit": "COP",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "show '—' with tooltip 'Sin base para calcular' (never 0, ∞ or NaN)",
+            "permission": "pos.kpi.read",
+            "provider_task": "P12",
+            "source": "derived",
+            "drill": "/m/pos/tiquetes"
+          },
+          {
+            "id": "turnos_abiertos",
+            "label": "Turnos abiertos",
+            "formula": "Número de turnos de caja abiertos a la fecha de corte",
+            "unit": "count",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "pos.read",
+            "provider_task": "P12",
+            "source": "cash sessions",
+            "drill": "/m/pos/turnos?estado=abierto"
+          },
+          {
+            "id": "diferencias_arqueo",
+            "label": "Diferencias de arqueo",
+            "formula": "Σ |efectivo contado − efectivo esperado| de turnos cerrados en el periodo",
+            "unit": "COP",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "pos.supervise",
+            "provider_task": "P12",
+            "source": "cash session closings",
+            "drill": "/m/pos/turnos?con_diferencia=1"
+          }
+        ],
+        "panels": [
+          {
+            "id": "ventas_por_hora",
+            "title": "Ventas por hora",
+            "type": "bar",
+            "provider_task": "P12",
+            "permission": "pos.kpi.read",
+            "drill": "/m/pos/tiquetes?hora={x}"
+          }
+        ],
+        "empty_state": "No hay cajas configuradas. Acción: 'Configurar caja' (requiere resolución de numeración POS en Facturación)."
+      },
+      "quick_action": {
+        "id": "abrir_caja",
+        "label": "Abrir caja",
+        "permission": "pos.sell",
+        "action": "route:/m/pos/vender"
+      }
+    },
+    {
+      "id": "inventario",
+      "label": "Inventario",
+      "icon": "package",
+      "group": "Operaciones",
+      "owner_task": "P09",
+      "descriptor_file": "frontend/src/features/inventory/module.ts",
+      "route": "/m/inventario",
+      "permission": "inventory.read",
+      "nav_visibility": "hidden when the user lacks the module permission",
+      "submenus": [
+        {
+          "id": "resumen",
+          "label": "Resumen",
+          "route": "/m/inventario",
+          "permission": "inventory.read"
+        },
+        {
+          "id": "existencias",
+          "label": "Existencias",
+          "route": "/m/inventario/existencias",
+          "permission": "inventory.read",
+          "tabs": [
+            {
+              "id": "por-ubicacion",
+              "label": "Por ubicación",
+              "route": "/m/inventario/existencias/por-ubicacion",
+              "permission": "inventory.read",
+              "feature": "F-INV-LOC"
+            },
+            {
+              "id": "por-presentacion",
+              "label": "Por presentación",
+              "route": "/m/inventario/existencias/por-presentacion",
+              "permission": "inventory.read",
+              "feature": "F-INV-PRES"
+            }
+          ]
+        },
+        {
+          "id": "maestros",
+          "label": "Maestros",
+          "route": "/m/inventario/maestros",
+          "permission": "inventory.read",
+          "tabs": [
+            {
+              "id": "presentaciones",
+              "label": "Productos y presentaciones",
+              "route": "/m/inventario/maestros/presentaciones",
+              "permission": "inventory.read",
+              "feature": "F-INV-PRES"
+            },
+            {
+              "id": "bodegas-ubicaciones",
+              "label": "Bodegas y ubicaciones",
+              "route": "/m/inventario/maestros/bodegas-ubicaciones",
+              "permission": "inventory.read",
+              "feature": "F-INV-LOC"
+            },
+            {
+              "id": "codigos-etiquetas",
+              "label": "Códigos y etiquetas",
+              "route": "/m/inventario/maestros/codigos-etiquetas",
+              "permission": "inventory.label.read",
+              "feature": "F-INV-BARCODE"
+            },
+            {
+              "id": "conceptos-salida",
+              "label": "Conceptos de salida",
+              "route": "/m/inventario/maestros/conceptos-salida",
+              "permission": "inventory.read",
+              "feature": "F-INV-ISSUE"
+            }
+          ]
+        },
+        {
+          "id": "movimientos",
+          "label": "Movimientos",
+          "route": "/m/inventario/movimientos",
+          "permission": "inventory.move",
+          "tabs": [
+            {
+              "id": "traslados",
+              "label": "Traslados",
+              "route": "/m/inventario/movimientos/traslados",
+              "permission": "inventory.move",
+              "feature": "F-INV-REQ"
+            },
+            {
+              "id": "salidas",
+              "label": "Salidas",
+              "route": "/m/inventario/movimientos/salidas",
+              "permission": "inventory.issue.read",
+              "feature": "F-INV-ISSUE"
+            },
+            {
+              "id": "entre-ubicaciones",
+              "label": "Entre ubicaciones",
+              "route": "/m/inventario/movimientos/entre-ubicaciones",
+              "permission": "inventory.move",
+              "feature": "F-INV-LOC"
+            }
+          ]
+        },
+        {
+          "id": "produccion",
+          "label": "Producción y transformaciones",
+          "route": "/m/inventario/produccion",
+          "permission": "inventory.transformation.read",
+          "tabs": [
+            {
+              "id": "recetas",
+              "label": "Recetas / BOM",
+              "route": "/m/inventario/produccion/recetas",
+              "permission": "inventory.bom.read",
+              "feature": "F-INV-BOM"
+            },
+            {
+              "id": "transformaciones",
+              "label": "Transformaciones",
+              "route": "/m/inventario/produccion/transformaciones",
+              "permission": "inventory.transformation.read",
+              "feature": "F-INV-XFORM"
+            },
+            {
+              "id": "plantillas-porcionado",
+              "label": "Plantillas de porcionado",
+              "route": "/m/inventario/produccion/plantillas-porcionado",
+              "permission": "inventory.transformation.read",
+              "feature": "F-INV-XFORM"
+            }
+          ]
+        },
+        {
+          "id": "valoracion",
+          "label": "Valoración y costos",
+          "route": "/m/inventario/valoracion",
+          "permission": "inventory.cost.read"
+        }
+      ],
+      "dashboard": {
+        "route": "/m/inventario",
+        "kpis": [
+          {
+            "id": "valor_inventario",
+            "label": "Valor del inventario",
+            "formula": "Σ cantidad disponible × costo unitario de valoración a la fecha de corte",
+            "unit": "COP",
+            "semantics": "snapshot",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "inventory.cost.read",
+            "provider_task": "P09",
+            "source": "valuation layers",
+            "drill": "/m/inventario/valoracion",
+            "sensitive_fields": [
+              "unit_cost"
+            ]
+          },
+          {
+            "id": "bajo_minimo",
+            "label": "Referencias bajo mínimo",
+            "formula": "Número de referencias-bodega con disponible < punto de reorden configurado",
+            "unit": "count",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "inventory.read",
+            "provider_task": "P09",
+            "source": "stock levels + reorder points",
+            "drill": "/m/inventario/existencias?bajo_minimo=1"
+          },
+          {
+            "id": "rotacion",
+            "label": "Rotación de inventario",
+            "formula": "Costo de ventas del periodo ÷ inventario promedio al costo del periodo (anualizado ×365/días)",
+            "unit": "ratio",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "show '—' with tooltip 'Sin base para calcular' (never 0, ∞ or NaN)",
+            "permission": "inventory.cost.read",
+            "provider_task": "P09",
+            "source": "valuation layers",
+            "drill": "/m/inventario/valoracion"
+          },
+          {
+            "id": "dias_inventario",
+            "label": "Días de inventario",
+            "formula": "Inventario promedio al costo ÷ (costo de ventas del periodo ÷ días del periodo)",
+            "unit": "days",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "show '—' with tooltip 'Sin base para calcular' (never 0, ∞ or NaN)",
+            "permission": "inventory.cost.read",
+            "provider_task": "P09",
+            "source": "valuation layers",
+            "drill": "/m/inventario/valoracion"
+          },
+          {
+            "id": "traslados_transito",
+            "label": "Traslados en tránsito",
+            "formula": "Número de traslados despachados sin recibir a la fecha de corte",
+            "unit": "count",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "inventory.read",
+            "provider_task": "P09",
+            "source": "transfers",
+            "drill": "/m/inventario/movimientos/traslados?estado=transito"
+          }
+        ],
+        "panels": [
+          {
+            "id": "valor_por_bodega",
+            "title": "Valor por bodega",
+            "type": "bar",
+            "provider_task": "P09",
+            "permission": "inventory.cost.read",
+            "drill": "/m/inventario/existencias?bodega={x}"
+          }
+        ],
+        "empty_state": "No hay productos. Acciones: 'Nuevo producto' o 'Importar productos' (/m/datos/importar?tipo=productos)."
+      },
+      "quick_action": {
+        "id": "nuevo_producto",
+        "label": "Nuevo producto",
+        "permission": "inventory.write",
+        "action": "route:/m/inventario/maestros/presentaciones/nuevo"
+      }
+    },
+    {
+      "id": "compras",
+      "label": "Compras",
+      "icon": "shopping-cart",
+      "group": "Operaciones",
+      "owner_task": "P11",
+      "descriptor_file": "frontend/src/features/purchasing/module.ts",
+      "route": "/m/compras",
+      "permission": "purchasing.read",
+      "nav_visibility": "hidden when the user lacks the module permission",
+      "submenus": [
+        {
+          "id": "resumen",
+          "label": "Resumen",
+          "route": "/m/compras",
+          "permission": "purchasing.read"
+        },
+        {
+          "id": "solicitudes",
+          "label": "Solicitudes internas",
+          "route": "/m/compras/solicitudes",
+          "permission": "purchasing.requisition.read",
+          "tabs": [
+            {
+              "id": "mis-solicitudes",
+              "label": "Mis solicitudes",
+              "route": "/m/compras/solicitudes/mias",
+              "permission": "purchasing.requisition.read",
+              "feature": "F-INV-REQ"
+            },
+            {
+              "id": "por-aprobar",
+              "label": "Por aprobar",
+              "route": "/m/compras/solicitudes/por-aprobar",
+              "permission": "purchasing.requisition.approve",
+              "feature": "F-INV-REQ"
+            },
+            {
+              "id": "consolidacion",
+              "label": "Consolidación",
+              "route": "/m/compras/solicitudes/consolidacion",
+              "permission": "purchasing.requisition.consolidate",
+              "feature": "F-INV-REQ"
+            },
+            {
+              "id": "abastecimiento",
+              "label": "Abastecimiento",
+              "route": "/m/compras/solicitudes/abastecimiento",
+              "permission": "purchasing.requisition.source",
+              "feature": "F-INV-REQ"
+            }
+          ]
+        },
+        {
+          "id": "cotizaciones",
+          "label": "Cotizaciones",
+          "route": "/m/compras/cotizaciones",
+          "permission": "purchasing.rfq.read",
+          "tabs": [
+            {
+              "id": "rfq",
+              "label": "Solicitudes de cotización",
+              "route": "/m/compras/cotizaciones/rfq",
+              "permission": "purchasing.rfq.read",
+              "feature": "F-PUR-CYCLE"
+            },
+            {
+              "id": "recibidas",
+              "label": "Cotizaciones recibidas",
+              "route": "/m/compras/cotizaciones/recibidas",
+              "permission": "purchasing.rfq.read",
+              "feature": "F-PUR-CYCLE"
+            },
+            {
+              "id": "comparacion",
+              "label": "Comparación",
+              "route": "/m/compras/cotizaciones/comparacion",
+              "permission": "purchasing.rfq.read",
+              "feature": "F-PUR-CYCLE"
+            }
+          ]
+        },
+        {
+          "id": "ordenes",
+          "label": "Órdenes y recepciones",
+          "route": "/m/compras/ordenes",
+          "permission": "purchasing.read",
+          "tabs": [
+            {
+              "id": "ordenes",
+              "label": "Órdenes de compra",
+              "route": "/m/compras/ordenes/lista",
+              "permission": "purchasing.read",
+              "feature": "F-PUR-CYCLE"
+            },
+            {
+              "id": "recepciones",
+              "label": "Recepciones",
+              "route": "/m/compras/ordenes/recepciones",
+              "permission": "purchasing.receive",
+              "feature": "F-PUR-CYCLE"
+            }
+          ]
+        },
+        {
+          "id": "facturas",
+          "label": "Facturas de proveedor",
+          "route": "/m/compras/facturas",
+          "permission": "payables.read"
+        },
+        {
+          "id": "proveedores",
+          "label": "Proveedores",
+          "route": "/m/compras/proveedores",
+          "permission": "party.read"
+        }
+      ],
+      "dashboard": {
+        "route": "/m/compras",
+        "kpis": [
+          {
+            "id": "compras_periodo",
+            "label": "Compras del periodo",
+            "formula": "Σ subtotal de facturas de proveedor contabilizadas en el periodo",
+            "unit": "COP",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "purchasing.kpi.read",
+            "provider_task": "P11",
+            "source": "AP invoices",
+            "drill": "/m/compras/facturas?period={period}"
+          },
+          {
+            "id": "oc_por_aprobar",
+            "label": "Órdenes por aprobar",
+            "formula": "Número de órdenes de compra en estado pendiente de aprobación",
+            "unit": "count",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "purchasing.read",
+            "provider_task": "P11",
+            "source": "purchase orders",
+            "drill": "/m/compras/ordenes?estado=por_aprobar"
+          },
+          {
+            "id": "cxp",
+            "label": "Cuentas por pagar",
+            "formula": "Σ saldo abierto de CxP a la fecha de corte",
+            "unit": "COP",
+            "semantics": "snapshot",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "payables.kpi.read",
+            "provider_task": "P11",
+            "source": "AP open items",
+            "drill": "/m/compras/facturas?abiertas=1"
+          },
+          {
+            "id": "cxp_vencidas",
+            "label": "CxP vencidas",
+            "formula": "Σ saldo de CxP con vencimiento < fecha de corte",
+            "unit": "COP",
+            "semantics": "snapshot",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "payables.kpi.read",
+            "provider_task": "P11",
+            "source": "AP open items",
+            "drill": "/m/compras/facturas?vencidas=1"
+          },
+          {
+            "id": "dpo",
+            "label": "Días de pago (DPO)",
+            "formula": "Saldo promedio de CxP ÷ (compras a crédito del periodo ÷ días del periodo)",
+            "unit": "days",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "show '—' with tooltip 'Sin base para calcular' (never 0, ∞ or NaN)",
+            "permission": "payables.kpi.read",
+            "provider_task": "P11",
+            "source": "AP",
+            "drill": "/m/compras/facturas"
+          }
+        ],
+        "panels": [
+          {
+            "id": "compras_mensuales",
+            "title": "Compras por mes",
+            "type": "line",
+            "series": [
+              {
+                "id": "compras",
+                "style": "chart.revenue"
+              },
+              {
+                "id": "pagos",
+                "style": "chart.expenses"
+              }
+            ],
+            "provider_task": "P11",
+            "permission": "purchasing.kpi.read",
+            "drill": "/m/compras/facturas?month={x}"
+          }
+        ],
+        "empty_state": "Sin compras en el periodo. Acciones: 'Nueva orden de compra', 'Crear proveedor'."
+      },
+      "quick_action": {
+        "id": "nueva_oc",
+        "label": "Nueva orden de compra",
+        "permission": "purchasing.write",
+        "action": "route:/m/compras/ordenes/nueva"
+      }
+    },
+    {
+      "id": "talento",
+      "label": "Talento humano y nómina",
+      "icon": "briefcase",
+      "group": "Personas",
+      "owner_task": "P13",
+      "descriptor_file": "frontend/src/features/hr/module.ts",
+      "route": "/m/talento",
+      "permission": "hr.access",
+      "nav_visibility": "hr.access required to see the module in the sidebar, search results, notifications and the AI panel suggestions; payroll amounts additionally need payroll.amounts.read (field policy); unauthorized users get no hint of salaries, counts of payroll errors or employee names",
+      "submenus": [
+        {
+          "id": "resumen",
+          "label": "Resumen",
+          "route": "/m/talento",
+          "permission": "hr.access"
+        },
+        {
+          "id": "empleados",
+          "label": "Empleados",
+          "route": "/m/talento/empleados",
+          "permission": "hr.read"
+        },
+        {
+          "id": "nomina",
+          "label": "Nómina",
+          "route": "/m/talento/nomina",
+          "permission": "payroll.read",
+          "tabs": [
+            {
+              "id": "liquidacion",
+              "label": "Liquidación",
+              "route": "/m/talento/nomina/liquidacion",
+              "permission": "payroll.read",
+              "feature": "F-PAY-FORMULA"
+            },
+            {
+              "id": "conceptos",
+              "label": "Conceptos y fórmulas",
+              "route": "/m/talento/nomina/conceptos",
+              "permission": "payroll.concept.read",
+              "feature": "F-PAY-FORMULA"
+            }
+          ]
+        },
+        {
+          "id": "novedades",
+          "label": "Novedades y ausencias",
+          "route": "/m/talento/novedades",
+          "permission": "hr.read"
+        },
+        {
+          "id": "tiempos",
+          "label": "Control de tiempos",
+          "route": "/m/talento/tiempos",
+          "permission": "timekeeping.read"
+        }
+      ],
+      "dashboard": {
+        "route": "/m/talento",
+        "kpis": [
+          {
+            "id": "empleados_activos",
+            "label": "Empleados activos",
+            "formula": "Número de contratos vigentes a la fecha de corte",
+            "unit": "count",
+            "semantics": "snapshot",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "hr.read",
+            "provider_task": "P13",
+            "source": "contracts",
+            "drill": "/m/talento/empleados?estado=activo"
+          },
+          {
+            "id": "costo_nomina",
+            "label": "Costo de nómina",
+            "formula": "Σ devengados + aportes y provisiones del empleador liquidados en el periodo",
+            "unit": "COP",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "payroll.amounts.read",
+            "provider_task": "P13",
+            "source": "payroll runs",
+            "drill": "/m/talento/nomina?period={period}",
+            "sensitive_fields": [
+              "salary",
+              "payroll_amounts"
+            ]
+          },
+          {
+            "id": "novedades_pendientes",
+            "label": "Novedades pendientes",
+            "formula": "Número de novedades registradas sin aprobar para la nómina abierta",
+            "unit": "count",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "hr.read",
+            "provider_task": "P13",
+            "source": "payroll novelties",
+            "drill": "/m/talento/novedades?estado=pendiente"
+          },
+          {
+            "id": "horas_extra",
+            "label": "Horas extra",
+            "formula": "Σ horas extra y recargos aprobados en el periodo",
+            "unit": "hours",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "timekeeping.read",
+            "provider_task": "P13",
+            "source": "timekeeping",
+            "drill": "/m/talento/tiempos?tipo=extra"
+          },
+          {
+            "id": "ausentismo",
+            "label": "Ausentismo",
+            "formula": "Horas de ausencia (incapacidades, licencias no remuneradas, faltas) ÷ horas programadas del periodo",
+            "unit": "percent",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "show '—' with tooltip 'Sin base para calcular' (never 0, ∞ or NaN)",
+            "permission": "hr.read",
+            "provider_task": "P13",
+            "source": "timekeeping + absences",
+            "drill": "/m/talento/novedades?tipo=ausencia"
+          }
+        ],
+        "panels": [
+          {
+            "id": "costo_mensual",
+            "title": "Costo de nómina por mes",
+            "type": "bar",
+            "provider_task": "P13",
+            "permission": "payroll.amounts.read",
+            "drill": "/m/talento/nomina?month={x}"
+          }
+        ],
+        "empty_state": "No hay empleados. Acciones: 'Nuevo empleado', 'Importar empleados'. Parámetros de nómina desconocidos bloquean la liquidación (fail closed) y se listan aquí."
+      },
+      "quick_action": {
+        "id": "nuevo_empleado",
+        "label": "Nuevo empleado",
+        "permission": "hr.write",
+        "action": "route:/m/talento/empleados/nuevo"
+      }
+    },
+    {
+      "id": "reportes",
+      "label": "Reportes",
+      "icon": "bar-chart-3",
+      "group": "Análisis",
+      "owner_task": "P17",
+      "descriptor_file": "frontend/src/features/reporting/module.ts",
+      "route": "/m/reportes",
+      "permission": "reporting.read",
+      "nav_visibility": "hidden when the user lacks the module permission",
+      "submenus": [
+        {
+          "id": "resumen",
+          "label": "Resumen",
+          "route": "/m/reportes",
+          "permission": "reporting.read"
+        },
+        {
+          "id": "estados",
+          "label": "Estados financieros",
+          "route": "/m/reportes/estados",
+          "permission": "reporting.financial",
+          "tabs": [
+            {
+              "id": "balance-general",
+              "label": "Balance general",
+              "route": "/m/reportes/estados/balance-general",
+              "permission": "reporting.financial",
+              "feature": "F-ACC-REPORTS"
+            },
+            {
+              "id": "estado-resultados",
+              "label": "Estado de resultados",
+              "route": "/m/reportes/estados/estado-resultados",
+              "permission": "reporting.financial",
+              "feature": "F-ACC-REPORTS"
+            },
+            {
+              "id": "flujo-efectivo",
+              "label": "Flujo de efectivo",
+              "route": "/m/reportes/estados/flujo-efectivo",
+              "permission": "reporting.financial",
+              "feature": "F-ACC-REPORTS"
+            },
+            {
+              "id": "estados-financieros",
+              "label": "Estados financieros",
+              "route": "/m/reportes/estados/paquete",
+              "permission": "reporting.financial",
+              "feature": "F-ACC-REPORTS"
+            }
+          ]
+        },
+        {
+          "id": "auxiliares",
+          "label": "Auxiliares",
+          "route": "/m/reportes/auxiliares",
+          "permission": "reporting.financial",
+          "tabs": [
+            {
+              "id": "por-cuenta",
+              "label": "Por cuenta",
+              "route": "/m/reportes/auxiliares/por-cuenta",
+              "permission": "reporting.financial",
+              "feature": "F-ACC-REPORTS"
+            },
+            {
+              "id": "por-centro-costo",
+              "label": "Por centro de costo",
+              "route": "/m/reportes/auxiliares/por-centro-costo",
+              "permission": "reporting.financial",
+              "feature": "F-ACC-REPORTS"
+            },
+            {
+              "id": "por-tercero",
+              "label": "Por tercero",
+              "route": "/m/reportes/auxiliares/por-tercero",
+              "permission": "reporting.financial",
+              "feature": "F-ACC-REPORTS"
+            }
+          ]
+        },
+        {
+          "id": "explorador",
+          "label": "Explorador",
+          "route": "/m/reportes/explorador",
+          "permission": "reporting.read"
+        },
+        {
+          "id": "programados",
+          "label": "Programados",
+          "route": "/m/reportes/programados",
+          "permission": "reporting.write"
+        },
+        {
+          "id": "documentos",
+          "label": "Documentos",
+          "route": "/m/reportes/documentos",
+          "permission": "documents.read"
+        }
+      ],
+      "dashboard": {
+        "route": "/m/reportes",
+        "kpis": [
+          {
+            "id": "reportes_disponibles",
+            "label": "Reportes disponibles",
+            "formula": "Número de definiciones de reporte que el usuario puede ejecutar",
+            "unit": "count",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "reporting.read",
+            "provider_task": "P17",
+            "source": "report catalog filtered by policy",
+            "drill": "/m/reportes/explorador"
+          },
+          {
+            "id": "ejecuciones",
+            "label": "Ejecuciones del periodo",
+            "formula": "Número de ejecuciones de reportes en el periodo (propias o compartidas visibles)",
+            "unit": "count",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "reporting.read",
+            "provider_task": "P17",
+            "source": "report runs",
+            "drill": "/m/reportes/programados"
+          },
+          {
+            "id": "ejecuciones_fallidas",
+            "label": "Ejecuciones fallidas",
+            "formula": "Número de ejecuciones con error en el periodo",
+            "unit": "count",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "reporting.read",
+            "provider_task": "P17",
+            "source": "report runs",
+            "drill": "/m/reportes/programados?estado=error"
+          },
+          {
+            "id": "programados_activos",
+            "label": "Programados activos",
+            "formula": "Número de reportes programados activos",
+            "unit": "count",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "reporting.write",
+            "provider_task": "P17",
+            "source": "schedules",
+            "drill": "/m/reportes/programados"
+          }
+        ],
+        "panels": [
+          {
+            "id": "ejecuciones_diarias",
+            "title": "Ejecuciones por día",
+            "type": "bar",
+            "provider_task": "P17",
+            "permission": "reporting.read",
+            "drill": "/m/reportes/programados?dia={x}"
+          }
+        ],
+        "empty_state": "Aún no hay ejecuciones. Acción: 'Generar balance de prueba' (/m/reportes/estados)."
+      },
+      "quick_action": {
+        "id": "nuevo_reporte",
+        "label": "Nuevo reporte",
+        "permission": "reporting.write",
+        "action": "route:/m/reportes/nuevo"
+      }
+    },
+    {
+      "id": "aprobaciones",
+      "label": "Aprobaciones y auditoría",
+      "icon": "check-circle-2",
+      "group": "Sistema",
+      "owner_task": "P07",
+      "descriptor_file": "frontend/src/features/workflow/module.ts",
+      "route": "/m/aprobaciones",
+      "permission": "workflow.read",
+      "nav_visibility": "hidden when the user lacks the module permission",
+      "submenus": [
+        {
+          "id": "resumen",
+          "label": "Resumen",
+          "route": "/m/aprobaciones",
+          "permission": "workflow.read"
+        },
+        {
+          "id": "bandeja",
+          "label": "Bandeja",
+          "route": "/m/aprobaciones/bandeja",
+          "permission": "workflow.read"
+        },
+        {
+          "id": "auditoria",
+          "label": "Auditoría",
+          "route": "/m/aprobaciones/auditoria",
+          "permission": "audit.read"
+        },
+        {
+          "id": "tareas",
+          "label": "Tareas programadas",
+          "route": "/m/aprobaciones/tareas",
+          "permission": "scheduler.read"
+        }
+      ],
+      "dashboard": {
+        "route": "/m/aprobaciones",
+        "kpis": [
+          {
+            "id": "pendientes",
+            "label": "Pendientes de mi aprobación",
+            "formula": "Número de solicitudes asignadas al usuario o a sus roles en estado pendiente",
+            "unit": "count",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "workflow.read",
+            "provider_task": "P07",
+            "source": "workflow instances",
+            "drill": "/m/aprobaciones/bandeja"
+          },
+          {
+            "id": "vencidas_sla",
+            "label": "Vencidas (SLA)",
+            "formula": "Número de solicitudes pendientes cuyo plazo definido en el flujo ya pasó",
+            "unit": "count",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "workflow.read",
+            "provider_task": "P07",
+            "source": "workflow instances",
+            "drill": "/m/aprobaciones/bandeja?vencidas=1"
+          },
+          {
+            "id": "tiempo_aprobacion",
+            "label": "Tiempo medio de aprobación",
+            "formula": "Promedio (aprobada_en − creada_en) de solicitudes resueltas en el periodo",
+            "unit": "hours",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "show '—' with tooltip 'Sin base para calcular' (never 0, ∞ or NaN)",
+            "permission": "workflow.read",
+            "provider_task": "P07",
+            "source": "workflow instances",
+            "drill": "/m/aprobaciones/bandeja?resueltas=1"
+          },
+          {
+            "id": "eventos_auditoria",
+            "label": "Eventos de auditoría",
+            "formula": "Número de eventos de auditoría visibles para el usuario en el periodo",
+            "unit": "count",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "audit.read",
+            "provider_task": "P07",
+            "source": "audit log",
+            "drill": "/m/aprobaciones/auditoria"
+          }
+        ],
+        "panels": [
+          {
+            "id": "actividad",
+            "title": "Actividad reciente",
+            "type": "feed",
+            "provider_task": "P07",
+            "permission": "audit.read",
+            "drill": "/m/aprobaciones/auditoria/{event_id}"
+          }
+        ],
+        "empty_state": "No tienes solicitudes pendientes."
+      },
+      "quick_action": {
+        "id": "ver_bandeja",
+        "label": "Ver bandeja",
+        "permission": "workflow.read",
+        "action": "route:/m/aprobaciones/bandeja"
+      }
+    },
+    {
+      "id": "datos",
+      "label": "Importar y exportar",
+      "icon": "arrow-left-right",
+      "group": "Sistema",
+      "owner_task": "P18",
+      "descriptor_file": "frontend/src/features/dataio/module.ts",
+      "route": "/m/datos",
+      "permission": "dataio.read",
+      "nav_visibility": "hidden when the user lacks the module permission",
+      "submenus": [
+        {
+          "id": "resumen",
+          "label": "Resumen",
+          "route": "/m/datos",
+          "permission": "dataio.read"
+        },
+        {
+          "id": "importar",
+          "label": "Importar",
+          "route": "/m/datos/importar",
+          "permission": "dataio.import"
+        },
+        {
+          "id": "exportar",
+          "label": "Exportar",
+          "route": "/m/datos/exportar",
+          "permission": "dataio.export"
+        },
+        {
+          "id": "plantillas",
+          "label": "Plantillas",
+          "route": "/m/datos/plantillas",
+          "permission": "dataio.read"
+        }
+      ],
+      "dashboard": {
+        "route": "/m/datos",
+        "kpis": [
+          {
+            "id": "lotes_importados",
+            "label": "Lotes importados",
+            "formula": "Número de lotes de importación confirmados en el periodo",
+            "unit": "count",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "dataio.read",
+            "provider_task": "P18",
+            "source": "import batches",
+            "drill": "/m/datos/importar?estado=confirmado"
+          },
+          {
+            "id": "filas_importadas",
+            "label": "Filas importadas",
+            "formula": "Σ filas confirmadas en lotes del periodo",
+            "unit": "count",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "dataio.read",
+            "provider_task": "P18",
+            "source": "import batches",
+            "drill": "/m/datos/importar"
+          },
+          {
+            "id": "lotes_rechazados",
+            "label": "Lotes rechazados",
+            "formula": "Número de lotes rechazados por validación (atómicos: no se aplicó ninguna fila)",
+            "unit": "count",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "dataio.read",
+            "provider_task": "P18",
+            "source": "import batches",
+            "drill": "/m/datos/importar?estado=rechazado"
+          },
+          {
+            "id": "exportaciones",
+            "label": "Exportaciones",
+            "formula": "Número de exportaciones generadas en el periodo (respetan políticas de fila y campo)",
+            "unit": "count",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "dataio.export",
+            "provider_task": "P18",
+            "source": "export jobs",
+            "drill": "/m/datos/exportar"
+          }
+        ],
+        "panels": [
+          {
+            "id": "lotes_por_tipo",
+            "title": "Lotes por tipo de dato",
+            "type": "bar",
+            "provider_task": "P18",
+            "permission": "dataio.read",
+            "drill": "/m/datos/importar?tipo={x}"
+          }
+        ],
+        "empty_state": "No hay importaciones. Acción: 'Descargar plantilla' y 'Nueva importación'."
+      },
+      "quick_action": {
+        "id": "nueva_importacion",
+        "label": "Nueva importación",
+        "permission": "dataio.import",
+        "action": "route:/m/datos/importar/nueva"
+      }
+    },
+    {
+      "id": "puesta-en-marcha",
+      "label": "Puesta en marcha",
+      "icon": "rocket",
+      "group": "Sistema",
+      "owner_task": "P21",
+      "descriptor_file": "frontend/src/features/onboarding/module.ts",
+      "route": "/m/puesta-en-marcha",
+      "permission": "onboarding.read",
+      "nav_visibility": "hidden when the user lacks the module permission",
+      "submenus": [
+        {
+          "id": "resumen",
+          "label": "Resumen",
+          "route": "/m/puesta-en-marcha",
+          "permission": "onboarding.read"
+        },
+        {
+          "id": "pasos",
+          "label": "Pasos",
+          "route": "/m/puesta-en-marcha/pasos",
+          "permission": "onboarding.read"
+        },
+        {
+          "id": "asistente",
+          "label": "Asistente de configuración",
+          "route": "/m/puesta-en-marcha/asistente",
+          "permission": "onboarding.write"
+        }
+      ],
+      "dashboard": {
+        "route": "/m/puesta-en-marcha",
+        "kpis": [
+          {
+            "id": "avance",
+            "label": "Avance",
+            "formula": "Pasos obligatorios completados ÷ pasos obligatorios de la plantilla de puesta en marcha",
+            "unit": "percent",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "show '—' with tooltip 'Sin base para calcular' (never 0, ∞ or NaN)",
+            "permission": "onboarding.read",
+            "provider_task": "P21",
+            "source": "onboarding plan",
+            "drill": "/m/puesta-en-marcha/pasos"
+          },
+          {
+            "id": "bloqueos",
+            "label": "Bloqueos abiertos",
+            "formula": "Número de pasos bloqueados (p. ej. parámetro legal desconocido, dato maestro faltante)",
+            "unit": "count",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "onboarding.read",
+            "provider_task": "P21",
+            "source": "onboarding plan",
+            "drill": "/m/puesta-en-marcha/pasos?estado=bloqueado"
+          },
+          {
+            "id": "maestros_cargados",
+            "label": "Datos maestros cargados",
+            "formula": "Número de entidades maestras (terceros, productos, cuentas, empleados) con al menos un registro",
+            "unit": "count",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "onboarding.read",
+            "provider_task": "P21",
+            "source": "master data counts (policy-scoped)",
+            "drill": "/m/datos"
+          }
+        ],
+        "panels": [
+          {
+            "id": "checklist",
+            "title": "Lista de pasos",
+            "type": "checklist",
+            "provider_task": "P21",
+            "permission": "onboarding.read",
+            "drill": "/m/puesta-en-marcha/pasos/{step_id}"
+          }
+        ],
+        "empty_state": "La puesta en marcha no ha iniciado. Acción: 'Iniciar asistente'."
+      },
+      "quick_action": {
+        "id": "continuar",
+        "label": "Continuar configuración",
+        "permission": "onboarding.write",
+        "action": "route:/m/puesta-en-marcha/asistente"
+      }
+    },
+    {
+      "id": "administracion",
+      "label": "Administración",
+      "icon": "settings",
+      "group": "Sistema",
+      "owner_task": "P04",
+      "descriptor_file": "frontend/src/features/iam/module.ts",
+      "route": "/m/administracion",
+      "permission": "admin.access",
+      "nav_visibility": "hidden when the user lacks the module permission",
+      "submenus": [
+        {
+          "id": "resumen",
+          "label": "Resumen",
+          "route": "/m/administracion",
+          "permission": "admin.access"
+        },
+        {
+          "id": "empresas",
+          "label": "Empresas y sucursales",
+          "route": "/m/administracion/empresas",
+          "permission": "tenant.admin",
+          "tabs": [
+            {
+              "id": "empresas",
+              "label": "Empresas",
+              "route": "/m/administracion/empresas/lista",
+              "permission": "tenant.admin",
+              "feature": "F-ACC-BRANCH"
+            },
+            {
+              "id": "sucursales",
+              "label": "Sucursales",
+              "route": "/m/administracion/empresas/sucursales",
+              "permission": "tenant.admin",
+              "feature": "F-ACC-BRANCH"
+            }
+          ]
+        },
+        {
+          "id": "usuarios",
+          "label": "Usuarios y roles",
+          "route": "/m/administracion/usuarios",
+          "permission": "iam.admin",
+          "tabs": [
+            {
+              "id": "internos",
+              "label": "Usuarios internos",
+              "route": "/m/administracion/usuarios/internos",
+              "permission": "iam.admin",
+              "feature": "F-PORTAL-CORE"
+            },
+            {
+              "id": "externos",
+              "label": "Usuarios de portales",
+              "route": "/m/administracion/usuarios/externos",
+              "permission": "iam.external.admin",
+              "feature": "F-PORTAL-CORE"
+            }
+          ]
+        },
+        {
+          "id": "seguridad",
+          "label": "Políticas de seguridad",
+          "route": "/m/administracion/seguridad",
+          "permission": "iam.admin"
+        },
+        {
+          "id": "integraciones",
+          "label": "Integraciones",
+          "route": "/m/administracion/integraciones",
+          "permission": "integrations.read"
+        },
+        {
+          "id": "mcp",
+          "label": "Conectores MCP",
+          "route": "/m/administracion/mcp",
+          "permission": "mcp.admin",
+          "owner_task": "P20"
+        }
+      ],
+      "dashboard": {
+        "route": "/m/administracion",
+        "kpis": [
+          {
+            "id": "usuarios_activos",
+            "label": "Usuarios activos",
+            "formula": "Número de usuarios habilitados en el tenant con acceso a la empresa seleccionada",
+            "unit": "count",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "iam.admin",
+            "provider_task": "P04",
+            "source": "IAM",
+            "drill": "/m/administracion/usuarios"
+          },
+          {
+            "id": "sin_mfa",
+            "label": "Usuarios sin MFA",
+            "formula": "Número de usuarios habilitados sin segundo factor registrado",
+            "unit": "count",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "iam.admin",
+            "provider_task": "P04",
+            "source": "IAM",
+            "drill": "/m/administracion/usuarios?mfa=0"
+          },
+          {
+            "id": "accesos_denegados",
+            "label": "Accesos denegados",
+            "formula": "Número de solicitudes API/UI/AI/MCP denegadas por política en el periodo",
+            "unit": "count",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "iam.audit",
+            "provider_task": "P04",
+            "source": "authorization decision log",
+            "drill": "/m/aprobaciones/auditoria?tipo=denegado"
+          },
+          {
+            "id": "roles_personalizados",
+            "label": "Roles personalizados",
+            "formula": "Número de roles definidos por el tenant",
+            "unit": "count",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "iam.admin",
+            "provider_task": "P04",
+            "source": "IAM",
+            "drill": "/m/administracion/usuarios?vista=roles"
+          }
+        ],
+        "panels": [
+          {
+            "id": "integraciones_estado",
+            "title": "Estado de integraciones",
+            "type": "table",
+            "source": "integration modes (dev: SIMULATED/FIXTURE/DISABLED, never LIVE)",
+            "provider_task": "P04",
+            "permission": "integrations.read",
+            "drill": "/m/administracion/integraciones/{id}"
+          }
+        ],
+        "empty_state": "Solo existe el usuario administrador inicial. Acción: 'Invitar usuario'."
+      },
+      "quick_action": {
+        "id": "nuevo_usuario",
+        "label": "Nuevo usuario",
+        "permission": "iam.admin",
+        "action": "route:/m/administracion/usuarios/nuevo"
+      }
+    }
+  ],
+  "portals": [
+    {
+      "id": "proveedores",
+      "label": "Portal de proveedores",
+      "kind": "supplier",
+      "route": "/portal/proveedores",
+      "owner_task": "P11",
+      "feature": "F-PORTAL-SUP",
+      "shell": "P08 portal variant (frontend/src/shell/portal/**)",
+      "permission": "portal.supplier.read",
+      "audience": "external accounts of this kind only (D-018, D-033)",
+      "menus": [
+        {
+          "id": "inicio",
+          "label": "Inicio",
+          "route": "/portal/proveedores"
+        },
+        {
+          "id": "cotizaciones",
+          "label": "Cotizaciones",
+          "route": "/portal/proveedores/cotizaciones"
+        },
+        {
+          "id": "ordenes",
+          "label": "Órdenes",
+          "route": "/portal/proveedores/ordenes"
+        },
+        {
+          "id": "envios",
+          "label": "Envíos",
+          "route": "/portal/proveedores/envios"
+        },
+        {
+          "id": "facturas",
+          "label": "Facturas",
+          "route": "/portal/proveedores/facturas"
+        },
+        {
+          "id": "pagos",
+          "label": "Pagos",
+          "route": "/portal/proveedores/pagos"
+        },
+        {
+          "id": "perfil",
+          "label": "Perfil y documentos",
+          "route": "/portal/proveedores/perfil"
+        }
+      ],
+      "dashboard": {
+        "route": "/portal/proveedores",
+        "kpis": [
+          {
+            "id": "sp_rfq_abiertas",
+            "label": "Solicitudes de cotización abiertas",
+            "formula": "count(RFQ invitations of my party with status SENT and deadline ≥ today)",
+            "unit": "count",
+            "source": "synthetic posted data via the portal KPI provider (party-scoped)",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "portal.supplier.read",
+            "provider_task": "P11",
+            "drill": "/portal/proveedores/cotizaciones"
+          },
+          {
+            "id": "sp_oc_por_confirmar",
+            "label": "Órdenes por confirmar",
+            "formula": "count(POs of my party with status SENT not acknowledged)",
+            "unit": "count",
+            "source": "synthetic posted data via the portal KPI provider (party-scoped)",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "portal.supplier.read",
+            "provider_task": "P11",
+            "drill": "/portal/proveedores/ordenes"
+          },
+          {
+            "id": "sp_facturas_por_pagar",
+            "label": "Facturas por pagar",
+            "formula": "Σ open AP items of my party (COP)",
+            "unit": "COP",
+            "source": "synthetic posted data via the portal KPI provider (party-scoped)",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "portal.supplier.read",
+            "provider_task": "P11",
+            "drill": "/portal/proveedores/facturas"
+          },
+          {
+            "id": "sp_pagos_periodo",
+            "label": "Pagos recibidos en el periodo",
+            "formula": "Σ posted CE amounts to my party in the selected period",
+            "unit": "COP",
+            "source": "synthetic posted data via the portal KPI provider (party-scoped)",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "portal.supplier.read",
+            "provider_task": "P11",
+            "drill": "/portal/proveedores/pagos"
+          }
+        ],
+        "empty_state": "Aún no hay movimientos para su cuenta en este periodo."
+      }
+    },
+    {
+      "id": "clientes",
+      "label": "Portal de clientes",
+      "kind": "customer",
+      "route": "/portal/clientes",
+      "owner_task": "P10",
+      "feature": "F-PORTAL-CUS",
+      "shell": "P08 portal variant (frontend/src/shell/portal/**)",
+      "permission": "portal.customer.read",
+      "audience": "external accounts of this kind only (D-018, D-033)",
+      "menus": [
+        {
+          "id": "inicio",
+          "label": "Inicio",
+          "route": "/portal/clientes"
+        },
+        {
+          "id": "cotizaciones",
+          "label": "Cotizaciones",
+          "route": "/portal/clientes/cotizaciones"
+        },
+        {
+          "id": "pedidos",
+          "label": "Pedidos",
+          "route": "/portal/clientes/pedidos"
+        },
+        {
+          "id": "facturas",
+          "label": "Facturas y notas",
+          "route": "/portal/clientes/facturas"
+        },
+        {
+          "id": "pagos",
+          "label": "Pagos y recibos",
+          "route": "/portal/clientes/pagos"
+        },
+        {
+          "id": "estado-cuenta",
+          "label": "Estado de cuenta",
+          "route": "/portal/clientes/estado-cuenta"
+        },
+        {
+          "id": "solicitudes",
+          "label": "Solicitudes",
+          "route": "/portal/clientes/solicitudes"
+        },
+        {
+          "id": "perfil",
+          "label": "Perfil",
+          "route": "/portal/clientes/perfil"
+        }
+      ],
+      "dashboard": {
+        "route": "/portal/clientes",
+        "kpis": [
+          {
+            "id": "cp_saldo_pendiente",
+            "label": "Saldo pendiente",
+            "formula": "Σ open AR items of my party (COP)",
+            "unit": "COP",
+            "source": "synthetic posted data via the portal KPI provider (party-scoped)",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "portal.customer.read",
+            "provider_task": "P10",
+            "drill": "/portal/clientes/estado-cuenta"
+          },
+          {
+            "id": "cp_facturas_vencidas",
+            "label": "Facturas vencidas",
+            "formula": "count(open AR items of my party with due_date < today)",
+            "unit": "count",
+            "source": "synthetic posted data via the portal KPI provider (party-scoped)",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "portal.customer.read",
+            "provider_task": "P10",
+            "drill": "/portal/clientes/facturas"
+          },
+          {
+            "id": "cp_pedidos_en_curso",
+            "label": "Pedidos en curso",
+            "formula": "count(sales orders of my party not fully delivered)",
+            "unit": "count",
+            "source": "synthetic posted data via the portal KPI provider (party-scoped)",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "portal.customer.read",
+            "provider_task": "P10",
+            "drill": "/portal/clientes/pedidos"
+          },
+          {
+            "id": "cp_pagos_periodo",
+            "label": "Pagos del periodo",
+            "formula": "Σ posted RC applications to my party in the selected period",
+            "unit": "COP",
+            "source": "synthetic posted data via the portal KPI provider (party-scoped)",
+            "semantics": "flow",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "portal.customer.read",
+            "provider_task": "P10",
+            "drill": "/portal/clientes/pagos"
+          }
+        ],
+        "empty_state": "Aún no hay movimientos para su cuenta en este periodo."
+      }
+    },
+    {
+      "id": "empleados",
+      "label": "Portal de empleados",
+      "kind": "employee",
+      "route": "/portal/empleados",
+      "owner_task": "P13",
+      "feature": "F-PORTAL-EMP",
+      "shell": "P08 portal variant (frontend/src/shell/portal/**)",
+      "permission": "portal.employee.read",
+      "audience": "external accounts of this kind only (D-018, D-033)",
+      "menus": [
+        {
+          "id": "inicio",
+          "label": "Inicio",
+          "route": "/portal/empleados"
+        },
+        {
+          "id": "desprendibles",
+          "label": "Desprendibles",
+          "route": "/portal/empleados/desprendibles"
+        },
+        {
+          "id": "certificados",
+          "label": "Certificados",
+          "route": "/portal/empleados/certificados"
+        },
+        {
+          "id": "vacaciones",
+          "label": "Vacaciones",
+          "route": "/portal/empleados/vacaciones"
+        },
+        {
+          "id": "datos",
+          "label": "Actualización de datos",
+          "route": "/portal/empleados/datos"
+        },
+        {
+          "id": "perfil",
+          "label": "Perfil",
+          "route": "/portal/empleados/perfil"
+        }
+      ],
+      "dashboard": {
+        "route": "/portal/empleados",
+        "kpis": [
+          {
+            "id": "ep_dias_vacaciones",
+            "label": "Días de vacaciones disponibles",
+            "formula": "accrued vacation days − taken − approved pending (own)",
+            "unit": "days",
+            "source": "synthetic posted data via the portal KPI provider (party-scoped)",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "portal.employee.read",
+            "provider_task": "P13",
+            "drill": "/portal/empleados/vacaciones",
+            "sensitive_fields": [
+              "employee_id"
+            ]
+          },
+          {
+            "id": "ep_ultimo_pago",
+            "label": "Último pago neto",
+            "formula": "net pay of my last posted payslip",
+            "unit": "COP",
+            "source": "synthetic posted data via the portal KPI provider (party-scoped)",
+            "semantics": "snapshot",
+            "comparison": "previous_period",
+            "zero_denominator": "not_applicable",
+            "permission": "portal.employee.read",
+            "provider_task": "P13",
+            "drill": "/portal/empleados/desprendibles",
+            "sensitive_fields": [
+              "net_pay"
+            ]
+          },
+          {
+            "id": "ep_solicitudes_pendientes",
+            "label": "Solicitudes pendientes",
+            "formula": "count(my vacation + data update requests in SUBMITTED)",
+            "unit": "count",
+            "source": "synthetic posted data via the portal KPI provider (party-scoped)",
+            "semantics": "snapshot",
+            "comparison": "none",
+            "zero_denominator": "not_applicable",
+            "permission": "portal.employee.read",
+            "provider_task": "P13",
+            "drill": "/portal/empleados/vacaciones"
+          }
+        ],
+        "empty_state": "Aún no hay movimientos para su cuenta en este periodo."
+      }
+    }
+  ]
+}

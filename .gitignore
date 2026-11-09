@@ -1,0 +1,29 @@
+# build / deps
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+frontend/dist/
+.pytest_cache/
+.ruff_cache/
+coverage/
+# test output (integrator evidence is committed under docs/run/evidence/)
+/reports/
+/test-results/
+/playwright-report/
+frontend/test-results/
+frontend/playwright-report/
+# secrets and local env (never commit)
+.env
+.env.*
+!.env.example
+deploy/dev/secrets/*
+!deploy/dev/secrets/.gitkeep
+!deploy/dev/secrets/README.md
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+# local runtime
+deploy/dev/runtime.env
+.DS_Store

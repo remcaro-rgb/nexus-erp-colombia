@@ -1,0 +1,1228 @@
+{
+  "schema": "erp-ui/task-matrix/v1",
+  "version": "2.2.0-dev",
+  "tasks": {
+    "P01": {
+      "ui_role": "Kernel: settings & caching primitives for UI context",
+      "deliverables": [
+        "Settings ERP_BRAND_NAME / ERP_BRAND_LOGO_PATH (default 'NexusERP' placeholder)",
+        "Cache-key helper including tenant, company_id, period_id, role/permission hash; invalidation hooks on context switch and logout",
+        "Period model (open/closed, start/end, America/Bogota) exposed to /api/v1/ui/context",
+        "[DIM] `kernel.dimensions` registry entry for the two slots (name, FK target, company-scoped) used by P05/P17/P18",
+        "[DIM] Date-range helper for valid_from/valid_to used by closure queries"
+      ],
+      "acceptance": [
+        "Unit tests for cache-key isolation across companies/roles",
+        "No secret or PII in brand/config endpoints",
+        "[DIM] Unit tests for slot registry and date helper"
+      ],
+      "dimensions": {
+        "role": "Kernel: dimension slot registry hook and effective-date helper",
+        "deliverables": [
+          "`kernel.dimensions` registry entry for the two slots (name, FK target, company-scoped) used by P05/P17/P18",
+          "Date-range helper for valid_from/valid_to used by closure queries"
+        ],
+        "acceptance": [
+          "Unit tests for slot registry and date helper"
+        ]
+      }
+    },
+    "P02": {
+      "ui_role": "Contracts: UI context, module registry, KPI, search, notifications interfaces (frozen at G0)",
+      "deliverables": [
+        "OpenAPI for every endpoint in module-registry.json › api",
+        "JSON Schema for module descriptors = ui/module-registry.json structure (kernel/interfaces or contracts/ui/)",
+        "Search result and notification contracts carry company_id and a policy-filtered payload",
+        "[DIM] OpenAPI for both masters (API_ACTIONS) under ledger module contract; JournalLine/PostingRequest schemas gain `aux_abierto_id`, `item_dimension_id` (nullable uuid)",
+        "[DIM] Error codes: dimension_node_not_postable, dimension_required, dimension_forbidden, dimension_cross_company, dimension_cycle, dimension_depth_exceeded, dimension_in_use",
+        "[DIM] Import template schema for dimension masters",
+        "[FEAT] Contributor to F-ACC-DIM: contracts at G0 (4 master APIs, line slots, error codes)"
+      ],
+      "acceptance": [
+        "G0: contracts validate; registry + tokens files referenced, unchanged by workers without CCR",
+        "[DIM] Contract tests validate schemas",
+        "[DIM] G0 contracts include the two slots",
+        "[FEAT] T-X-QA-06 (integration, gate G0): Frozen OpenAPI contains every endpoint, event and stable error code listed in FEATURES-ADDENDUM (contract diff test against features/feature-registry.json)"
+      ],
+      "dimensions": {
+        "role": "Contracts at G0",
+        "deliverables": [
+          "OpenAPI for both masters (API_ACTIONS) under ledger module contract; JournalLine/PostingRequest schemas gain `aux_abierto_id`, `item_dimension_id` (nullable uuid)",
+          "Error codes: dimension_node_not_postable, dimension_required, dimension_forbidden, dimension_cross_company, dimension_cycle, dimension_depth_exceeded, dimension_in_use",
+          "Import template schema for dimension masters"
+        ],
+        "acceptance": [
+          "Contract tests validate schemas",
+          "G0 contracts include the two slots"
+        ]
+      },
+      "features": [
+        "F-ACC-DIM",
+        "F-X-QA"
+      ]
+    },
+    "P03": {
+      "ui_role": "DevOps: frontend build pipeline for the overlay",
+      "deliverables": [
+        "CI job: lint, typecheck, unit, Playwright visual + a11y (axe) projects; fonts and npm deps from lockfile; no network font/CDN at runtime (CSP font-src 'self')",
+        "Playwright container pinned; screenshots uploaded as CI artifacts"
+      ],
+      "acceptance": [
+        "CI fails on any http(s) CDN URL in built assets",
+        "Visual project runs headless deterministic (reduced motion, frozen clock)"
+      ]
+    },
+    "P04": {
+      "ui_role": "Permissions for nav/KPIs/fields + module owner 'administracion' (Administración)",
+      "deliverables": [
+        "Permission catalogue includes every permission referenced in module-registry.json",
+        "Field policies for cost, salary/payroll amounts, bank accounts applied to KPI/search/notification serializers",
+        "Descriptor frontend/src/features/iam/module.ts + Administración dashboard (registry entry 'administracion')",
+        "[DIM] Permissions ledger.dimension.read / ledger.dimension.write / ledger.dimension.admin (rule matrix, depth)",
+        "[DIM] Row policy hooks: company scope; optional restriction of visible nodes per role (subtree grant)",
+        "[DIM] Role scopes by cost center reference P05 DimensionNode ids through kernel.interfaces.Dimensions (test double until G1)",
+        "[FEAT] Contributor to F-ACC-DIM: permissions ledger.dimension.*, role scope by cost-center subtree via kernel.interfaces.Dimensions",
+        "[FEAT] Owner of F-ACC-BRANCH (Sucursales por empresa): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-ACC-BRANCH",
+        "[FEAT] Contributor to F-INV-REQ: requester hierarchy (org/cost center)",
+        "[FEAT] Contributor to F-PT-OPEN: integration credentials (vault/secret refs)",
+        "[FEAT] Owner of F-PORTAL-CORE (Base común de portales (identidad externa, invitaciones, shell)): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-PORTAL-CORE",
+        "[FEAT] Contributor to F-PORTAL-SUP: external identity",
+        "[FEAT] Contributor to F-PORTAL-CUS: external identity",
+        "[FEAT] Contributor to F-PORTAL-EMP: external identity (employee kind)"
+      ],
+      "acceptance": [
+        "Matrix test: for each role fixture, /ui/modules returns exactly the permitted modules; payroll hidden for non-HR",
+        "Revoked permission takes effect on next request (no cached allow)",
+        "[DIM] Matrix test per role fixture; subtree grant limits list/tree/search/export/AI/MCP results",
+        "[DIM] Revocation effective next request",
+        "[DIM] No CostCenter table in backend/iam (superseded by FEATURES-ADDENDUM F-ACC-DIM)",
+        "[FEAT] T-ACC-DIM-09 (integration, gate G1): Subtree grant on cost centers limits list/tree/search/export results; role scope by cost center works after G1 wiring",
+        "[FEAT] T-ACC-BRANCH-01 (integration, gate G1): Branch CRUD; code unique per company; same code in another company allowed; exactly one head office",
+        "[FEAT] T-ACC-BRANCH-02 (integration, gate G1): Cross-company warehouse/POS link rejected (API + composite FK); archive blocked while referenced",
+        "[FEAT] T-PORTAL-CORE-01 (integration, gate G1): Invite → accept → login (local OIDC) → /me returns only the linked party/company; revoked account denied",
+        "[FEAT] T-PORTAL-CORE-02 (security, gate G1): Token for party A cannot read party B data by changing ids in URL/body (IDOR suite across all portal endpoints)",
+        "[FEAT] T-PORTAL-CORE-03 (security, gate G1): External user cannot be assigned internal roles; internal API rejects portal tokens"
+      ],
+      "dimensions": {
+        "role": "IAM: permissions, field policy and role scopes for the dimension masters (cost-center master moved to P05)",
+        "deliverables": [
+          "Permissions ledger.dimension.read / ledger.dimension.write / ledger.dimension.admin (rule matrix, depth)",
+          "Row policy hooks: company scope; optional restriction of visible nodes per role (subtree grant)",
+          "Role scopes by cost center reference P05 DimensionNode ids through kernel.interfaces.Dimensions (test double until G1)"
+        ],
+        "acceptance": [
+          "Matrix test per role fixture; subtree grant limits list/tree/search/export/AI/MCP results",
+          "Revocation effective next request",
+          "No CostCenter table in backend/iam (superseded by FEATURES-ADDENDUM F-ACC-DIM)"
+        ]
+      },
+      "features": [
+        "F-ACC-BRANCH",
+        "F-ACC-DIM",
+        "F-INV-REQ",
+        "F-PORTAL-CORE",
+        "F-PORTAL-CUS",
+        "F-PORTAL-EMP",
+        "F-PORTAL-SUP",
+        "F-PT-OPEN"
+      ]
+    },
+    "P05": {
+      "ui_role": "Module owner 'contabilidad' (Contabilidad)",
+      "deliverables": [
+        "Descriptor frontend/src/features/ledger/module.ts conforming to the registry entry 'contabilidad' (label, icon, group, submenus, routes, permissions, quick action)",
+        "Dashboard at /m/contabilidad: 5 KPI cards + panels exactly as in ui/module-registry.json, using shell components (KpiCard, ChartPanel, FeedPanel, EmptyState) from P08",
+        "Backend KPI provider(s) for GET /api/v1/kpis/contabilidad (server-side aggregates, company+period+role scoped, row/field policy applied)",
+        "Honest empty state with the registry's action(s); loading skeleton; error state with retry; no static/sample numbers",
+        "Contributes the 'ingresos_vs_gastos' panel provider used by Inicio and 'caja_bancos' KPI",
+        "[DIM] Model DimensionNode for cost_center, business_unit, aux_abierto, item_contable (COMMON_FIELDS) + effective-dated closure tables; DimensionRule matrix; data migration path from any existing P04 CostCenter rows (none in a fresh run)",
+        "[DIM] JournalLine slots cost_center_id, business_unit_id, aux_abierto_id, item_dimension_id with composite FK (company_id, id); ledger_balance dims_hash includes them",
+        "[DIM] PostingService validates DIM-R01/R04/R08 in the same UoW; simulate returns identical errors",
+        "[DIM] API per API_ACTIONS for the 4 dimensions; UI pages at the four routes using P08 TreeTable (table + tree toggle, search, sort, inline edit, archive, move)",
+        "[DIM] Descriptor contribution: Contabilidad › 'Dimensiones contables' submenu with tabs 'Centros de costo', 'Unidades de negocio', 'Auxiliares abiertos', 'Ítems contables'",
+        "[FEAT] Owner of F-ACC-DIM (Dimensiones analíticas: centros de costo, unidades de negocio, auxiliares abiertos, ítems contables): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-ACC-DIM",
+        "[FEAT] Contributor to F-ACC-REPORTS: ledger queries and drill-down source",
+        "[FEAT] Contributor to F-TRE-RC: posting",
+        "[FEAT] Contributor to F-TRE-CE: posting",
+        "[FEAT] Contributor to F-INV-ISSUE: account determination + dims",
+        "[FEAT] Contributor to F-INV-XFORM: posting",
+        "[FEAT] Contributor to F-PAY-FORMULA: payroll posting"
+      ],
+      "acceptance": [
+        "Registry conformance test (descriptor ↔ module-registry.json) green",
+        "KPI formula unit tests with seeded synthetic data incl. zero-denominator and previous-period cases",
+        "Policy tests: user without permission gets 403/absent module; masked field never appears in KPI, chart, search, notification, export or AI context",
+        "Company switch test: no value of the previous company rendered after switch (stale responses discarded)",
+        "Drill links resolve to real list routes with filters applied",
+        "[DIM] T-DIM-01..T-DIM-14 in DIMENSIONS-ADDENDUM §8 and T-ACC-DIM-01..12 in FEATURES-ADDENDUM green for all four dimensions",
+        "[DIM] Invariant 1/2 unchanged with random dimension assignment (property test)",
+        "[DIM] UI keyboard/a11y for tree (role=tree, aria-expanded, aria-level)",
+        "[FEAT] T-ACC-DIM-01 (unit, gate G1): Create AGRUPADOR+DETALLE in each of the 4 dimensions; code unique per company case-insensitive; same code allowed in another company",
+        "[FEAT] T-ACC-DIM-02 (integration, gate G1): Posting to an AGRUPADOR fails `dimension_node_not_postable`; whole document rolled back",
+        "[FEAT] T-ACC-DIM-03 (unit, gate G1): Cycle, DETALLE-as-parent, cross-dimension parent and depth > limit rejected on create and on move",
+        "[FEAT] T-ACC-DIM-04 (integration, gate G1): Cross-company reference rejected by API and by DB composite FK",
+        "[FEAT] T-ACC-DIM-05 (integration, gate G1): Used node: delete and node_type change rejected; archive blocks new references only",
+        "[FEAT] T-ACC-DIM-06 (integration, gate G1): Rule matrix REQUIRED/FORBIDDEN per account/document/concept enforced in the posting transaction; simulate returns identical errors",
+        "[FEAT] T-ACC-DIM-07 (property, gate G1): Random dimension assignment never changes amounts, balances or invariants 1/2",
+        "[FEAT] T-ACC-DIM-08 (e2e, gate G1): UI: table↔tree toggle, create group+leaf, move, archive in each of the 4 tabs; keyboard tree navigation (role=tree)"
+      ],
+      "dimensions": {
+        "role": "Owner of the four masters (ledger)",
+        "deliverables": [
+          "Model DimensionNode for cost_center, business_unit, aux_abierto, item_contable (COMMON_FIELDS) + effective-dated closure tables; DimensionRule matrix; data migration path from any existing P04 CostCenter rows (none in a fresh run)",
+          "JournalLine slots cost_center_id, business_unit_id, aux_abierto_id, item_dimension_id with composite FK (company_id, id); ledger_balance dims_hash includes them",
+          "PostingService validates DIM-R01/R04/R08 in the same UoW; simulate returns identical errors",
+          "API per API_ACTIONS for the 4 dimensions; UI pages at the four routes using P08 TreeTable (table + tree toggle, search, sort, inline edit, archive, move)",
+          "Descriptor contribution: Contabilidad › 'Dimensiones contables' submenu with tabs 'Centros de costo', 'Unidades de negocio', 'Auxiliares abiertos', 'Ítems contables'"
+        ],
+        "acceptance": [
+          "T-DIM-01..T-DIM-14 in DIMENSIONS-ADDENDUM §8 and T-ACC-DIM-01..12 in FEATURES-ADDENDUM green for all four dimensions",
+          "Invariant 1/2 unchanged with random dimension assignment (property test)",
+          "UI keyboard/a11y for tree (role=tree, aria-expanded, aria-level)"
+        ]
+      },
+      "features": [
+        "F-ACC-DIM",
+        "F-ACC-REPORTS",
+        "F-INV-ISSUE",
+        "F-INV-XFORM",
+        "F-PAY-FORMULA",
+        "F-TRE-CE",
+        "F-TRE-RC"
+      ]
+    },
+    "P06": {
+      "ui_role": "Tax submenu contributor in Contabilidad",
+      "deliverables": [
+        "Descriptor contribution: submenu 'impuestos' (/m/contabilidad/impuestos) registered via the contribution API (no edit of P05 files)",
+        "Tax pages show UNKNOWN parameters as blocking items (fail closed)",
+        "[FEAT] Contributor to F-ACC-EXO: format-pack schema + loader + synthetic pack SYN-EXO-1001 + validation rule engine",
+        "[FEAT] Contributor to F-TRE-RC: withholding calculation",
+        "[FEAT] Contributor to F-TRE-CE: withholding",
+        "[FEAT] Contributor to F-PUR-CYCLE: tax computation for normalization",
+        "[FEAT] Contributor to F-SAL-PRICING: taxes after price",
+        "[FEAT] Contributor to F-PAY-FORMULA: legal parameter tables (fixture values in dev)"
+      ],
+      "acceptance": [
+        "Contribution appears only with tax.read",
+        "No hard-coded rates in UI",
+        "[FEAT] T-ACC-EXO-01 (unit, gate G1): Format pack schema validation rejects missing fields/unknown types; synthetic pack loads with legal_status NOT_DIAN_VALID"
+      ],
+      "features": [
+        "F-ACC-EXO",
+        "F-PAY-FORMULA",
+        "F-PUR-CYCLE",
+        "F-SAL-PRICING",
+        "F-TRE-CE",
+        "F-TRE-RC"
+      ]
+    },
+    "P07": {
+      "ui_role": "Module owner 'aprobaciones' (Aprobaciones y auditoría)",
+      "deliverables": [
+        "Descriptor frontend/src/features/workflow/module.ts conforming to the registry entry 'aprobaciones' (label, icon, group, submenus, routes, permissions, quick action)",
+        "Dashboard at /m/aprobaciones: 4 KPI cards + panels exactly as in ui/module-registry.json, using shell components (KpiCard, ChartPanel, FeedPanel, EmptyState) from P08",
+        "Backend KPI provider(s) for GET /api/v1/kpis/aprobaciones (server-side aggregates, company+period+role scoped, row/field policy applied)",
+        "Honest empty state with the registry's action(s); loading skeleton; error state with retry; no static/sample numbers",
+        "Notification service backing the header bell (company-scoped, policy-filtered badge counts)",
+        "Activity feed provider for Inicio",
+        "[FEAT] Contributor to F-TRE-RC: approvals",
+        "[FEAT] Contributor to F-TRE-CE: approvals",
+        "[FEAT] Contributor to F-INV-ISSUE: approval policies",
+        "[FEAT] Contributor to F-INV-XFORM: approvals",
+        "[FEAT] Contributor to F-INV-REQ: approval workflow",
+        "[FEAT] Contributor to F-PUR-CYCLE: award and PO approvals",
+        "[FEAT] Owner of F-FORMULA-ENGINE (Motor seguro de fórmulas (DSL decimal)): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-FORMULA-ENGINE",
+        "[FEAT] Contributor to F-SAL-PRICING: formula engine",
+        "[FEAT] Contributor to F-PAY-FORMULA: formula engine",
+        "[FEAT] Contributor to F-PORTAL-CORE: notifications to local mail capture"
+      ],
+      "acceptance": [
+        "Registry conformance test (descriptor ↔ module-registry.json) green",
+        "KPI formula unit tests with seeded synthetic data incl. zero-denominator and previous-period cases",
+        "Policy tests: user without permission gets 403/absent module; masked field never appears in KPI, chart, search, notification, export or AI context",
+        "Company switch test: no value of the previous company rendered after switch (stale responses discarded)",
+        "Drill links resolve to real list routes with filters applied",
+        "Badge count equals number of visible notifications for that user/company",
+        "[FEAT] T-FORMULA-ENGINE-01 (unit, gate G1): Golden evaluation suite (≥ 200 cases) incl. rounding modes and Decimal precision",
+        "[FEAT] T-FORMULA-ENGINE-02 (security, gate G1): Adversarial corpus: __import__, attribute access, dunder names, lambda, comprehension, huge exponents, deep nesting, long strings, unicode tricks, recursion via dependencies → rejected; no Python eval/exec used (static scan)",
+        "[FEAT] T-FORMULA-ENGINE-03 (security, gate G1): Budget exhaustion and timeouts produce formula_budget_exceeded; no CPU starvation of other requests",
+        "[FEAT] T-FORMULA-ENGINE-04 (unit, gate G1): Dependency cycle detection; topological evaluation order",
+        "[FEAT] T-FORMULA-ENGINE-05 (security, gate G1): Exfiltration attempts (lookup of tables outside the declared schema, cross-company tables) rejected"
+      ],
+      "features": [
+        "F-FORMULA-ENGINE",
+        "F-INV-ISSUE",
+        "F-INV-REQ",
+        "F-INV-XFORM",
+        "F-PAY-FORMULA",
+        "F-PORTAL-CORE",
+        "F-PUR-CYCLE",
+        "F-SAL-PRICING",
+        "F-TRE-CE",
+        "F-TRE-RC"
+      ]
+    },
+    "P08": {
+      "ui_role": "Shell owner (M4): layout, tokens, components, registry loader, AI panel frame",
+      "deliverables": [
+        "Implement ui/tokens.json as CSS variables + Tailwind theme (pinned, local build) and a typed tokens module; Inter bundled locally",
+        "Shell: header (logo+brand, search, empresa, periodo, AI toggle, notificaciones, tema, perfil), sidebar 256/80 grouped by registry groups with tooltips in collapsed mode, module bar 48 (submenus + quick action + export), center independent scroll, AI panel 320 (dock ≥1280, overlay below)",
+        "Components: KpiCard, ChartPanel (single chart lib per ADR), FeedPanel, EmptyState, ContextSwitcher, CommandPalette (Ctrl/Cmd+K), NotificationsPopover, UserMenu, DevBanner",
+        "Registry loader consuming /api/v1/ui/modules; module routes /m/{module}/{submenu} stable deep links; Inicio dashboard composition",
+        "ADR: chart library choice; ADR: AI panel dock/overlay adaptation",
+        "Component/unit tests under frontend/src/**/__tests__ (tokens → CSS variables, registry loader, context switch cache invalidation); Playwright visual specs and baselines are owned by P22 under tests/e2e/visual/",
+        "[DIM] `design-system` TreeTable: table view and tree view of the same dataset, lazy children, keyboard tree navigation (WAI-ARIA tree), search with ancestor path highlight, sort, inline edit hooks, node-type badge Agrupador/Detalle, archived styling, virtualized rows",
+        "[FEAT] Contributor to F-ACC-DIM: shared TreeTable",
+        "[FEAT] Contributor to F-INV-BARCODE: scanner input + print preview components",
+        "[FEAT] Contributor to F-FORMULA-ENGINE: formula editor component (syntax highlight, validation, test cases, explain)",
+        "[FEAT] Contributor to F-SAL-PRICING: editor",
+        "[FEAT] Contributor to F-PAY-FORMULA: editor",
+        "[FEAT] Contributor to F-PORTAL-CORE: portal shell variant (same NexusERP look, limited menus, no admin, no AI panel by default)",
+        "[FEAT] Contributor to F-PORTAL-SUP: portal shell",
+        "[FEAT] Contributor to F-PORTAL-CUS: portal shell",
+        "[FEAT] Contributor to F-PORTAL-EMP: portal shell"
+      ],
+      "acceptance": [
+        "G1: shell browser states (sidebar expanded/collapsed × AI open/closed × light/dark) render with real /ui/context and /ui/modules",
+        "Layout boxes: header 64, module bar 48, sidebar 256/80, AI 320 (±1px)",
+        "Keyboard: all controls reachable, aria-expanded on toggles, Esc closes overlays, focus returns to trigger",
+        "No innerHTML/eval; no remote fonts/CDNs; no toasts claiming success without an API result",
+        "[DIM] Component tests incl. 10,000 nodes render/virtualization and keyboard navigation",
+        "[DIM] Used by P05 pages (no module-local tree implementation)",
+        "[FEAT] T-ACC-DIM-12 (unit, gate G1): TreeTable: 10,000 nodes virtualized, ARIA tree keyboard, table/tree same dataset",
+        "[FEAT] T-FORMULA-ENGINE-06 (unit, gate G1): Editor shows positioned errors and runs test cases; accessible labels",
+        "[FEAT] T-PORTAL-CORE-04 (unit, gate G1): Portal shell renders only the menus of its kind; no admin/AI panel; tokens identical to internal shell"
+      ],
+      "dimensions": {
+        "role": "Shared TreeTable component",
+        "deliverables": [
+          "`design-system` TreeTable: table view and tree view of the same dataset, lazy children, keyboard tree navigation (WAI-ARIA tree), search with ancestor path highlight, sort, inline edit hooks, node-type badge Agrupador/Detalle, archived styling, virtualized rows"
+        ],
+        "acceptance": [
+          "Component tests incl. 10,000 nodes render/virtualization and keyboard navigation",
+          "Used by P05 pages (no module-local tree implementation)"
+        ]
+      },
+      "features": [
+        "F-ACC-DIM",
+        "F-FORMULA-ENGINE",
+        "F-INV-BARCODE",
+        "F-PAY-FORMULA",
+        "F-PORTAL-CORE",
+        "F-PORTAL-CUS",
+        "F-PORTAL-EMP",
+        "F-PORTAL-SUP",
+        "F-SAL-PRICING"
+      ]
+    },
+    "P09": {
+      "ui_role": "Module owner 'inventario' (Inventario)",
+      "deliverables": [
+        "Descriptor frontend/src/features/inventory/module.ts conforming to the registry entry 'inventario' (label, icon, group, submenus, routes, permissions, quick action)",
+        "Dashboard at /m/inventario: 5 KPI cards + panels exactly as in ui/module-registry.json, using shell components (KpiCard, ChartPanel, FeedPanel, EmptyState) from P08",
+        "Backend KPI provider(s) for GET /api/v1/kpis/inventario (server-side aggregates, company+period+role scoped, row/field policy applied)",
+        "Honest empty state with the registry's action(s); loading skeleton; error state with retry; no static/sample numbers",
+        "[FEAT] Contributor to F-ACC-BRANCH: Warehouse.branch_id required FK",
+        "[FEAT] Owner of F-INV-ISSUE (Salidas de inventario por concepto): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-INV-ISSUE",
+        "[FEAT] Owner of F-INV-PRES (Presentaciones de producto y stock por presentación): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-INV-PRES",
+        "[FEAT] Owner of F-INV-LOC (Ubicaciones dentro de bodegas y stock por ubicación): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-INV-LOC",
+        "[FEAT] Owner of F-INV-BARCODE (Generación e impresión de códigos de barras): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-INV-BARCODE",
+        "[FEAT] Owner of F-INV-BOM (Recetas y listas de materiales): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-INV-BOM",
+        "[FEAT] Owner of F-INV-XFORM (Motor de transformaciones (presentación, porcionado, manual)): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-INV-XFORM",
+        "[FEAT] Contributor to F-INV-REQ: availability, reservations and transfer documents via kernel.interfaces.Inventory (fake_ok)",
+        "[FEAT] Contributor to F-PUR-CYCLE: goods receipt into bins/presentations",
+        "[FEAT] Contributor to F-SAL-PRICING: cost inputs (confidential)",
+        "[FEAT] Contributor to F-PORTAL-SUP: shipment notices to receiving (fake_ok)"
+      ],
+      "acceptance": [
+        "Registry conformance test (descriptor ↔ module-registry.json) green",
+        "KPI formula unit tests with seeded synthetic data incl. zero-denominator and previous-period cases",
+        "Policy tests: user without permission gets 403/absent module; masked field never appears in KPI, chart, search, notification, export or AI context",
+        "Company switch test: no value of the previous company rendered after switch (stale responses discarded)",
+        "Drill links resolve to real list routes with filters applied",
+        "[FEAT] T-ACC-BRANCH-03 (integration, gate G2): Warehouse requires a same-company branch",
+        "[FEAT] T-INV-ISSUE-01 (integration, gate G2): Issue with each seeded concept posts the exact journal lines and stock moves; cost from layers",
+        "[FEAT] T-INV-ISSUE-02 (integration, gate G2): Concept requiring cost center rejects missing dims; approval threshold routes to workflow",
+        "[FEAT] T-INV-ISSUE-03 (concurrency, gate G2): Two concurrent issues of the last units: one succeeds, one fails stock_insufficient; no negative stock",
+        "[FEAT] T-INV-ISSUE-04 (integration, gate G2): Reversal returns stock at original cost/bin/lot",
+        "[FEAT] T-INV-PRES-01 (unit, gate G2): Factor/precision validation; conversion exact with Decimal; rounding to presentation precision rejects fractional packages",
+        "[FEAT] T-INV-PRES-02 (property, gate G2): For random receipts/issues/repacks: Σ packaged × factor ≤ canonical and total stock never double counted",
+        "[FEAT] T-INV-PRES-03 (integration, gate G2): Availability by presentation/lot/bin; reservation of 2 boxes reserves 24 base units and 2 packages",
+        "[FEAT] T-INV-LOC-01 (integration, gate G2): Tree: no cycles, parent in same warehouse, posting only to leaf bins",
+        "[FEAT] T-INV-LOC-02 (integration, gate G2): Availability and reservations per bin/lot; reservation prevents another issue from the same bin",
+        "[FEAT] T-INV-LOC-03 (integration, gate G2): Receipt putaway uses rule, else RECEPCION; bin-to-bin move keeps valuation",
+        "[FEAT] T-INV-LOC-04 (concurrency, gate G2): Concurrent moves out of one bin never go negative",
+        "[FEAT] T-INV-BARCODE-01 (unit, gate G2): Code128 encoder golden vectors and EAN-13 check digit (mod-10) golden vectors; GTIN validation",
+        "[FEAT] T-INV-BARCODE-02 (integration, gate G2): Generated internal codes unique per company under 50 concurrent generations; GS1 generation refused without a user prefix",
+        "[FEAT] T-INV-BARCODE-03 (integration, gate G2): Lookup resolves item/presentation/location/lot; unknown code returns barcode_unknown",
+        "[FEAT] T-INV-BOM-01 (unit, gate G2): Cycle detection across multi-level BOMs; overlapping versions rejected",
+        "[FEAT] T-INV-BOM-02 (unit, gate G2): Explosion with yields/scrap is exact in Decimal; costed explosion matches valuation",
+        "[FEAT] T-INV-XFORM-01 (integration, gate G2): Repack 2 boxes x12 → 24 units (unpack) and back (pack): canonical stock unchanged, packaged quants updated, no entry within one account",
+        "[FEAT] T-INV-XFORM-02 (integration, gate G2): Portioning direct (no template): 10 kg input → 3 outputs with actual weights + waste; values balance exactly; rounding to main output",
+        "[FEAT] T-INV-XFORM-03 (integration, gate G2): Portioning with template: yield outside ±2 % requires approval; inside posts directly",
+        "[FEAT] T-INV-XFORM-04 (integration, gate G2): Manual multi-input/multi-output transformation balances value and base quantities; outputs without inputs rejected",
+        "[FEAT] T-INV-XFORM-05 (integration, gate G2): Production order from BOM v2 consumes components with scrap %; byproduct valued by cost share",
+        "[FEAT] T-INV-XFORM-06 (concurrency, gate G2): Concurrent transformation and POS sale on the same lot: reservations prevent overconsumption; one fails cleanly",
+        "[FEAT] T-INV-XFORM-07 (integration, gate G2): Ledger failure during post rolls back all stock moves (no partial stock or ledger)",
+        "[FEAT] T-INV-XFORM-08 (property, gate G2): Random transformations: Σ inventory value + expensed waste invariant holds; no negative stock",
+        "[FEAT] T-INV-REQ-04 (integration, gate G2): Transfer ship/receive through in-transit; stock counted once; cross-company rejected"
+      ],
+      "features": [
+        "F-ACC-BRANCH",
+        "F-INV-BARCODE",
+        "F-INV-BOM",
+        "F-INV-ISSUE",
+        "F-INV-LOC",
+        "F-INV-PRES",
+        "F-INV-REQ",
+        "F-INV-XFORM",
+        "F-PORTAL-SUP",
+        "F-PUR-CYCLE",
+        "F-SAL-PRICING"
+      ]
+    },
+    "P10": {
+      "ui_role": "Module owner 'ventas' (Ventas y CRM)",
+      "deliverables": [
+        "Descriptor frontend/src/features/sales/module.ts conforming to the registry entry 'ventas' (label, icon, group, submenus, routes, permissions, quick action)",
+        "Dashboard at /m/ventas: 5 KPI cards + panels exactly as in ui/module-registry.json, using shell components (KpiCard, ChartPanel, FeedPanel, EmptyState) from P08",
+        "Backend KPI provider(s) for GET /api/v1/kpis/ventas (server-side aggregates, company+period+role scoped, row/field policy applied)",
+        "Honest empty state with the registry's action(s); loading skeleton; error state with retry; no static/sample numbers",
+        "Contributes 'ventas_netas' and 'cartera_vencida' KPIs to Inicio",
+        "[DIM] Invoice/credit note/receipt lines accept aux_abierto_id/item_dimension_id (defaults from customer/item rules optional) and pass them to PostingService",
+        "[FEAT] Contributor to F-TRE-RC: AR open-item application interface (kernel.interfaces.ArOpenItems)",
+        "[FEAT] Contributor to F-TRE-RC: simulated payment intents feed DRAFT receipts",
+        "[FEAT] Contributor to F-INV-PRES: sell by presentation",
+        "[FEAT] Contributor to F-FORMULA-ENGINE: pricing",
+        "[FEAT] Owner of F-SAL-PRICING (Precios formulados de productos y servicios): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-SAL-PRICING",
+        "[FEAT] Owner of F-PORTAL-CUS (Portal de autoservicio de clientes): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-PORTAL-CUS"
+      ],
+      "acceptance": [
+        "Registry conformance test (descriptor ↔ module-registry.json) green",
+        "KPI formula unit tests with seeded synthetic data incl. zero-denominator and previous-period cases",
+        "Policy tests: user without permission gets 403/absent module; masked field never appears in KPI, chart, search, notification, export or AI context",
+        "Company switch test: no value of the previous company rendered after switch (stale responses discarded)",
+        "Drill links resolve to real list routes with filters applied",
+        "[DIM] S1 variant: dimensions land on the expected journal lines; DIM-R08 required rule blocks posting atomically",
+        "[FEAT] T-INV-BOM-03 (integration, gate G2): Kit sale consumes components at cost (existing kit behaviour preserved)",
+        "[FEAT] T-SAL-PRICING-01 (integration, gate G2): Precedence override > formula > list > base; qty breaks and customer group scopes",
+        "[FEAT] T-SAL-PRICING-02 (integration, gate G2): Snapshot stored; reprice of a DRAFT shows a diff; posted invoice never repriced",
+        "[FEAT] T-SAL-PRICING-03 (integration, gate G2): Override beyond discount limit routes to approval",
+        "[FEAT] T-SAL-PRICING-04 (security, gate G2): Customer portal quote API never exposes cost or the formula text",
+        "[FEAT] T-SAL-PRICING-05 (unit, gate G2): Multi-currency formula with FX at document date; rounding per currency",
+        "[FEAT] T-PORTAL-CUS-01 (integration, gate G2): Customer sees only own invoices/credit notes/receipts; statement totals equal AR subledger",
+        "[FEAT] T-PORTAL-CUS-02 (integration, gate G2): Payment intent simulated success never posts; RC draft appears for treasury",
+        "[FEAT] T-PORTAL-CUS-03 (integration, gate G2): Quote request → internal quote → acceptance → sales order",
+        "[FEAT] T-PORTAL-CUS-04 (security, gate G2): No internal prices of other customers, cost, margin or price formula in any portal response",
+        "[FEAT] T-PORTAL-CUS-05 (integration, gate G2): Downloaded fiscal PDFs/XMLs in dev carry the 'SINTÉTICO — sin validez fiscal' label"
+      ],
+      "dimensions": {
+        "role": "Sales document lines carry the slots",
+        "deliverables": [
+          "Invoice/credit note/receipt lines accept aux_abierto_id/item_dimension_id (defaults from customer/item rules optional) and pass them to PostingService"
+        ],
+        "acceptance": [
+          "S1 variant: dimensions land on the expected journal lines; DIM-R08 required rule blocks posting atomically"
+        ]
+      },
+      "features": [
+        "F-FORMULA-ENGINE",
+        "F-INV-BOM",
+        "F-INV-PRES",
+        "F-PORTAL-CUS",
+        "F-SAL-PRICING",
+        "F-TRE-RC"
+      ]
+    },
+    "P11": {
+      "ui_role": "Module owner 'compras' (Compras)",
+      "deliverables": [
+        "Descriptor frontend/src/features/purchasing/module.ts conforming to the registry entry 'compras' (label, icon, group, submenus, routes, permissions, quick action)",
+        "Dashboard at /m/compras: 5 KPI cards + panels exactly as in ui/module-registry.json, using shell components (KpiCard, ChartPanel, FeedPanel, EmptyState) from P08",
+        "Backend KPI provider(s) for GET /api/v1/kpis/compras (server-side aggregates, company+period+role scoped, row/field policy applied)",
+        "Honest empty state with the registry's action(s); loading skeleton; error state with retry; no static/sample numbers",
+        "[DIM] Requisition/PO/vendor invoice/support document/payment lines accept the slots and propagate PO → invoice → journal",
+        "[FEAT] Contributor to F-TRE-CE: AP open-item interface + payment proposals",
+        "[FEAT] Contributor to F-INV-PRES: buy by presentation",
+        "[FEAT] Contributor to F-INV-LOC: putaway at receipt",
+        "[FEAT] Contributor to F-INV-BARCODE: receiving scan",
+        "[FEAT] Owner of F-INV-REQ (Solicitudes internas de mercancía, consolidación, traslado automático y/o compra): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-INV-REQ",
+        "[FEAT] Owner of F-PUR-CYCLE (Ciclo completo de compras con cotizaciones): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-PUR-CYCLE",
+        "[FEAT] Owner of F-PORTAL-SUP (Portal de autoservicio de proveedores): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-PORTAL-SUP"
+      ],
+      "acceptance": [
+        "Registry conformance test (descriptor ↔ module-registry.json) green",
+        "KPI formula unit tests with seeded synthetic data incl. zero-denominator and previous-period cases",
+        "Policy tests: user without permission gets 403/absent module; masked field never appears in KPI, chart, search, notification, export or AI context",
+        "Company switch test: no value of the previous company rendered after switch (stale responses discarded)",
+        "Drill links resolve to real list routes with filters applied",
+        "[DIM] S2 variant with dimensions; propagation test PO→receipt→invoice",
+        "[FEAT] T-INV-REQ-01 (integration, gate G2): Request → approval (SoD) → sourcing: available stock reserved + DRAFT transfer from priority warehouse; remainder TO_PROCURE",
+        "[FEAT] T-INV-REQ-02 (integration, gate G2): Consolidation of 3 requests keeps lineage; Σ consolidated = Σ sources; split fulfilment closes each source line correctly",
+        "[FEAT] T-INV-REQ-03 (integration, gate G2): Auto-PO draft only within D-011 limit and with a valid vendor price; above limit creates a buyer task; PO still needs approval",
+        "[FEAT] T-INV-REQ-05 (concurrency, gate G2): Two requisitions sourcing the same last units: reservations prevent double allocation",
+        "[FEAT] T-PUR-CYCLE-01 (integration, gate G2): RFQ to 3 vendors, quotes received (one late), deadline closes; late quote excluded unless reopened",
+        "[FEAT] T-PUR-CYCLE-02 (unit, gate G2): Normalization: UoM/presentation to base, FX at quote date, taxes and freight; golden comparison table",
+        "[FEAT] T-PUR-CYCLE-03 (unit, gate G2): Scoring and tie rules deterministic and explainable (golden explanation text)",
+        "[FEAT] T-PUR-CYCLE-04 (integration, gate G2): Award differing from recommendation requires a reason; award approval required before PO",
+        "[FEAT] T-PUR-CYCLE-05 (integration, gate G2): PO partial receipt then full receipt; tolerance; 3-way match with vendor invoice",
+        "[FEAT] T-PUR-CYCLE-06 (integration, gate G2): Quote attachments stored, scanned, downloadable by buyers only",
+        "[FEAT] T-PORTAL-SUP-01 (integration, gate G2): Supplier submits a quote before deadline via portal; buyer sees it in the comparison; another supplier cannot see it",
+        "[FEAT] T-PORTAL-SUP-02 (integration, gate G2): PO acknowledgement and shipment notice flow; receiving sees the notice",
+        "[FEAT] T-PORTAL-SUP-03 (integration, gate G2): Bank account change request requires two internal approvals before the vendor master changes",
+        "[FEAT] T-PORTAL-SUP-04 (security, gate G2): Portal responses never include internal prices of other vendors, costs or internal notes",
+        "[FEAT] T-PORTAL-SUP-05 (integration, gate G2): KPIs computed from synthetic data match direct queries"
+      ],
+      "dimensions": {
+        "role": "Purchasing/AP lines carry the slots",
+        "deliverables": [
+          "Requisition/PO/vendor invoice/support document/payment lines accept the slots and propagate PO → invoice → journal"
+        ],
+        "acceptance": [
+          "S2 variant with dimensions; propagation test PO→receipt→invoice"
+        ]
+      },
+      "features": [
+        "F-INV-BARCODE",
+        "F-INV-LOC",
+        "F-INV-PRES",
+        "F-INV-REQ",
+        "F-PORTAL-SUP",
+        "F-PUR-CYCLE",
+        "F-TRE-CE"
+      ]
+    },
+    "P12": {
+      "ui_role": "Module owner 'pos' (Punto de venta)",
+      "deliverables": [
+        "Descriptor frontend/src/features/pos/module.ts conforming to the registry entry 'pos' (label, icon, group, submenus, routes, permissions, quick action)",
+        "Dashboard at /m/pos: 5 KPI cards + panels exactly as in ui/module-registry.json, using shell components (KpiCard, ChartPanel, FeedPanel, EmptyState) from P08",
+        "Backend KPI provider(s) for GET /api/v1/kpis/pos (server-side aggregates, company+period+role scoped, row/field policy applied)",
+        "Honest empty state with the registry's action(s); loading skeleton; error state with retry; no static/sample numbers",
+        "POS 'Vender' screen may use a focused full-height layout but keeps the shared header and module bar",
+        "[FEAT] Contributor to F-ACC-BRANCH: PosConfig.branch_id required FK",
+        "[FEAT] Contributor to F-INV-PRES: POS scan by presentation barcode",
+        "[FEAT] Contributor to F-INV-LOC: POS sells from the POS bin",
+        "[FEAT] Contributor to F-INV-BARCODE: POS scanning",
+        "[FEAT] Contributor to F-INV-XFORM: POS reservations respected"
+      ],
+      "acceptance": [
+        "Registry conformance test (descriptor ↔ module-registry.json) green",
+        "KPI formula unit tests with seeded synthetic data incl. zero-denominator and previous-period cases",
+        "Policy tests: user without permission gets 403/absent module; masked field never appears in KPI, chart, search, notification, export or AI context",
+        "Company switch test: no value of the previous company rendered after switch (stale responses discarded)",
+        "Drill links resolve to real list routes with filters applied",
+        "[FEAT] T-ACC-BRANCH-04 (integration, gate G2): PosConfig requires a same-company branch",
+        "[FEAT] T-INV-PRES-04 (integration, gate G2): POS scan of a presentation barcode sells the package and decrements packaged + canonical stock",
+        "[FEAT] T-INV-BARCODE-05 (integration, gate G2): POS scan input adds the right presentation line"
+      ],
+      "features": [
+        "F-ACC-BRANCH",
+        "F-INV-BARCODE",
+        "F-INV-LOC",
+        "F-INV-PRES",
+        "F-INV-XFORM"
+      ]
+    },
+    "P13": {
+      "ui_role": "Module owner 'talento' (Talento humano y nómina)",
+      "deliverables": [
+        "Descriptor frontend/src/features/hr/module.ts conforming to the registry entry 'talento' (label, icon, group, submenus, routes, permissions, quick action)",
+        "Dashboard at /m/talento: 5 KPI cards + panels exactly as in ui/module-registry.json, using shell components (KpiCard, ChartPanel, FeedPanel, EmptyState) from P08",
+        "Backend KPI provider(s) for GET /api/v1/kpis/talento (server-side aggregates, company+period+role scoped, row/field policy applied)",
+        "Honest empty state with the registry's action(s); loading skeleton; error state with retry; no static/sample numbers",
+        "[DIM] Payroll concept/contract may map to aux_abierto/item_contable; summarized posting groups by the slots",
+        "[FEAT] Contributor to F-TRE-CE: payroll net pay payable (fake until G2)",
+        "[FEAT] Contributor to F-FORMULA-ENGINE: payroll",
+        "[FEAT] Owner of F-PAY-FORMULA (Conceptos de nómina formulados (devengos y deducciones)): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-PAY-FORMULA",
+        "[FEAT] Owner of F-PORTAL-EMP (Portal de autoservicio de empleados): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-PORTAL-EMP"
+      ],
+      "acceptance": [
+        "Registry conformance test (descriptor ↔ module-registry.json) green",
+        "KPI formula unit tests with seeded synthetic data incl. zero-denominator and previous-period cases",
+        "Policy tests: user without permission gets 403/absent module; masked field never appears in KPI, chart, search, notification, export or AI context",
+        "Company switch test: no value of the previous company rendered after switch (stale responses discarded)",
+        "Drill links resolve to real list routes with filters applied",
+        "Non-HR role fixture: talento absent from nav, search, notifications, AI suggestions; HR without payroll.amounts.read sees masked costs",
+        "[DIM] S6 variant: payroll entry split by dimension; totals unchanged",
+        "[FEAT] T-PAY-FORMULA-01 (integration, gate G2): User-defined earning and deduction concepts evaluated in topological order; cycle rejected on save",
+        "[FEAT] T-PAY-FORMULA-02 (integration, gate G2): Parameter snapshot stored; changing parameters later does not change posted payrolls",
+        "[FEAT] T-PAY-FORMULA-03 (integration, gate G2): Unknown legal parameter fails closed; fixture parameters labelled NOT LEGALLY VERIFIED in UI and payslip",
+        "[FEAT] T-PAY-FORMULA-04 (security, gate G2): Adversarial formulas (same corpus as FORMULA-ENGINE) rejected in the payroll domain",
+        "[FEAT] T-PORTAL-EMP-01 (integration, gate G2): Employee sees only own payslips/certificates; certificate PDF labelled with fixture parameter status",
+        "[FEAT] T-PORTAL-EMP-02 (integration, gate G2): Vacation request approval flow updates balance KPI",
+        "[FEAT] T-PORTAL-EMP-03 (security, gate G2): Employee A cannot access employee B payslips (IDOR) nor any salary aggregate"
+      ],
+      "dimensions": {
+        "role": "Payroll posting by dimension",
+        "deliverables": [
+          "Payroll concept/contract may map to aux_abierto/item_contable; summarized posting groups by the slots"
+        ],
+        "acceptance": [
+          "S6 variant: payroll entry split by dimension; totals unchanged"
+        ]
+      },
+      "features": [
+        "F-FORMULA-ENGINE",
+        "F-PAY-FORMULA",
+        "F-PORTAL-EMP",
+        "F-TRE-CE"
+      ]
+    },
+    "P14": {
+      "ui_role": "Module owner 'activos' (Activos fijos)",
+      "deliverables": [
+        "Descriptor frontend/src/features/assets/module.ts conforming to the registry entry 'activos' (label, icon, group, submenus, routes, permissions, quick action)",
+        "Dashboard at /m/activos: 4 KPI cards + panels exactly as in ui/module-registry.json, using shell components (KpiCard, ChartPanel, FeedPanel, EmptyState) from P08",
+        "Backend KPI provider(s) for GET /api/v1/kpis/activos (server-side aggregates, company+period+role scoped, row/field policy applied)",
+        "Honest empty state with the registry's action(s); loading skeleton; error state with retry; no static/sample numbers",
+        "[DIM] Asset may carry default slots; depreciation runs post with them"
+      ],
+      "acceptance": [
+        "Registry conformance test (descriptor ↔ module-registry.json) green",
+        "KPI formula unit tests with seeded synthetic data incl. zero-denominator and previous-period cases",
+        "Policy tests: user without permission gets 403/absent module; masked field never appears in KPI, chart, search, notification, export or AI context",
+        "Company switch test: no value of the previous company rendered after switch (stale responses discarded)",
+        "Drill links resolve to real list routes with filters applied",
+        "[DIM] Depreciation entry carries slots; GL = register unchanged"
+      ],
+      "dimensions": {
+        "role": "Fixed assets",
+        "deliverables": [
+          "Asset may carry default slots; depreciation runs post with them"
+        ],
+        "acceptance": [
+          "Depreciation entry carries slots; GL = register unchanged"
+        ]
+      }
+    },
+    "P15": {
+      "ui_role": "Module owner 'facturacion' (Facturación electrónica)",
+      "deliverables": [
+        "Descriptor frontend/src/features/einvoice/module.ts conforming to the registry entry 'facturacion' (label, icon, group, submenus, routes, permissions, quick action)",
+        "Dashboard at /m/facturacion: 4 KPI cards + panels exactly as in ui/module-registry.json, using shell components (KpiCard, ChartPanel, FeedPanel, EmptyState) from P08",
+        "Backend KPI provider(s) for GET /api/v1/kpis/facturacion (server-side aggregates, company+period+role scoped, row/field policy applied)",
+        "Honest empty state with the registry's action(s); loading skeleton; error state with retry; no static/sample numbers",
+        "'Simulado' label on statuses produced by the fixture validator in dev",
+        "[FEAT] Contributor to F-PUR-CYCLE: documento soporte when applicable (existing)",
+        "[FEAT] Owner of F-PT-OPEN (Arquitectura abierta para proveedores tecnológicos): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-PT-OPEN",
+        "[FEAT] Contributor to F-PORTAL-SUP: documento soporte status (fake_ok)",
+        "[FEAT] Contributor to F-PORTAL-CUS: fiscal documents (synthetic, labelled)"
+      ],
+      "acceptance": [
+        "Registry conformance test (descriptor ↔ module-registry.json) green",
+        "KPI formula unit tests with seeded synthetic data incl. zero-denominator and previous-period cases",
+        "Policy tests: user without permission gets 403/absent module; masked field never appears in KPI, chart, search, notification, export or AI context",
+        "Company switch test: no value of the previous company rendered after switch (stale responses discarded)",
+        "Drill links resolve to real list routes with filters applied",
+        "[FEAT] T-PT-OPEN-01 (integration, gate G2): Contract test suite runs against the simulated adapter and a second dummy adapter (proves pluggability)",
+        "[FEAT] T-PT-OPEN-02 (security, gate G2): Provider secrets never appear in API responses, logs or exports"
+      ],
+      "features": [
+        "F-PORTAL-CUS",
+        "F-PORTAL-SUP",
+        "F-PT-OPEN",
+        "F-PUR-CYCLE"
+      ]
+    },
+    "P16": {
+      "ui_role": "Module owner 'tesoreria' (Tesorería)",
+      "deliverables": [
+        "Descriptor frontend/src/features/treasury/module.ts conforming to the registry entry 'tesoreria' (label, icon, group, submenus, routes, permissions, quick action)",
+        "Dashboard at /m/tesoreria: 5 KPI cards + panels exactly as in ui/module-registry.json, using shell components (KpiCard, ChartPanel, FeedPanel, EmptyState) from P08",
+        "Backend KPI provider(s) for GET /api/v1/kpis/tesoreria (server-side aggregates, company+period+role scoped, row/field policy applied)",
+        "Honest empty state with the registry's action(s); loading skeleton; error state with retry; no static/sample numbers",
+        "[DIM] Bank movements/fees/transfers entries accept the slots; reconciliation create-entry passes them",
+        "[FEAT] Owner of F-TRE-RC (Recibos de caja): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-TRE-RC",
+        "[FEAT] Owner of F-TRE-CE (Comprobantes de egreso): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-TRE-CE",
+        "[FEAT] Contributor to F-PUR-CYCLE: payment (CE)",
+        "[FEAT] Contributor to F-PORTAL-CUS: receipts (RC) status"
+      ],
+      "acceptance": [
+        "Registry conformance test (descriptor ↔ module-registry.json) green",
+        "KPI formula unit tests with seeded synthetic data incl. zero-denominator and previous-period cases",
+        "Policy tests: user without permission gets 403/absent module; masked field never appears in KPI, chart, search, notification, export or AI context",
+        "Company switch test: no value of the previous company rendered after switch (stale responses discarded)",
+        "Drill links resolve to real list routes with filters applied",
+        "[DIM] Fee entry from statement carries a required dimension",
+        "[FEAT] T-TRE-RC-01 (integration, gate G2): RC applying two AR invoices partially + advance remainder + customer withholding: exact journal lines, open items updated, one transaction",
+        "[FEAT] T-TRE-RC-02 (integration, gate G2): RC by concept without AR (e.g. loan received, reimbursement): posts to concept account with dims",
+        "[FEAT] T-TRE-RC-03 (concurrency, gate G2): 50 concurrent RC posts: gap-free RC numbers, no double application of the same open item (row lock), idempotent retry returns the same voucher",
+        "[FEAT] T-TRE-RC-04 (integration, gate G2): Failure in withholding calc or ledger post rolls back number, open items and entry (no partial ledger)",
+        "[FEAT] T-TRE-RC-05 (integration, gate G2): Reversal re-opens items, mirror entry, original immutable; reversal in closed period rejected",
+        "[FEAT] T-TRE-RC-06 (integration, gate G2): Approval threshold routes to P07 workflow; creator cannot approve",
+        "[FEAT] T-TRE-CE-01 (integration, gate G2): CE paying 3 vendor invoices partially with withholding: exact journal lines and AP open items",
+        "[FEAT] T-TRE-CE-02 (integration, gate G2): Direct CE by concept (expense with cost center) without AP",
+        "[FEAT] T-TRE-CE-03 (integration, gate G2): Payment batch execution → one CE per payee, numbers gap-free, simulated bank file labelled FIXTURE_NOT_CERTIFIED",
+        "[FEAT] T-TRE-CE-04 (integration, gate G2): Dual approval above threshold; SoD enforced",
+        "[FEAT] T-TRE-CE-05 (integration, gate G2): Reversal of a CE re-opens AP items; immutable original"
+      ],
+      "dimensions": {
+        "role": "Treasury",
+        "deliverables": [
+          "Bank movements/fees/transfers entries accept the slots; reconciliation create-entry passes them"
+        ],
+        "acceptance": [
+          "Fee entry from statement carries a required dimension"
+        ]
+      },
+      "features": [
+        "F-PORTAL-CUS",
+        "F-PUR-CYCLE",
+        "F-TRE-CE",
+        "F-TRE-RC"
+      ]
+    },
+    "P17": {
+      "ui_role": "Module owner 'reportes' (Reportes)",
+      "deliverables": [
+        "Descriptor frontend/src/features/reporting/module.ts conforming to the registry entry 'reportes' (label, icon, group, submenus, routes, permissions, quick action)",
+        "Dashboard at /m/reportes: 4 KPI cards + panels exactly as in ui/module-registry.json, using shell components (KpiCard, ChartPanel, FeedPanel, EmptyState) from P08",
+        "Backend KPI provider(s) for GET /api/v1/kpis/reportes (server-side aggregates, company+period+role scoped, row/field policy applied)",
+        "Honest empty state with the registry's action(s); loading skeleton; error state with retry; no static/sample numbers",
+        "Aggregate/semantic endpoints MAY back Inicio › Analítica/Reportes; must not change per-module KPI contracts",
+        "[DIM] Semantic dimensions aux_abierto, item_contable with hierarchy (group/leaf, as-of date per DIM-R06)",
+        "[DIM] Standard reports: balance/auxiliary by account × each new dimension; trial balance filter by dimension subtree",
+        "[FEAT] Contributor to F-ACC-DIM: reports by dimension",
+        "[FEAT] Contributor to F-ACC-BRANCH: branch filter in all reports",
+        "[FEAT] Owner of F-ACC-EXO (Información exógena: motor de formatos versionados, mapeo, validación y archivo): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-ACC-EXO",
+        "[FEAT] Owner of F-ACC-REPORTS (Estados e informes contables): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-ACC-REPORTS",
+        "[FEAT] Contributor to F-TRE-RC: PDF template via DocumentRenderer",
+        "[FEAT] Contributor to F-TRE-CE: PDF",
+        "[FEAT] Contributor to F-INV-ISSUE: issue report + PDF",
+        "[FEAT] Contributor to F-INV-BARCODE: label PDF rendering (DocumentRenderer)",
+        "[FEAT] Contributor to F-INV-BOM: costed BOM report",
+        "[FEAT] Contributor to F-INV-XFORM: PDF + reports",
+        "[FEAT] Contributor to F-PORTAL-SUP: PDF downloads",
+        "[FEAT] Contributor to F-PORTAL-CUS: PDF downloads",
+        "[FEAT] Contributor to F-PORTAL-EMP: certificates PDF"
+      ],
+      "acceptance": [
+        "Registry conformance test (descriptor ↔ module-registry.json) green",
+        "KPI formula unit tests with seeded synthetic data incl. zero-denominator and previous-period cases",
+        "Policy tests: user without permission gets 403/absent module; masked field never appears in KPI, chart, search, notification, export or AI context",
+        "Company switch test: no value of the previous company rendered after switch (stale responses discarded)",
+        "Drill links resolve to real list routes with filters applied",
+        "Inicio tiles remain served by per-module providers; P17 absence never breaks them",
+        "[DIM] No double counting with group+child selection (DIM-R07)",
+        "[DIM] As-of hierarchy vs current hierarchy produce same totals, different grouping",
+        "[FEAT] T-ACC-DIM-10 (integration, gate G3): Group+child filter selected together: no double counting; as-of vs current hierarchy same totals",
+        "[FEAT] T-ACC-BRANCH-05 (integration, gate G3): Report filtered by branch equals the sum of its warehouses/POS documents",
+        "[FEAT] T-ACC-EXO-02 (integration, gate G3): Run over the synthetic dataset: mapping → validation → file; Σ file amounts per concept = Σ ledger balances",
+        "[FEAT] T-ACC-EXO-03 (integration, gate G3): Row-level validation errors (missing NIT/DV, negative amount, unmapped account) block generation",
+        "[FEAT] T-ACC-EXO-04 (unit, gate G3): Generated file is byte-identical across two runs on the same data (deterministic, hashed)",
+        "[FEAT] T-ACC-EXO-05 (e2e, gate G3): UI wizard and download; badge 'SINTÉTICO — no válido ante la DIAN' visible on pack and file name",
+        "[FEAT] T-ACC-REPORTS-01 (integration, gate G3): Balance general: assets = liabilities + equity on S1–S12; comparative period columns",
+        "[FEAT] T-ACC-REPORTS-02 (integration, gate G3): Estado de resultados (function and nature) net = balance current-year result",
+        "[FEAT] T-ACC-REPORTS-03 (integration, gate G3): Flujo de efectivo indirect ends at the bank/cash GL balance; unmapped accounts listed",
+        "[FEAT] T-ACC-REPORTS-04 (integration, gate G3): Estados financieros package renders all statements consistently for one period",
+        "[FEAT] T-ACC-REPORTS-05 (integration, gate G3): Auxiliar por cuenta: opening + movements = closing per account; drill to source document",
+        "[FEAT] T-ACC-REPORTS-06 (integration, gate G3): Auxiliar por centro de costo: subtree filter, no double counting, ties to the trial balance by cost center",
+        "[FEAT] T-ACC-REPORTS-07 (e2e, gate G3): Each of the six screens: filters, drill-down, export CSV/XLSX/PDF, print; row policy hides other branches",
+        "[FEAT] T-TRE-RC-07 (integration, gate G3): RC PDF contains number, party, lines, totals in words (es-CO), fund, preparer/approver; deterministic hash",
+        "[FEAT] T-TRE-CE-06 (integration, gate G3): CE PDF deterministic with totals in words",
+        "[FEAT] T-INV-BARCODE-04 (integration, gate G3): Label PDF contains the barcode image decodable back to the value (decoder test) and is deterministic"
+      ],
+      "dimensions": {
+        "role": "Reporting",
+        "deliverables": [
+          "Semantic dimensions aux_abierto, item_contable with hierarchy (group/leaf, as-of date per DIM-R06)",
+          "Standard reports: balance/auxiliary by account × each new dimension; trial balance filter by dimension subtree"
+        ],
+        "acceptance": [
+          "No double counting with group+child selection (DIM-R07)",
+          "As-of hierarchy vs current hierarchy produce same totals, different grouping"
+        ]
+      },
+      "features": [
+        "F-ACC-BRANCH",
+        "F-ACC-DIM",
+        "F-ACC-EXO",
+        "F-ACC-REPORTS",
+        "F-INV-BARCODE",
+        "F-INV-BOM",
+        "F-INV-ISSUE",
+        "F-INV-XFORM",
+        "F-PORTAL-CUS",
+        "F-PORTAL-EMP",
+        "F-PORTAL-SUP",
+        "F-TRE-CE",
+        "F-TRE-RC"
+      ]
+    },
+    "P18": {
+      "ui_role": "Module owner 'datos' (Importar y exportar)",
+      "deliverables": [
+        "Descriptor frontend/src/features/dataio/module.ts conforming to the registry entry 'datos' (label, icon, group, submenus, routes, permissions, quick action)",
+        "Dashboard at /m/datos: 4 KPI cards + panels exactly as in ui/module-registry.json, using shell components (KpiCard, ChartPanel, FeedPanel, EmptyState) from P08",
+        "Backend KPI provider(s) for GET /api/v1/kpis/datos (server-side aggregates, company+period+role scoped, row/field policy applied)",
+        "Honest empty state with the registry's action(s); loading skeleton; error state with retry; no static/sample numbers",
+        "Export button in the module bar calls POST /api/v1/exports for the current list/dashboard with policy applied",
+        "[DIM] Templates for both masters (code, description, node_type, parent_code, valid_from, valid_to, status) and for rule matrix",
+        "[DIM] Two-pass parent resolution, atomic reject on cycles/cross-company/invalid parent type",
+        "[FEAT] Contributor to F-ACC-DIM: import/export templates",
+        "[FEAT] Contributor to F-ACC-BRANCH: import template",
+        "[FEAT] Contributor to F-ACC-EXO: import of format packs and concept mappings",
+        "[FEAT] Contributor to F-ACC-REPORTS: export formats",
+        "[FEAT] Contributor to F-TRE-RC: import of concepts",
+        "[FEAT] Contributor to F-INV-ISSUE: concept import",
+        "[FEAT] Contributor to F-INV-PRES: import",
+        "[FEAT] Contributor to F-INV-LOC: import",
+        "[FEAT] Contributor to F-INV-BOM: import",
+        "[FEAT] Owner of F-X-DATAIO (Importación/exportación de los nuevos maestros y documentos): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-X-DATAIO"
+      ],
+      "acceptance": [
+        "Registry conformance test (descriptor ↔ module-registry.json) green",
+        "KPI formula unit tests with seeded synthetic data incl. zero-denominator and previous-period cases",
+        "Policy tests: user without permission gets 403/absent module; masked field never appears in KPI, chart, search, notification, export or AI context",
+        "Company switch test: no value of the previous company rendered after switch (stale responses discarded)",
+        "Drill links resolve to real list routes with filters applied",
+        "[DIM] Round-trip export→import no-op; children-before-parents file accepted; cycle file rejected with no rows applied",
+        "[FEAT] T-ACC-DIM-11 (integration, gate G3): Import children-before-parents OK; cycle file rejected with zero rows applied; export→import no-op",
+        "[FEAT] T-X-DATAIO-01 (integration, gate G3): Every template: valid file applies, invalid file applies zero rows with row-level errors, export→import round trip is a no-op",
+        "[FEAT] T-X-DATAIO-02 (security, gate G3): Import cannot create cross-company references or bypass approvals (documents import as DRAFT)"
+      ],
+      "dimensions": {
+        "role": "Import/export",
+        "deliverables": [
+          "Templates for both masters (code, description, node_type, parent_code, valid_from, valid_to, status) and for rule matrix",
+          "Two-pass parent resolution, atomic reject on cycles/cross-company/invalid parent type"
+        ],
+        "acceptance": [
+          "Round-trip export→import no-op; children-before-parents file accepted; cycle file rejected with no rows applied"
+        ]
+      },
+      "features": [
+        "F-ACC-BRANCH",
+        "F-ACC-DIM",
+        "F-ACC-EXO",
+        "F-ACC-REPORTS",
+        "F-INV-BOM",
+        "F-INV-ISSUE",
+        "F-INV-LOC",
+        "F-INV-PRES",
+        "F-TRE-RC",
+        "F-X-DATAIO"
+      ]
+    },
+    "P19": {
+      "ui_role": "AI panel content (right drawer) backed by the AI agent API",
+      "deliverables": [
+        "Panel content inside P08's frame: header 'Asistente IA', suggested prompts per module from registry, chat log, input; streamed answers with record citations/links",
+        "Actions only as proposals requiring explicit confirmation and normal permissions (delegated user); no direct writes from the UI shortcut",
+        "If no model credentials: deterministic fixture model, every answer labelled 'Respuesta simulada (sin proveedor de IA configurado)'",
+        "Rendering as text/markdown via a sanitizing renderer; never innerHTML of user/model text",
+        "[DIM] Read/search tools for the masters and proposals (create/move/archive) requiring confirmation, same policies",
+        "[FEAT] Contributor to F-ACC-DIM: AI tools",
+        "[FEAT] Contributor to F-ACC-REPORTS: AI explanations",
+        "[FEAT] Contributor to F-INV-REQ: AI proposals (no auto-confirm)",
+        "[FEAT] Owner of F-X-AI-MCP (IA y MCP sobre todas las funciones nuevas): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-X-AI-MCP"
+      ],
+      "acceptance": [
+        "Injection tests: content in records cannot trigger actions",
+        "AI never reveals data the user cannot see (field/row policy)",
+        "Panel keyboard/aria tests",
+        "[DIM] AI cannot see nodes outside a subtree grant; proposals require confirmation",
+        "[FEAT] T-X-AI-MCP-01 (security, gate G3): Every new proposal tool creates only DRAFT/pending items; confirmation by the user is required; AI cannot approve or post",
+        "[FEAT] T-X-AI-MCP-02 (security, gate G3): AI tool results respect row/field policy (subtree grants, cost fields) — leak suite",
+        "[FEAT] T-X-AI-MCP-04 (integration, gate G3): Fixture adapter label visible; no canned answer presented as a real model"
+      ],
+      "dimensions": {
+        "role": "AI agent tools",
+        "deliverables": [
+          "Read/search tools for the masters and proposals (create/move/archive) requiring confirmation, same policies"
+        ],
+        "acceptance": [
+          "AI cannot see nodes outside a subtree grant; proposals require confirmation"
+        ]
+      },
+      "features": [
+        "F-ACC-DIM",
+        "F-ACC-REPORTS",
+        "F-INV-REQ",
+        "F-X-AI-MCP"
+      ]
+    },
+    "P20": {
+      "ui_role": "MCP: Administración › Conectores MCP submenu contribution",
+      "deliverables": [
+        "Submenu 'mcp' page listing MCP clients/tokens (scoped OAuth), no secrets shown after creation",
+        "[DIM] MCP read/search tools mirroring the API with OAuth scopes ledger.dimension.read",
+        "[FEAT] Contributor to F-ACC-DIM: MCP tools",
+        "[FEAT] Contributor to F-X-AI-MCP: MCP tools mirroring the APIs with OAuth scopes"
+      ],
+      "acceptance": [
+        "Visible only with mcp.admin",
+        "[DIM] Anonymous/insufficient scope denied",
+        "[FEAT] T-X-AI-MCP-03 (security, gate G3): MCP tools for new features deny anonymous and insufficient scopes"
+      ],
+      "dimensions": {
+        "role": "MCP tools",
+        "deliverables": [
+          "MCP read/search tools mirroring the API with OAuth scopes ledger.dimension.read"
+        ],
+        "acceptance": [
+          "Anonymous/insufficient scope denied"
+        ]
+      },
+      "features": [
+        "F-ACC-DIM",
+        "F-X-AI-MCP"
+      ]
+    },
+    "P21": {
+      "ui_role": "Module owner 'puesta-en-marcha' (Puesta en marcha)",
+      "deliverables": [
+        "Descriptor frontend/src/features/onboarding/module.ts conforming to the registry entry 'puesta-en-marcha' (label, icon, group, submenus, routes, permissions, quick action)",
+        "Dashboard at /m/puesta-en-marcha: 3 KPI cards + panels exactly as in ui/module-registry.json, using shell components (KpiCard, ChartPanel, FeedPanel, EmptyState) from P08",
+        "Backend KPI provider(s) for GET /api/v1/kpis/puesta-en-marcha (server-side aggregates, company+period+role scoped, row/field policy applied)",
+        "Honest empty state with the registry's action(s); loading skeleton; error state with retry; no static/sample numbers",
+        "Onboarding checklist also reachable from the Inicio empty state",
+        "[DIM] Optional step 'Dimensiones contables' (import or create; can be skipped); synthetic demo nodes in demo_tenant.yaml (2 levels, both companies)",
+        "[FEAT] Contributor to F-ACC-DIM: synthetic trees",
+        "[FEAT] Contributor to F-ACC-BRANCH: 2 synthetic branches per demo company",
+        "[FEAT] Contributor to F-PORTAL-CORE: seeded portal accounts",
+        "[FEAT] Owner of F-X-SEED (Datos sintéticos para todas las funciones y KPIs): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-X-SEED"
+      ],
+      "acceptance": [
+        "Registry conformance test (descriptor ↔ module-registry.json) green",
+        "KPI formula unit tests with seeded synthetic data incl. zero-denominator and previous-period cases",
+        "Policy tests: user without permission gets 403/absent module; masked field never appears in KPI, chart, search, notification, export or AI context",
+        "Company switch test: no value of the previous company rendered after switch (stale responses discarded)",
+        "Drill links resolve to real list routes with filters applied",
+        "[DIM] Seed creates valid trees in both companies with no cross-company parent",
+        "[FEAT] T-X-SEED-01 (integration, gate G3): Seed is idempotent and produces non-zero values for every KPI in ui/module-registry.json and portals",
+        "[FEAT] T-X-SEED-02 (security, gate G3): Seed contains no real-looking personal data patterns (scan) and writes no password to logs"
+      ],
+      "dimensions": {
+        "role": "Onboarding",
+        "deliverables": [
+          "Optional step 'Dimensiones contables' (import or create; can be skipped); synthetic demo nodes in demo_tenant.yaml (2 levels, both companies)"
+        ],
+        "acceptance": [
+          "Seed creates valid trees in both companies with no cross-company parent"
+        ]
+      },
+      "features": [
+        "F-ACC-BRANCH",
+        "F-ACC-DIM",
+        "F-PORTAL-CORE",
+        "F-X-SEED"
+      ]
+    },
+    "P22a": {
+      "ui_role": "QA harness for UI",
+      "deliverables": [
+        "tests/e2e/visual/: Playwright projects (reference 1892×856, 1440×900, 1280×800, 1024×768, 768×1024, 390×844 × light/dark), deterministic fixtures, axe a11y runner, layout-box helper",
+        "[DIM] Fixtures for dimension trees; leak-test entries for the two masters",
+        "[FEAT] Contributor to F-X-QA: harness + fixtures"
+      ],
+      "acceptance": [
+        "Harness runs in CI against the dev stack",
+        "[DIM] Harness runs"
+      ],
+      "dimensions": {
+        "role": "QA harness",
+        "deliverables": [
+          "Fixtures for dimension trees; leak-test entries for the two masters"
+        ],
+        "acceptance": [
+          "Harness runs"
+        ]
+      },
+      "features": [
+        "F-X-QA"
+      ]
+    },
+    "P22b": {
+      "ui_role": "Cross-module UI checks",
+      "deliverables": [
+        "Company/period switch race tests across modules",
+        "Registry coverage test: every required module has a route and non-placeholder dashboard",
+        "[DIM] Cross-module scenario S-DIM: sale, purchase, payroll, depreciation and bank fee with dimensions; TB by dimension = Σ leaves",
+        "[FEAT] Contributor to F-X-QA: cross-module scenarios S-REQ, S-PUR, S-TRE, S-INV"
+      ],
+      "acceptance": [
+        "No stale-company render; all required modules present for admin fixture",
+        "[DIM] S-DIM green"
+      ],
+      "dimensions": {
+        "role": "Cross-module",
+        "deliverables": [
+          "Cross-module scenario S-DIM: sale, purchase, payroll, depreciation and bank fee with dimensions; TB by dimension = Σ leaves"
+        ],
+        "acceptance": [
+          "S-DIM green"
+        ]
+      },
+      "features": [
+        "F-X-QA"
+      ]
+    },
+    "P22c": {
+      "ui_role": "Leak tests extended to UI surfaces",
+      "deliverables": [
+        "Leak suite covers KPIs, charts, search, notifications badge, export, AI panel for restricted roles",
+        "[DIM] Leak suite covers masters and line slots in API/export/report/AI/MCP/search",
+        "[FEAT] Contributor to F-X-QA: leak/IDOR suites for portals and new APIs; feature E2E"
+      ],
+      "acceptance": [
+        "Zero leaks",
+        "[DIM] Zero leaks",
+        "[FEAT] T-ACC-BRANCH-06 (e2e, gate G3): UI: Administración › Empresas › Sucursales list/create/edit/archive with dependency list; keyboard + labels",
+        "[FEAT] T-TRE-RC-08 (e2e, gate G3): UI: create, approve, post, print, reverse an RC; keyboard and screen-reader labels",
+        "[FEAT] T-TRE-CE-07 (e2e, gate G3): UI: CE create/approve/post/print/reverse; batch execution flow",
+        "[FEAT] T-INV-ISSUE-05 (e2e, gate G3): UI: create/approve/post/print/reverse an issue per concept",
+        "[FEAT] T-INV-PRES-05 (e2e, gate G3): UI: create presentation, receive by presentation, see stock per presentation",
+        "[FEAT] T-INV-LOC-05 (e2e, gate G3): UI: create bins, receive, move, see stock per bin",
+        "[FEAT] T-INV-BOM-04 (e2e, gate G3): UI: create recipe v1, activate, copy to v2 with new dates",
+        "[FEAT] T-INV-XFORM-09 (e2e, gate G3): UI: one transformation of each type end-to-end incl. simulate, approve, post, print, reverse",
+        "[FEAT] T-INV-REQ-07 (e2e, gate G3): UI flow across the four tabs",
+        "[FEAT] T-PUR-CYCLE-08 (e2e, gate G3): UI: comparison screen and award flow",
+        "[FEAT] T-PAY-FORMULA-05 (e2e, gate G3): UI: create concept with formula, simulate, run payroll, see explain on payslip",
+        "[FEAT] T-X-QA-03 (security, gate G3): Leak/IDOR suite over all portal endpoints and new internal endpoints"
+      ],
+      "dimensions": {
+        "role": "Leak tests",
+        "deliverables": [
+          "Leak suite covers masters and line slots in API/export/report/AI/MCP/search"
+        ],
+        "acceptance": [
+          "Zero leaks"
+        ]
+      },
+      "features": [
+        "F-ACC-BRANCH",
+        "F-INV-BOM",
+        "F-INV-ISSUE",
+        "F-INV-LOC",
+        "F-INV-PRES",
+        "F-INV-REQ",
+        "F-INV-XFORM",
+        "F-PAY-FORMULA",
+        "F-PUR-CYCLE",
+        "F-TRE-CE",
+        "F-TRE-RC",
+        "F-X-QA"
+      ]
+    },
+    "P22d": {
+      "ui_role": "Visual/a11y/responsive acceptance (feeds G4)",
+      "deliverables": [
+        "Visual matrix per UI-CONTRACT §9 in tests/e2e/visual/; report docs/gates/G4-evidence/ui-report.md listing every screenshot artifact path",
+        "axe: 0 serious/critical; contrast AA; keyboard walkthrough script",
+        "[DIM] Playwright: create group + leaf, move, archive, table/tree toggle, keyboard tree",
+        "[FEAT] Contributor to F-PORTAL-CORE: portal login e2e",
+        "[FEAT] Owner of F-X-QA (Escenarios transversales, seguridad, E2E, visual y accesibilidad): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-X-QA"
+      ],
+      "acceptance": [
+        "docs/gates/G4-evidence/ui-report.md present; M5 visual review recorded in docs/gates/G4.md (§ UI visual review)",
+        "[DIM] E2E green; a11y no serious issues",
+        "[FEAT] T-INV-BARCODE-06 (visual, gate G4): Label preview and print stylesheet screenshots match the approved baseline",
+        "[FEAT] T-PORTAL-CORE-05 (e2e, gate G4): Browser login for the 3 portal kinds and the internal app with seeded accounts (credentials read from the secrets file at runtime, never printed)",
+        "[FEAT] T-PORTAL-SUP-06 (e2e, gate G4): Supplier portal: login, dashboard KPIs, quote submission, PO acknowledgement, payment status; visual + a11y",
+        "[FEAT] T-PORTAL-CUS-06 (e2e, gate G4): Customer portal: login, KPIs, invoice download, statement, payment intent; visual + a11y",
+        "[FEAT] T-PORTAL-EMP-04 (e2e, gate G4): Employee portal: login, KPIs, payslip download, vacation request; visual + a11y",
+        "[FEAT] T-X-QA-04 (visual, gate G4): Visual baselines for all new screens and portals approved once; no auto-regeneration",
+        "[FEAT] T-X-QA-05 (a11y, gate G4): axe scan of all new screens and portals: zero serious/critical (documented exceptions only)"
+      ],
+      "dimensions": {
+        "role": "E2E",
+        "deliverables": [
+          "Playwright: create group + leaf, move, archive, table/tree toggle, keyboard tree"
+        ],
+        "acceptance": [
+          "E2E green; a11y no serious issues"
+        ]
+      },
+      "features": [
+        "F-INV-BARCODE",
+        "F-PORTAL-CORE",
+        "F-PORTAL-CUS",
+        "F-PORTAL-EMP",
+        "F-PORTAL-SUP",
+        "F-X-QA"
+      ]
+    },
+    "P23": {
+      "ui_role": "Compliance packet: UI statements",
+      "deliverables": [
+        "States the UI is a development build with synthetic data; lists simulated integrations shown in UI",
+        "[DIM] States the dimensions are internal analytical masters with no regulatory meaning claimed",
+        "[FEAT] Contributor to F-ACC-EXO: states that real DIAN packs are an external legal input",
+        "[FEAT] Contributor to F-PT-OPEN: external gate EG-1",
+        "[FEAT] Owner of F-X-COMPLIANCE (Etiquetas de no certificación y entradas legales externas): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-X-COMPLIANCE"
+      ],
+      "acceptance": [
+        "No legal-compliance claim derived from UI",
+        "[DIM] No regulatory claim",
+        "[FEAT] T-ACC-EXO-06 (doc, gate G4): Compliance packet lists official packs as an external input; no claim of DIAN validity",
+        "[FEAT] T-X-COMPLIANCE-01 (doc, gate G4): Packet lists every external input with its label; no statement of legal validity"
+      ],
+      "dimensions": {
+        "role": "Compliance packet",
+        "deliverables": [
+          "States the dimensions are internal analytical masters with no regulatory meaning claimed"
+        ],
+        "acceptance": [
+          "No regulatory claim"
+        ]
+      },
+      "features": [
+        "F-ACC-EXO",
+        "F-PT-OPEN",
+        "F-X-COMPLIANCE"
+      ]
+    },
+    "G0": {
+      "ui_role": "Gate (M5)",
+      "deliverables": [
+        "UI contracts frozen: tokens.json + module-registry.json + P02 OpenAPI for ui/kpis/search/notifications; CCR-UI-001 recorded",
+        "[DIM] Contracts include masters + slots + error codes (P02); CCR-DIM-001 recorded",
+        "[FEAT] CCR-FEAT-001 recorded; P02 contracts include every API/event/error code of FEATURES-ADDENDUM and the kernel.interfaces stubs listed there"
+      ],
+      "acceptance": [
+        "See UI-CONTRACT §10",
+        "[FEAT] T-X-QA-07 (doc, gate G0): CCR-FEAT-001 recorded in the G0 attempt; every kernel.interfaces stub named in FEATURES-ADDENDUM exists as a typed Protocol with a test double",
+        "[FEAT] erpctl accepts G0 only with feature_results for all required checks (2.2.0-dev runs)"
+      ],
+      "dimensions": {
+        "role": "Gate (M5)",
+        "deliverables": [
+          "Contracts include masters + slots + error codes (P02); CCR-DIM-001 recorded"
+        ],
+        "acceptance": [
+          "DIMENSIONS-ADDENDUM §9"
+        ]
+      },
+      "features": [
+        "F-X-QA"
+      ]
+    },
+    "G1": {
+      "ui_role": "Gate (M5)",
+      "deliverables": [
+        "Shared shell browser states complete with real context/modules API; tokens applied; layout boxes measured",
+        "[DIM] P05 masters, slots and posting validations accepted; P08 TreeTable accepted; P04 permissions accepted",
+        "[FEAT] featctl gate-check G1: every feature check with gate ≤ G1 PASSED; results digest recorded in the gate accept event"
+      ],
+      "acceptance": [
+        "See UI-CONTRACT §10",
+        "[FEAT] erpctl accepts G1 only with feature_results for all required checks (2.2.0-dev runs)"
+      ],
+      "dimensions": {
+        "role": "Gate (M5)",
+        "deliverables": [
+          "P05 masters, slots and posting validations accepted; P08 TreeTable accepted; P04 permissions accepted"
+        ],
+        "acceptance": [
+          "DIMENSIONS-ADDENDUM §9"
+        ]
+      }
+    },
+    "G2": {
+      "ui_role": "Gate (M5)",
+      "deliverables": [
+        "Every core module dashboard real (no placeholder), scoped and permission-correct; Inicio tiles populated from providers",
+        "[DIM] P10/P11/P13/P14/P16 propagate slots; S-DIM green",
+        "[FEAT] featctl gate-check G2: every feature check with gate ≤ G2 PASSED; results digest recorded in the gate accept event"
+      ],
+      "acceptance": [
+        "See UI-CONTRACT §10",
+        "[FEAT] T-INV-REQ-06 (cross, gate G2): End-to-end S-REQ scenario: request → partial transfer + PO → receipt → requisition FULFILLED",
+        "[FEAT] T-PUR-CYCLE-07 (cross, gate G2): S-PUR scenario requisition → RFQ → award → PO → 2 receipts → invoice → CE payment",
+        "[FEAT] T-X-QA-01 (cross, gate G2): S-TRE: invoice → RC partial + withholding → bank reconciliation by voucher id; vendor invoice → CE",
+        "[FEAT] T-X-QA-02 (cross, gate G2): S-INV: receipt by presentation into bin → transformation (portioning) → issue to cost center → kardex and GL agree",
+        "[FEAT] erpctl accepts G2 only with feature_results for all required checks (2.2.0-dev runs)"
+      ],
+      "dimensions": {
+        "role": "Gate (M5)",
+        "deliverables": [
+          "P10/P11/P13/P14/P16 propagate slots; S-DIM green"
+        ],
+        "acceptance": [
+          "DIMENSIONS-ADDENDUM §9"
+        ]
+      },
+      "features": [
+        "F-INV-REQ",
+        "F-PUR-CYCLE",
+        "F-X-QA"
+      ]
+    },
+    "G3": {
+      "ui_role": "Gate (M5)",
+      "deliverables": [
+        "AI panel integrated with P19 (proposals/approvals, labelled mock if no model), MCP and onboarding entries",
+        "[DIM] P17 dimension reports, P18 round-trip, P19/P20 scoped tools, P21 seed; leak suite covers dimensions",
+        "[FEAT] featctl gate-check G3: every feature check with gate ≤ G3 PASSED; results digest recorded in the gate accept event"
+      ],
+      "acceptance": [
+        "See UI-CONTRACT §10",
+        "[FEAT] erpctl accepts G3 only with feature_results for all required checks (2.2.0-dev runs)"
+      ],
+      "dimensions": {
+        "role": "Gate (M5)",
+        "deliverables": [
+          "P17 dimension reports, P18 round-trip, P19/P20 scoped tools, P21 seed; leak suite covers dimensions"
+        ],
+        "acceptance": [
+          "DIMENSIONS-ADDENDUM §9"
+        ]
+      }
+    },
+    "G4": {
+      "ui_role": "Gate (M5)",
+      "deliverables": [
+        "Visual, keyboard, responsive, dark-mode and read-only-role checks green; M5 visual review artifact recorded",
+        "[DIM] E2E + a11y for dimension screens; traceability covers T-DIM tests",
+        "[FEAT] featctl gate-check G4: every feature check with gate ≤ G4 PASSED; results digest recorded in the gate accept event"
+      ],
+      "acceptance": [
+        "See UI-CONTRACT §10",
+        "[FEAT] T-X-COMPLIANCE-02 (e2e, gate G4): Every label is visible on the corresponding screens/documents in the running dev build",
+        "[FEAT] erpctl accepts G4 only with feature_results for all required checks (2.2.0-dev runs)"
+      ],
+      "dimensions": {
+        "role": "Gate (M5)",
+        "deliverables": [
+          "E2E + a11y for dimension screens; traceability covers T-DIM tests"
+        ],
+        "acceptance": [
+          "DIMENSIONS-ADDENDUM §9"
+        ]
+      },
+      "features": [
+        "F-X-COMPLIANCE"
+      ]
+    },
+    "RC": {
+      "ui_role": "Release candidate",
+      "deliverables": [
+        "RC images include built frontend with local fonts and no CDN references"
+      ],
+      "acceptance": [
+        "Image scan: no external font/script URLs in bundle",
+        "[FEAT] All checks with gate ≤ G4 PASSED on the RC candidate"
+      ]
+    },
+    "DEV": {
+      "ui_role": "Dev runtime on M5",
+      "deliverables": [
+        "Final report includes UI checklist, screenshot artifact paths, tested commit and health",
+        "[FEAT] Owner of F-X-RUNTIME (Evidencia de ejecución en DEV de todas las funciones): data model, states, API, errors, posting, security, UI, AI/MCP hooks, import/export and reports exactly as in FEATURES-ADDENDUM F-X-RUNTIME"
+      ],
+      "acceptance": [
+        "UI smoke: login → Inicio renders with DEV banner at http://localhost:8080",
+        "[FEAT] T-X-RUNTIME-01 (runtime, gate DEV): Browser login (Playwright, mandatory) internal + 3 portals against the running stack at the selected local URL",
+        "[FEAT] T-X-RUNTIME-02 (runtime, gate DEV): Print smoke: RC, CE, label and portal invoice PDFs generated by the running stack and hashed",
+        "[FEAT] T-X-RUNTIME-03 (runtime, gate DEV): Visual + a11y suite against the running stack; artifacts on M5",
+        "[FEAT] DEV evidence v2: every check in features/feature-registry.json PASSED incl. Playwright internal + 3 portal logins, print smoke, visual and a11y"
+      ],
+      "features": [
+        "F-X-RUNTIME"
+      ]
+    }
+  }
+}

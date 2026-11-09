@@ -1,0 +1,446 @@
+{
+  "schema": "erp-ui/dimensions/v1",
+  "version": "2.2.0-dev",
+  "ccr": "CCR-DIM-001",
+  "amended_by": "CCR-FEAT-001",
+  "addendum": "docs/five-machine/DIMENSIONS-ADDENDUM.md",
+  "scope": {
+    "added": [
+      "cost_center",
+      "business_unit",
+      "aux_abierto",
+      "item_contable"
+    ],
+    "not_changed": [
+      "branch (P04 Branch; specified by FEATURES-ADDENDUM F-ACC-BRANCH)"
+    ],
+    "note": "2.2.0-dev (CCR-FEAT-001, user-approved): cost centers and business units now use the same master invariants as the two 2.1.1 dimensions."
+  },
+  "owner_task": "P05",
+  "shared_ui_task": "P08",
+  "iam_task": "P04",
+  "reports_task": "P17",
+  "submenu": {
+    "module": "contabilidad",
+    "id": "dimensiones",
+    "label": "Dimensiones contables",
+    "route": "/m/contabilidad/dimensiones",
+    "permission": "ledger.dimension.read",
+    "owner_task": "P05"
+  },
+  "common_fields": [
+    {
+      "name": "company_id",
+      "type": "fk:iam.Company",
+      "required": true,
+      "note": "business entity (empresa), not tenant; immutable after create"
+    },
+    {
+      "name": "code",
+      "type": "string(1..40)",
+      "required": true,
+      "unique": "per (company_id, dimension) case-insensitive, trimmed",
+      "note": "user code; never derived from PII"
+    },
+    {
+      "name": "description",
+      "type": "string(1..200)",
+      "required": true
+    },
+    {
+      "name": "node_type",
+      "type": "enum",
+      "values": [
+        "AGRUPADOR",
+        "DETALLE"
+      ],
+      "labels_es": {
+        "AGRUPADOR": "Agrupador",
+        "DETALLE": "Detalle"
+      },
+      "required": true,
+      "note": "AGRUPADOR = non-posting group node; DETALLE = posting leaf"
+    },
+    {
+      "name": "parent_id",
+      "type": "fk:self",
+      "required": false,
+      "note": "must be an AGRUPADOR of the same company and dimension; null = root"
+    },
+    {
+      "name": "valid_from",
+      "type": "date",
+      "required": true
+    },
+    {
+      "name": "valid_to",
+      "type": "date|null",
+      "required": false
+    },
+    {
+      "name": "status",
+      "type": "enum",
+      "values": [
+        "ACTIVE",
+        "ARCHIVED"
+      ],
+      "required": true
+    },
+    {
+      "name": "sort_key",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "external_ref",
+      "type": "string",
+      "required": false,
+      "note": "import key for round-trip; optional"
+    },
+    {
+      "name": "version",
+      "type": "int",
+      "required": true,
+      "note": "optimistic locking"
+    }
+  ],
+  "rules": [
+    {
+      "id": "DIM-R01",
+      "rule": "Only DETALLE nodes may be referenced by journal lines or document lines; AGRUPADOR references are rejected (422 dimension_node_not_postable)."
+    },
+    {
+      "id": "DIM-R02",
+      "rule": "Single parent per node (strict tree, not a DAG); no cycles; parent must be AGRUPADOR, same company, same dimension; a DETALLE cannot have children."
+    },
+    {
+      "id": "DIM-R03",
+      "rule": "Maximum depth configurable per company and dimension (default 6, bounds 1..10); deeper inserts or re-parents are rejected."
+    },
+    {
+      "id": "DIM-R04",
+      "rule": "Company scope enforced by composite foreign keys (company_id, id): a line in company A can never reference a node of company B; the same code may exist in different companies."
+    },
+    {
+      "id": "DIM-R05",
+      "rule": "A node referenced by any posted line cannot be deleted, cannot change node_type, and cannot change company; it can be archived (blocks new references after valid_to/archive) and its description edited (audited)."
+    },
+    {
+      "id": "DIM-R06",
+      "rule": "Re-parenting is allowed only to a valid AGRUPADOR and is audited; posted lines keep the leaf id (never rewritten). Reports group by the hierarchy as of a chosen date using an effective-dated closure table (node, ancestor, depth, valid_from, valid_to); default = current hierarchy, option = hierarchy as of period end. Historical numbers never change, only their grouping."
+    },
+    {
+      "id": "DIM-R07",
+      "rule": "Aggregation over a group = sum over its descendant leaves via the closure table; each leaf counted once (no double counting when a group and its child are both selected: the filter resolves to the leaf set)."
+    },
+    {
+      "id": "DIM-R08",
+      "rule": "Per company, the rule matrix decides allowed/required/forbidden per dimension × (account or account range, document type, concept, journal); PostingService validates it in the same transaction (shared check with `requires_dimensions[]`); preview/simulate returns the same errors."
+    },
+    {
+      "id": "DIM-R09",
+      "rule": "Dimension values never change amounts; postings, balances and invariants are identical with or without dimension values; ledger_balance dims_hash includes the two new slots."
+    },
+    {
+      "id": "DIM-R10",
+      "rule": "Row and field policy (P04) apply to the masters and to the slots on lines in API, UI, search, export, reports, AI and MCP; no new bypass."
+    },
+    {
+      "id": "DIM-R11",
+      "rule": "Import/export round-trip is non-lossy: parents may appear after children in the file (two-pass resolution by code), cycles and cross-company parents are rejected atomically, re-import of an export is a no-op."
+    },
+    {
+      "id": "DIM-R12",
+      "rule": "Distinctness: 'Item' here is an accounting analytical dimension (item_dimension_id), not the inventory product (inventory.Item) and not the PUC account; 'Auxiliar Abierto' is a user-defined analytical code (aux_abierto_id), not the general-ledger auxiliary report and not AR/AP open items."
+    }
+  ],
+  "dimensions": [
+    {
+      "key": "cost_center",
+      "label_es": "Centro de costo",
+      "label_plural_es": "Centros de costo",
+      "line_slot": "cost_center_id",
+      "route": "/m/contabilidad/dimensiones/centros-costo",
+      "permission_read": "ledger.dimension.read",
+      "permission_write": "ledger.dimension.write",
+      "api": "/api/v1/ledger/dimensions/cost-centers",
+      "semantic_dimension": "cost_center",
+      "meaning_note": "Cost center (centro de costo). Promoted in 2.2.0-dev to the same master invariants; replaces the P04 `CostCenter` entity (P04 keeps role scopes referencing it)."
+    },
+    {
+      "key": "business_unit",
+      "label_es": "Unidad de negocio",
+      "label_plural_es": "Unidades de negocio",
+      "line_slot": "business_unit_id",
+      "route": "/m/contabilidad/dimensiones/unidades-negocio",
+      "permission_read": "ledger.dimension.read",
+      "permission_write": "ledger.dimension.write",
+      "api": "/api/v1/ledger/dimensions/business-units",
+      "semantic_dimension": "business_unit",
+      "meaning_note": "Business unit (unidad de negocio); new mandatory master in 2.2.0-dev; a branch may declare a default business unit (D-030)."
+    },
+    {
+      "key": "aux_abierto",
+      "label_es": "Auxiliar abierto",
+      "label_plural_es": "Auxiliares abiertos",
+      "line_slot": "aux_abierto_id",
+      "route": "/m/contabilidad/dimensiones/auxiliares-abiertos",
+      "permission_read": "ledger.dimension.read",
+      "permission_write": "ledger.dimension.write",
+      "api": "/api/v1/ledger/dimensions/aux-abierto",
+      "semantic_dimension": "aux_abierto",
+      "meaning_note": "User-defined open analytical code (e.g. project, contract, campaign, fund) attached to accounting lines. Interpretation accepted by the user (2.2.0-dev); the model is generic."
+    },
+    {
+      "key": "item_contable",
+      "label_es": "Ítem contable",
+      "label_plural_es": "Ítems contables",
+      "line_slot": "item_dimension_id",
+      "route": "/m/contabilidad/dimensiones/items-contables",
+      "permission_read": "ledger.dimension.read",
+      "permission_write": "ledger.dimension.write",
+      "api": "/api/v1/ledger/dimensions/item-contable",
+      "semantic_dimension": "item_contable",
+      "meaning_note": "User-defined accounting analysis item (e.g. budget or expense line), distinct from inventory products and PUC accounts. Interpretation accepted by the user (2.2.0-dev)."
+    }
+  ],
+  "api_actions": [
+    "GET list (filters: q, node_type, status, parent_id, valid_on; sort: code|description|path; cursor pagination)",
+    "GET tree (?root=&depth=&valid_on=)",
+    "GET {id}",
+    "POST",
+    "PATCH {id} (If-Match version)",
+    "POST {id}:archive",
+    "POST {id}:move (new parent)",
+    "POST :import (P18 template)",
+    "GET :export",
+    "GET {id}/usage (count of posted references, policy-scoped)"
+  ],
+  "tasks": {
+    "P01": {
+      "machine": "M1",
+      "role": "Kernel: dimension slot registry hook and effective-date helper",
+      "deliver": [
+        "`kernel.dimensions` registry entry for the two slots (name, FK target, company-scoped) used by P05/P17/P18",
+        "Date-range helper for valid_from/valid_to used by closure queries"
+      ],
+      "accept": [
+        "Unit tests for slot registry and date helper"
+      ]
+    },
+    "P02": {
+      "machine": "M2",
+      "role": "Contracts at G0",
+      "deliver": [
+        "OpenAPI for both masters (API_ACTIONS) under ledger module contract; JournalLine/PostingRequest schemas gain `aux_abierto_id`, `item_dimension_id` (nullable uuid)",
+        "Error codes: dimension_node_not_postable, dimension_required, dimension_forbidden, dimension_cross_company, dimension_cycle, dimension_depth_exceeded, dimension_in_use",
+        "Import template schema for dimension masters"
+      ],
+      "accept": [
+        "Contract tests validate schemas",
+        "G0 contracts include the two slots"
+      ]
+    },
+    "P04": {
+      "machine": "M2",
+      "role": "IAM: permissions, field policy and role scopes for the dimension masters (cost-center master moved to P05)",
+      "deliver": [
+        "Permissions ledger.dimension.read / ledger.dimension.write / ledger.dimension.admin (rule matrix, depth)",
+        "Row policy hooks: company scope; optional restriction of visible nodes per role (subtree grant)",
+        "Role scopes by cost center reference P05 DimensionNode ids through kernel.interfaces.Dimensions (test double until G1)"
+      ],
+      "accept": [
+        "Matrix test per role fixture; subtree grant limits list/tree/search/export/AI/MCP results",
+        "Revocation effective next request",
+        "No CostCenter table in backend/iam (superseded by FEATURES-ADDENDUM F-ACC-DIM)"
+      ]
+    },
+    "P05": {
+      "machine": "M1",
+      "role": "Owner of the four masters (ledger)",
+      "deliver": [
+        "Model DimensionNode for cost_center, business_unit, aux_abierto, item_contable (COMMON_FIELDS) + effective-dated closure tables; DimensionRule matrix; data migration path from any existing P04 CostCenter rows (none in a fresh run)",
+        "JournalLine slots cost_center_id, business_unit_id, aux_abierto_id, item_dimension_id with composite FK (company_id, id); ledger_balance dims_hash includes them",
+        "PostingService validates DIM-R01/R04/R08 in the same UoW; simulate returns identical errors",
+        "API per API_ACTIONS for the 4 dimensions; UI pages at the four routes using P08 TreeTable (table + tree toggle, search, sort, inline edit, archive, move)",
+        "Descriptor contribution: Contabilidad › 'Dimensiones contables' submenu with tabs 'Centros de costo', 'Unidades de negocio', 'Auxiliares abiertos', 'Ítems contables'"
+      ],
+      "accept": [
+        "T-DIM-01..T-DIM-14 in DIMENSIONS-ADDENDUM §8 and T-ACC-DIM-01..12 in FEATURES-ADDENDUM green for all four dimensions",
+        "Invariant 1/2 unchanged with random dimension assignment (property test)",
+        "UI keyboard/a11y for tree (role=tree, aria-expanded, aria-level)"
+      ]
+    },
+    "P08": {
+      "machine": "M4",
+      "role": "Shared TreeTable component",
+      "deliver": [
+        "`design-system` TreeTable: table view and tree view of the same dataset, lazy children, keyboard tree navigation (WAI-ARIA tree), search with ancestor path highlight, sort, inline edit hooks, node-type badge Agrupador/Detalle, archived styling, virtualized rows"
+      ],
+      "accept": [
+        "Component tests incl. 10,000 nodes render/virtualization and keyboard navigation",
+        "Used by P05 pages (no module-local tree implementation)"
+      ]
+    },
+    "P10": {
+      "machine": "M1",
+      "role": "Sales document lines carry the slots",
+      "deliver": [
+        "Invoice/credit note/receipt lines accept aux_abierto_id/item_dimension_id (defaults from customer/item rules optional) and pass them to PostingService"
+      ],
+      "accept": [
+        "S1 variant: dimensions land on the expected journal lines; DIM-R08 required rule blocks posting atomically"
+      ]
+    },
+    "P11": {
+      "machine": "M2",
+      "role": "Purchasing/AP lines carry the slots",
+      "deliver": [
+        "Requisition/PO/vendor invoice/support document/payment lines accept the slots and propagate PO → invoice → journal"
+      ],
+      "accept": [
+        "S2 variant with dimensions; propagation test PO→receipt→invoice"
+      ]
+    },
+    "P13": {
+      "machine": "M4",
+      "role": "Payroll posting by dimension",
+      "deliver": [
+        "Payroll concept/contract may map to aux_abierto/item_contable; summarized posting groups by the slots"
+      ],
+      "accept": [
+        "S6 variant: payroll entry split by dimension; totals unchanged"
+      ]
+    },
+    "P14": {
+      "machine": "M2",
+      "role": "Fixed assets",
+      "deliver": [
+        "Asset may carry default slots; depreciation runs post with them"
+      ],
+      "accept": [
+        "Depreciation entry carries slots; GL = register unchanged"
+      ]
+    },
+    "P16": {
+      "machine": "M3",
+      "role": "Treasury",
+      "deliver": [
+        "Bank movements/fees/transfers entries accept the slots; reconciliation create-entry passes them"
+      ],
+      "accept": [
+        "Fee entry from statement carries a required dimension"
+      ]
+    },
+    "P17": {
+      "machine": "M2",
+      "role": "Reporting",
+      "deliver": [
+        "Semantic dimensions aux_abierto, item_contable with hierarchy (group/leaf, as-of date per DIM-R06)",
+        "Standard reports: balance/auxiliary by account × each new dimension; trial balance filter by dimension subtree"
+      ],
+      "accept": [
+        "No double counting with group+child selection (DIM-R07)",
+        "As-of hierarchy vs current hierarchy produce same totals, different grouping"
+      ]
+    },
+    "P18": {
+      "machine": "M3",
+      "role": "Import/export",
+      "deliver": [
+        "Templates for both masters (code, description, node_type, parent_code, valid_from, valid_to, status) and for rule matrix",
+        "Two-pass parent resolution, atomic reject on cycles/cross-company/invalid parent type"
+      ],
+      "accept": [
+        "Round-trip export→import no-op; children-before-parents file accepted; cycle file rejected with no rows applied"
+      ]
+    },
+    "P19": {
+      "machine": "M2",
+      "role": "AI agent tools",
+      "deliver": [
+        "Read/search tools for the masters and proposals (create/move/archive) requiring confirmation, same policies"
+      ],
+      "accept": [
+        "AI cannot see nodes outside a subtree grant; proposals require confirmation"
+      ]
+    },
+    "P20": {
+      "machine": "M1",
+      "role": "MCP tools",
+      "deliver": [
+        "MCP read/search tools mirroring the API with OAuth scopes ledger.dimension.read"
+      ],
+      "accept": [
+        "Anonymous/insufficient scope denied"
+      ]
+    },
+    "P21": {
+      "machine": "M4",
+      "role": "Onboarding",
+      "deliver": [
+        "Optional step 'Dimensiones contables' (import or create; can be skipped); synthetic demo nodes in demo_tenant.yaml (2 levels, both companies)"
+      ],
+      "accept": [
+        "Seed creates valid trees in both companies with no cross-company parent"
+      ]
+    },
+    "P22a": {
+      "machine": "M5",
+      "role": "QA harness",
+      "deliver": [
+        "Fixtures for dimension trees; leak-test entries for the two masters"
+      ],
+      "accept": [
+        "Harness runs"
+      ]
+    },
+    "P22b": {
+      "machine": "M5",
+      "role": "Cross-module",
+      "deliver": [
+        "Cross-module scenario S-DIM: sale, purchase, payroll, depreciation and bank fee with dimensions; TB by dimension = Σ leaves"
+      ],
+      "accept": [
+        "S-DIM green"
+      ]
+    },
+    "P22c": {
+      "machine": "M5",
+      "role": "Leak tests",
+      "deliver": [
+        "Leak suite covers masters and line slots in API/export/report/AI/MCP/search"
+      ],
+      "accept": [
+        "Zero leaks"
+      ]
+    },
+    "P22d": {
+      "machine": "M5",
+      "role": "E2E",
+      "deliver": [
+        "Playwright: create group + leaf, move, archive, table/tree toggle, keyboard tree"
+      ],
+      "accept": [
+        "E2E green; a11y no serious issues"
+      ]
+    },
+    "P23": {
+      "machine": "M4",
+      "role": "Compliance packet",
+      "deliver": [
+        "States the dimensions are internal analytical masters with no regulatory meaning claimed"
+      ],
+      "accept": [
+        "No regulatory claim"
+      ]
+    }
+  },
+  "gates": {
+    "G0": "Contracts include masters + slots + error codes (P02); CCR-DIM-001 recorded",
+    "G1": "P05 masters, slots and posting validations accepted; P08 TreeTable accepted; P04 permissions accepted",
+    "G2": "P10/P11/P13/P14/P16 propagate slots; S-DIM green",
+    "G3": "P17 dimension reports, P18 round-trip, P19/P20 scoped tools, P21 seed; leak suite covers dimensions",
+    "G4": "E2E + a11y for dimension screens; traceability covers T-DIM tests"
+  }
+}

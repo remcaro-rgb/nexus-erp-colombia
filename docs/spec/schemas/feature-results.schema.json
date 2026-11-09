@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "erp-five-machine-dev/features/results/v1",
+  "title": "Feature test results (consolidated by M5 from JUnit/Playwright reports; never hand-set to PASSED)",
+  "type": "object",
+  "required": [
+    "schema",
+    "registry_sha256",
+    "commit",
+    "tests"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "const": "erp-features/results/v1"
+    },
+    "registry_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "tests": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^T-[A-Z0-9-]+-\\d\\d$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "status",
+          "evidence"
+        ],
+        "properties": {
+          "status": {
+            "enum": [
+              "PASSED",
+              "FAILED",
+              "SKIPPED"
+            ]
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 3,
+            "description": "report path#test-case (JUnit XML, Playwright JSON, screenshot)"
+          }
+        }
+      }
+    }
+  }
+}

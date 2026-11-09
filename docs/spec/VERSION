@@ -1,0 +1,8 @@
+erp-five-machine-dev 2.2.0-dev
+ui-overlay erp-ui 2.2.0-dev (UI-CONTRACT.md, ui/tokens.json, ui/module-registry.json incl. tabs + portals, ui/task-matrix.json incl. [FEAT] rows, ui-reference/)
+features erp-features 2.2.0-dev (FEATURES-ADDENDUM.md, features/feature-registry.json, DECISIONS-DEFAULTS.md, tools/featctl.py; CCR-FEAT-001)
+autonomous-execution 2.2.0-dev (AUTONOMOUS-EXECUTION.md; erpctl new-run-id / discover-run / wait-decision / port-select)
+prompt-pack 1.1.0 (unchanged; superseded only where FEATURES-ADDENDUM says so)
+plan erp-five-machine-dev/plan/v2 (plan_version 2.0.0-dev, byte-identical to 2.0.0-dev)
+run-state erp-five-machine-dev/run-state/v2 (accepts distro_version 2.0.0-dev, 2.1.0-dev, 2.1.1-dev or 2.2.0-dev; feature rules apply only to 2.2.0-dev runs)
+dimensions-addendum erp-dim 2.2.0-dev (DIMENSIONS-ADDENDUM.md, ui/dimensions.json; CCR-DIM-001 amended by CCR-FEAT-001: four masters)

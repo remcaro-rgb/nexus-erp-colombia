@@ -1,0 +1,46 @@
+step,wave,role,task,prompt_file,retry_file,done_when,requires
+1,W01,worker,P01,prompts/W01-S1-P01-foundation-kernel.md,prompts/RETRY-P01.md,RESULT line; branch has docs/run/reports/P01.json,
+1,W01,worker,P02,prompts/W01-S2-P02-contract-freeze.md,prompts/RETRY-P02.md,RESULT line; branch has docs/run/reports/P02.json,
+1,W01,worker,P03,prompts/W01-S3-P03-devops-ci.md,prompts/RETRY-P03.md,RESULT line; branch has docs/run/reports/P03.json,
+2,W01,integrator,INT+G0,prompts/INTEGRATOR-after-W01.md,,INTEGRATED line; main advanced; STATUS.md updated,
+3,W02,worker,P04,prompts/W02-S1-P04-iam-rls-field-security.md,prompts/RETRY-P04.md,RESULT line; branch has docs/run/reports/P04.json,G0
+3,W02,worker,P05,prompts/W02-S2-P05-ledger-posting-engine.md,prompts/RETRY-P05.md,RESULT line; branch has docs/run/reports/P05.json,G0
+3,W02,worker,P07,prompts/W02-S3-P07-workflow-audit-scheduler.md,prompts/RETRY-P07.md,RESULT line; branch has docs/run/reports/P07.json,G0
+3,W02,worker,P08,prompts/W02-S4-P08-ux-shell-design-system.md,prompts/RETRY-P08.md,RESULT line; branch has docs/run/reports/P08.json,G0
+3,W02,worker,P06,prompts/W02-S5-P06-tax-localization-co.md,prompts/RETRY-P06.md,RESULT line; branch has docs/run/reports/P06.json,G0
+3,W02,worker,P22a,prompts/W02-S6-P22a-qa-harness.md,prompts/RETRY-P22a.md,RESULT line; branch has docs/run/reports/P22a.json,G0
+4,W02,integrator,INT+G1,prompts/INTEGRATOR-after-W02.md,,INTEGRATED line; main advanced; STATUS.md updated,
+5,W03,worker,P15,prompts/W03-S1-P15-dian-einvoice-gateway.md,prompts/RETRY-P15.md,RESULT line; branch has docs/run/reports/P15.json,G1
+5,W03,worker,P09a,prompts/W03-S2-P09a-inventory-core.md,prompts/RETRY-P09a.md,RESULT line; branch has docs/run/reports/P09a.json,G1
+5,W03,worker,P13b,prompts/W03-S3-P13b-payroll-formulas.md,prompts/RETRY-P13b.md,RESULT line; branch has docs/run/reports/P13b.json,G1
+5,W03,worker,P11a,prompts/W03-S4-P11a-purchasing-ap-core.md,prompts/RETRY-P11a.md,RESULT line; branch has docs/run/reports/P11a.json,G1
+5,W03,worker,P13a,prompts/W03-S5-P13a-hr-timekeeping-employee-portal.md,prompts/RETRY-P13a.md,RESULT line; branch has docs/run/reports/P13a.json,G1
+5,W03,worker,P14,prompts/W03-S6-P14-fixed-assets.md,prompts/RETRY-P14.md,RESULT line; branch has docs/run/reports/P14.json,G1
+5,W03,worker,P22b,prompts/W03-S7-P22b-qa-cross-module.md,prompts/RETRY-P22b.md,RESULT line; branch has docs/run/reports/P22b.json,G1
+6,W03,integrator,INT,prompts/INTEGRATOR-after-W03.md,,INTEGRATED line; main advanced; STATUS.md updated,
+7,W04,worker,P10a,prompts/W04-S1-P10a-sales-ar-crm-core.md,prompts/RETRY-P10a.md,RESULT line; branch has docs/run/reports/P10a.json,G1;P09a
+7,W04,worker,P11b,prompts/W04-S2-P11b-requisitions-supplier-portal.md,prompts/RETRY-P11b.md,RESULT line; branch has docs/run/reports/P11b.json,G1;P09a;P11a
+7,W04,worker,P09c,prompts/W04-S3-P09c-inventory-bom-transformations.md,prompts/RETRY-P09c.md,RESULT line; branch has docs/run/reports/P09c.json,G1;P09a
+7,W04,worker,P09b,prompts/W04-S4-P09b-inventory-barcodes-issues.md,prompts/RETRY-P09b.md,RESULT line; branch has docs/run/reports/P09b.json,G1;P09a
+8,W04,integrator,INT,prompts/INTEGRATOR-after-W04.md,,INTEGRATED line; main advanced; STATUS.md updated,
+9,W05,worker,P16a,prompts/W05-S1-P16a-treasury-vouchers.md,prompts/RETRY-P16a.md,RESULT line; branch has docs/run/reports/P16a.json,G1;P11a;P10a
+9,W05,worker,P12,prompts/W05-S2-P12-pos.md,prompts/RETRY-P12.md,RESULT line; branch has docs/run/reports/P12.json,G1;P09a;P09b;P10a
+9,W05,worker,P10b,prompts/W05-S3-P10b-customer-portal.md,prompts/RETRY-P10b.md,RESULT line; branch has docs/run/reports/P10b.json,G1;P09a;P10a
+9,W05,worker,P16b,prompts/W05-S4-P16b-intercompany-consolidation.md,prompts/RETRY-P16b.md,RESULT line; branch has docs/run/reports/P16b.json,G1;P11a;P10a
+10,W05,integrator,INT+G2,prompts/INTEGRATOR-after-W05.md,,INTEGRATED line; main advanced; STATUS.md updated,
+11,W06,worker,P18,prompts/W06-S1-P18-bulk-import-export.md,prompts/RETRY-P18.md,RESULT line; branch has docs/run/reports/P18.json,G2
+11,W06,worker,P22c,prompts/W06-S2-P22c-qa-leak-tests.md,prompts/RETRY-P22c.md,RESULT line; branch has docs/run/reports/P22c.json,G2
+11,W06,worker,P17a,prompts/W06-S3-P17a-reporting-semantic-documents.md,prompts/RETRY-P17a.md,RESULT line; branch has docs/run/reports/P17a.json,G2
+12,W06,integrator,INT,prompts/INTEGRATOR-after-W06.md,,INTEGRATED line; main advanced; STATUS.md updated,
+13,W07,worker,P19,prompts/W07-S1-P19-ai-business-agent.md,prompts/RETRY-P19.md,RESULT line; branch has docs/run/reports/P19.json,G2;P17a;P18
+13,W07,worker,P17b,prompts/W07-S2-P17b-financial-statements.md,prompts/RETRY-P17b.md,RESULT line; branch has docs/run/reports/P17b.json,G2;P17a
+13,W07,worker,P17c,prompts/W07-S3-P17c-exogena.md,prompts/RETRY-P17c.md,RESULT line; branch has docs/run/reports/P17c.json,G2;P17a
+14,W07,integrator,INT,prompts/INTEGRATOR-after-W07.md,,INTEGRATED line; main advanced; STATUS.md updated,
+15,W08,worker,P21,prompts/W08-S1-P21-ai-onboarding-agent.md,prompts/RETRY-P21.md,RESULT line; branch has docs/run/reports/P21.json,G2;P18;P19
+15,W08,worker,P20,prompts/W08-S2-P20-mcp-server.md,prompts/RETRY-P20.md,RESULT line; branch has docs/run/reports/P20.json,G2;P19
+16,W08,integrator,INT+G3,prompts/INTEGRATOR-after-W08.md,,INTEGRATED line; main advanced; STATUS.md updated,
+17,W09,worker,P23,prompts/W09-S1-P23-compliance-evidence.md,prompts/RETRY-P23.md,RESULT line; branch has docs/run/reports/P23.json,G3
+17,W09,worker,P22d,prompts/W09-S2-P22d-qa-e2e-a11y-perf.md,prompts/RETRY-P22d.md,RESULT line; branch has docs/run/reports/P22d.json,G3
+18,W09,integrator,INT+G4+RC,prompts/INTEGRATOR-after-W09.md,,INTEGRATED line; main advanced; STATUS.md updated,
+19,W10,dev,DEV,prompts/W10-S1-DEV-dev-runtime-local-run.md,prompts/RETRY-DEV.md,RESULT line; branch has docs/run/reports/DEV.json,RC
+20,W10,integrator,INT,prompts/INTEGRATOR-after-W10.md,,INTEGRATED line; main advanced; STATUS.md updated,

@@ -1,0 +1,176 @@
+{
+  "schema": "nexus-cloud/state/v1",
+  "edition": "3.0.0-claude-cloud",
+  "repo_url": "https://github.com/remcaro-rgb/nexus-erp-colombia",
+  "plan_sha256": "593796320d7b832515b6c33e344d08904c9a24185528abcd51c8e09fe8ba089f",
+  "registry_sha256": "a62fa1d937c13533ddc08f22b87a65d9bce24d662e6df7e8996f3aa7ee939ab4",
+  "updated_at": "2026-11-09T00:00:00Z",
+  "tasks": {
+    "P01": {
+      "status": "READY",
+      "attempt": 1
+    },
+    "P02": {
+      "status": "READY",
+      "attempt": 1
+    },
+    "P03": {
+      "status": "READY",
+      "attempt": 1
+    },
+    "G0": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P22a": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P04": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P05": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P06": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P07": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P08": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "G1": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P22b": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P09a": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P09b": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P09c": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P11a": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P11b": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P13a": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P13b": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P15": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P10a": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P10b": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P14": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P16a": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P16b": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P12": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "G2": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P22c": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P17a": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P17b": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P17c": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P18": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P19": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P20": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P21": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "G3": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P23": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "P22d": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "G4": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "RC": {
+      "status": "PENDING",
+      "attempt": 1
+    },
+    "DEV": {
+      "status": "PENDING",
+      "attempt": 1
+    }
+  },
+  "rc": null,
+  "history": []
+}

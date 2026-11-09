@@ -1,0 +1,872 @@
+{
+  "schema": "erp-five-machine-dev/plan/v2",
+  "plan_version": "2.0.0-dev",
+  "distro": "erp-five-machine-dev",
+  "environment_policy": {
+    "allowed_environments": [
+      "dev"
+    ],
+    "production": "disabled-in-this-distro",
+    "staging": "disabled-in-this-distro"
+  },
+  "addendum_file": "docs/five-machine/DEV-ADDENDUM.md",
+  "coordinator": {
+    "prompt": "P00",
+    "machine": "M5",
+    "adapted_by": "docs/five-machine/M5-COORDINATOR-P00-ADAPTER.md"
+  },
+  "machines": {
+    "M1": "worker",
+    "M2": "worker",
+    "M3": "worker",
+    "M4": "worker",
+    "M5": "integrator"
+  },
+  "limits": {
+    "max_active_workers": 4,
+    "max_active_per_worker": 1,
+    "max_attempts": 3,
+    "max_reassignments": 2,
+    "lease_minutes": 120,
+    "heartbeat_minutes": 20,
+    "max_m5_active_tasks": 1,
+    "dev_health_freshness_minutes": 15,
+    "max_reopens_per_task": 2,
+    "max_operator_retries_per_task": 1
+  },
+  "tasks": {
+    "P01": {
+      "prompt": "P01",
+      "owner": "M1",
+      "kind": "module",
+      "title": "Foundation / kernel / kernel.interfaces",
+      "requires": [],
+      "fake_ok": [
+        "P02"
+      ],
+      "paths": [
+        "pyproject.toml",
+        "uv.lock",
+        "backend/manage.py",
+        "backend/erp/**",
+        "backend/kernel/**",
+        "Makefile",
+        ".editorconfig",
+        ".pre-commit-config.yaml"
+      ],
+      "addendum": [
+        "D-ALL",
+        "D-P01"
+      ]
+    },
+    "P02": {
+      "prompt": "P02",
+      "owner": "M2",
+      "kind": "module",
+      "title": "Contract freeze",
+      "requires": [],
+      "fake_ok": [
+        "P01"
+      ],
+      "paths": [
+        "contracts/**",
+        "tests/contract/**"
+      ],
+      "addendum": [
+        "D-ALL",
+        "D-P02"
+      ]
+    },
+    "P03": {
+      "prompt": "P03",
+      "owner": "M3",
+      "kind": "module",
+      "title": "DevOps / CI / compose",
+      "requires": [],
+      "fake_ok": [
+        "P01"
+      ],
+      "paths": [
+        "docker-compose*.yml",
+        "deploy/**",
+        ".github/**",
+        ".devcontainer/**",
+        "docs/runbooks/**",
+        "scripts/ci/**"
+      ],
+      "addendum": [
+        "D-ALL",
+        "D-P03"
+      ]
+    },
+    "G0": {
+      "prompt": "G0",
+      "owner": "M5",
+      "kind": "gate",
+      "title": "Bootstrap reconciliation: contracts v1.0.0 + kernel + CI green",
+      "requires": [
+        "P01",
+        "P02",
+        "P03"
+      ],
+      "fake_ok": [],
+      "paths": [
+        "docs/gates/G0.md"
+      ],
+      "addendum": [
+        "D-GATES"
+      ]
+    },
+    "P22a": {
+      "prompt": "P22",
+      "owner": "M5",
+      "kind": "qa",
+      "title": "P22 milestone a: harness, leak-test framework, contract runners",
+      "requires": [
+        "G0"
+      ],
+      "fake_ok": [],
+      "paths": [
+        "tests/e2e/**",
+        "tests/cross_module/**",
+        "tests/security/**",
+        "tests/perf/**",
+        "docs/gates/G*-evidence/**",
+        "docs/traceability.csv"
+      ],
+      "addendum": [
+        "D-ALL",
+        "D-P22"
+      ]
+    },
+    "P04": {
+      "prompt": "P04",
+      "owner": "M2",
+      "kind": "module",
+      "title": "IAM / RLS / field security",
+      "requires": [
+        "G0"
+      ],
+      "fake_ok": [],
+      "paths": [
+        "backend/iam/**",
+        "deploy/keycloak/realm-template.json",
+        "frontend/src/features/iam/**",
+        "contracts/openapi/modules/iam.yaml",
+        "contracts/events/iam/**"
+      ],
+      "addendum": [
+        "D-ALL",
+        "D-P04"
+      ]
+    },
+    "P05": {
+      "prompt": "P05",
+      "owner": "M1",
+      "kind": "module",
+      "title": "Ledger / posting engine",
+      "requires": [
+        "G0"
+      ],
+      "fake_ok": [
+        "P04"
+      ],
+      "paths": [
+        "backend/ledger/**",
+        "frontend/src/features/ledger/**",
+        "contracts/openapi/modules/ledger.yaml",
+        "contracts/events/ledger/**"
+      ],
+      "addendum": [
+        "D-ALL"
+      ]
+    },
+    "P06": {
+      "prompt": "P06",
+      "owner": "M3",
+      "kind": "module",
+      "title": "Tax & localization CO",
+      "requires": [
+        "G0"
+      ],
+      "fake_ok": [],
+      "paths": [
+        "backend/tax/**",
+        "backend/localization_co/**",
+        "tests/regulatory/**",
+        "docs/compliance/parameter-verification.md",
+        "frontend/src/features/tax/**",
+        "contracts/openapi/modules/tax.yaml",
+        "contracts/events/tax/**"
+      ],
+      "addendum": [
+        "D-ALL",
+        "D-P06"
+      ]
+    },
+    "P07": {
+      "prompt": "P07",
+      "owner": "M4",
+      "kind": "module",
+      "title": "Workflow / audit / scheduler",
+      "requires": [
+        "G0"
+      ],
+      "fake_ok": [
+        "P04"
+      ],
+      "paths": [
+        "backend/workflow/**",
+        "frontend/src/features/workflow/**",
+        "contracts/openapi/modules/workflow.yaml",
+        "contracts/events/workflow/**"
+      ],
+      "addendum": [
+        "D-ALL",
+        "D-P07"
+      ]
+    },
+    "P08": {
+      "prompt": "P08",
+      "owner": "M4",
+      "kind": "module",
+      "title": "UX shell / design system / PWA primitives",
+      "requires": [
+        "G0"
+      ],
+      "fake_ok": [],
+      "paths": [
+        "package.json",
+        "pnpm-lock.yaml",
+        "frontend/vite.config.ts",
+        "frontend/index.html",
+        "frontend/tsconfig.json",
+        "frontend/package.json",
+        "frontend/src/app/**",
+        "frontend/src/shell/**",
+        "frontend/src/design-system/**",
+        "frontend/src/lib/**",
+        "frontend/src/i18n/**"
+      ],
+      "addendum": [
+        "D-ALL",
+        "D-P08"
+      ]
+    },
+    "G1": {
+      "prompt": "G1",
+      "owner": "M5",
+      "kind": "gate",
+      "title": "W1 gate: RLS/field policy, ledger invariants, tax, workflow, a11y; kernel.interfaces v1 frozen",
+      "requires": [
+        "P04",
+        "P05",
+        "P06",
+        "P07",
+        "P08",
+        "P22a"
+      ],
+      "fake_ok": [],
+      "paths": [
+        "docs/gates/G1.md"
+      ],
+      "addendum": [
+        "D-GATES"
+      ]
+    },
+    "P22b": {
+      "prompt": "P22",
+      "owner": "M5",
+      "kind": "qa",
+      "title": "P22 milestone b: cross-module suite S1-S12 + concurrency/negative",
+      "requires": [
+        "G1"
+      ],
+      "fake_ok": [],
+      "paths": [
+        "tests/e2e/**",
+        "tests/cross_module/**",
+        "tests/security/**",
+        "tests/perf/**",
+        "docs/gates/G*-evidence/**",
+        "docs/traceability.csv"
+      ],
+      "addendum": [
+        "D-ALL",
+        "D-P22"
+      ]
+    },
+    "P09": {
+      "prompt": "P09",
+      "owner": "M1",
+      "kind": "module",
+      "title": "Inventory / costing",
+      "requires": [
+        "G1"
+      ],
+      "fake_ok": [
+        "P14"
+      ],
+      "paths": [
+        "backend/inventory/**",
+        "frontend/src/features/inventory/**",
+        "contracts/openapi/modules/inventory.yaml",
+        "contracts/events/inventory/**"
+      ],
+      "addendum": [
+        "D-ALL"
+      ]
+    },
+    "P11": {
+      "prompt": "P11",
+      "owner": "M2",
+      "kind": "module",
+      "title": "Purchasing / AP",
+      "requires": [
+        "G1"
+      ],
+      "fake_ok": [
+        "P09",
+        "P10",
+        "P14",
+        "P15"
+      ],
+      "paths": [
+        "backend/purchasing/**",
+        "frontend/src/features/purchasing/**",
+        "contracts/openapi/modules/purchasing.yaml",
+        "contracts/events/purchasing/**"
+      ],
+      "addendum": [
+        "D-ALL",
+        "D-P11"
+      ]
+    },
+    "P13": {
+      "prompt": "P13",
+      "owner": "M4",
+      "kind": "module",
+      "title": "HR / payroll / timekeeping",
+      "requires": [
+        "G1"
+      ],
+      "fake_ok": [
+        "P15"
+      ],
+      "paths": [
+        "backend/hr/**",
+        "backend/payroll/**",
+        "backend/timekeeping/**",
+        "tests/regulatory/payroll/**",
+        "frontend/src/features/hr/**",
+        "frontend/src/features/payroll/**",
+        "frontend/src/features/timekeeping/**",
+        "contracts/openapi/modules/hr.yaml",
+        "contracts/events/hr/**",
+        "contracts/openapi/modules/payroll.yaml",
+        "contracts/events/payroll/**",
+        "contracts/openapi/modules/timekeeping.yaml",
+        "contracts/events/timekeeping/**"
+      ],
+      "addendum": [
+        "D-ALL",
+        "D-P13"
+      ]
+    },
+    "P15": {
+      "prompt": "P15",
+      "owner": "M3",
+      "kind": "module",
+      "title": "DIAN e-documents gateway",
+      "requires": [
+        "G1"
+      ],
+      "fake_ok": [],
+      "paths": [
+        "backend/einvoice/**",
+        "specs/fiscal-hash/**",
+        "docs/compliance/annex-versions.md",
+        "frontend/src/features/einvoice/**",
+        "contracts/openapi/modules/einvoice.yaml",
+        "contracts/events/einvoice/**"
+      ],
+      "addendum": [
+        "D-ALL",
+        "D-P15"
+      ]
+    },
+    "P10": {
+      "prompt": "P10",
+      "owner": "M1",
+      "kind": "module",
+      "title": "Sales / AR / CRM / Party",
+      "requires": [
+        "G1",
+        "P09"
+      ],
+      "fake_ok": [
+        "P15"
+      ],
+      "paths": [
+        "backend/sales/**",
+        "backend/crm/**",
+        "frontend/src/features/sales/**",
+        "frontend/src/features/crm/**",
+        "contracts/openapi/modules/sales.yaml",
+        "contracts/events/sales/**",
+        "contracts/openapi/modules/crm.yaml",
+        "contracts/events/crm/**"
+      ],
+      "addendum": [
+        "D-ALL",
+        "D-P10"
+      ]
+    },
+    "P14": {
+      "prompt": "P14",
+      "owner": "M2",
+      "kind": "module",
+      "title": "Fixed assets",
+      "requires": [
+        "G1"
+      ],
+      "fake_ok": [
+        "P09",
+        "P11"
+      ],
+      "paths": [
+        "backend/assets/**",
+        "frontend/src/features/assets/**",
+        "contracts/openapi/modules/assets.yaml",
+        "contracts/events/assets/**"
+      ],
+      "addendum": [
+        "D-ALL"
+      ]
+    },
+    "P16": {
+      "prompt": "P16",
+      "owner": "M3",
+      "kind": "module",
+      "title": "Treasury / intercompany / consolidation",
+      "requires": [
+        "G1",
+        "P10",
+        "P11"
+      ],
+      "fake_ok": [
+        "P13"
+      ],
+      "paths": [
+        "backend/treasury/**",
+        "backend/consolidation/**",
+        "frontend/src/features/treasury/**",
+        "frontend/src/features/consolidation/**",
+        "contracts/openapi/modules/treasury.yaml",
+        "contracts/events/treasury/**",
+        "contracts/openapi/modules/consolidation.yaml",
+        "contracts/events/consolidation/**"
+      ],
+      "addendum": [
+        "D-ALL",
+        "D-P16"
+      ]
+    },
+    "P12": {
+      "prompt": "P12",
+      "owner": "M1",
+      "kind": "module",
+      "title": "POS (online finalization)",
+      "requires": [
+        "G1",
+        "P09",
+        "P10"
+      ],
+      "fake_ok": [
+        "P15"
+      ],
+      "paths": [
+        "backend/pos/**",
+        "frontend/src/features/pos/**",
+        "contracts/openapi/modules/pos.yaml",
+        "contracts/events/pos/**"
+      ],
+      "addendum": [
+        "D-ALL",
+        "D-P12"
+      ]
+    },
+    "G2": {
+      "prompt": "G2",
+      "owner": "M5",
+      "kind": "gate",
+      "title": "W2 gate: real implementations only; S1-S12 green; TB = sub-ledgers",
+      "requires": [
+        "P09",
+        "P10",
+        "P11",
+        "P12",
+        "P13",
+        "P14",
+        "P15",
+        "P16",
+        "P22b"
+      ],
+      "fake_ok": [],
+      "paths": [
+        "docs/gates/G2.md"
+      ],
+      "addendum": [
+        "D-GATES"
+      ]
+    },
+    "P22c": {
+      "prompt": "P22",
+      "owner": "M5",
+      "kind": "qa",
+      "title": "P22 milestone c: leak tests API/AI/MCP/export/report/search, prompt-injection suite",
+      "requires": [
+        "G2"
+      ],
+      "fake_ok": [],
+      "paths": [
+        "tests/e2e/**",
+        "tests/cross_module/**",
+        "tests/security/**",
+        "tests/perf/**",
+        "docs/gates/G*-evidence/**",
+        "docs/traceability.csv"
+      ],
+      "addendum": [
+        "D-ALL",
+        "D-P22"
+      ]
+    },
+    "P17": {
+      "prompt": "P17",
+      "owner": "M2",
+      "kind": "module",
+      "title": "Reporting / semantic layer / documents",
+      "requires": [
+        "G2"
+      ],
+      "fake_ok": [],
+      "paths": [
+        "backend/reporting/**",
+        "backend/documents/**",
+        "frontend/src/features/reporting/**",
+        "frontend/src/features/documents/**",
+        "contracts/openapi/modules/reporting.yaml",
+        "contracts/events/reporting/**",
+        "contracts/openapi/modules/documents.yaml",
+        "contracts/events/documents/**"
+      ],
+      "addendum": [
+        "D-ALL"
+      ]
+    },
+    "P18": {
+      "prompt": "P18",
+      "owner": "M3",
+      "kind": "module",
+      "title": "Bulk import / export",
+      "requires": [
+        "G2"
+      ],
+      "fake_ok": [],
+      "paths": [
+        "backend/dataio/**",
+        "contracts/dataio/**",
+        "frontend/src/features/dataio/**",
+        "contracts/openapi/modules/dataio.yaml",
+        "contracts/events/dataio/**"
+      ],
+      "addendum": [
+        "D-ALL"
+      ]
+    },
+    "P19": {
+      "prompt": "P19",
+      "owner": "M2",
+      "kind": "module",
+      "title": "AI business agent",
+      "requires": [
+        "G2",
+        "P17",
+        "P18"
+      ],
+      "fake_ok": [],
+      "paths": [
+        "backend/ai_agent/**",
+        "frontend/src/features/ai_agent/**",
+        "contracts/openapi/modules/ai_agent.yaml",
+        "contracts/events/ai_agent/**"
+      ],
+      "addendum": [
+        "D-ALL",
+        "D-P19"
+      ]
+    },
+    "P20": {
+      "prompt": "P20",
+      "owner": "M1",
+      "kind": "module",
+      "title": "MCP server",
+      "requires": [
+        "G2",
+        "P19"
+      ],
+      "fake_ok": [],
+      "paths": [
+        "mcp_server/**",
+        "frontend/src/features/mcp/**"
+      ],
+      "addendum": [
+        "D-ALL",
+        "D-P20"
+      ]
+    },
+    "P21": {
+      "prompt": "P21",
+      "owner": "M4",
+      "kind": "module",
+      "title": "AI onboarding agent",
+      "requires": [
+        "G2",
+        "P18",
+        "P19"
+      ],
+      "fake_ok": [],
+      "paths": [
+        "backend/onboarding/**",
+        "backend/kernel/fixtures/demo_tenant.yaml",
+        "frontend/src/features/onboarding/**",
+        "contracts/openapi/modules/onboarding.yaml",
+        "contracts/events/onboarding/**"
+      ],
+      "addendum": [
+        "D-ALL",
+        "D-P21"
+      ]
+    },
+    "G3": {
+      "prompt": "G3",
+      "owner": "M5",
+      "kind": "gate",
+      "title": "W3 gate: leak + injection + import atomicity green",
+      "requires": [
+        "P17",
+        "P18",
+        "P19",
+        "P20",
+        "P21",
+        "P22c"
+      ],
+      "fake_ok": [],
+      "paths": [
+        "docs/gates/G3.md"
+      ],
+      "addendum": [
+        "D-GATES"
+      ]
+    },
+    "P23": {
+      "prompt": "P23",
+      "owner": "M4",
+      "kind": "module",
+      "title": "Compliance evidence / legal packet",
+      "requires": [
+        "G3"
+      ],
+      "fake_ok": [],
+      "paths": [
+        "docs/compliance/**",
+        "tests/regulatory/map.yaml"
+      ],
+      "addendum": [
+        "D-ALL",
+        "D-P23"
+      ]
+    },
+    "P22d": {
+      "prompt": "P22",
+      "owner": "M5",
+      "kind": "qa",
+      "title": "P22 milestone d: full E2E, a11y, perf, security scans, backup/restore drill",
+      "requires": [
+        "G3"
+      ],
+      "fake_ok": [],
+      "paths": [
+        "tests/e2e/**",
+        "tests/cross_module/**",
+        "tests/security/**",
+        "tests/perf/**",
+        "docs/gates/G*-evidence/**",
+        "docs/traceability.csv"
+      ],
+      "addendum": [
+        "D-ALL",
+        "D-P22"
+      ]
+    },
+    "G4": {
+      "prompt": "G4",
+      "owner": "M5",
+      "kind": "gate",
+      "title": "Release candidate gate (shared/10)",
+      "requires": [
+        "G3",
+        "P22d",
+        "P23"
+      ],
+      "fake_ok": [],
+      "paths": [
+        "docs/gates/G4.md",
+        "docs/gates/FINAL.md"
+      ],
+      "addendum": [
+        "D-GATES"
+      ]
+    },
+    "RC": {
+      "prompt": "RC",
+      "owner": "M5",
+      "kind": "release",
+      "title": "Build RC images from the accepted head; record image IDs/digests, SBOM, migration manifest (no deployment)",
+      "requires": [
+        "G4"
+      ],
+      "fake_ok": [],
+      "paths": [],
+      "addendum": [
+        "D-RC"
+      ]
+    },
+    "DEV": {
+      "prompt": "DEV",
+      "owner": "M5",
+      "kind": "dev_deploy",
+      "title": "Start the RC images on M5 with Docker Compose (dev only), migrate, seed synthetic demo, verify health/login/smoke, record the verified local URL",
+      "requires": [
+        "RC"
+      ],
+      "fake_ok": [],
+      "paths": [],
+      "addendum": [
+        "D-DEV"
+      ]
+    }
+  },
+  "queues": {
+    "M1": [
+      "P01",
+      "P05",
+      "P09",
+      "P10",
+      "P12",
+      "P20"
+    ],
+    "M2": [
+      "P02",
+      "P04",
+      "P11",
+      "P14",
+      "P17",
+      "P19"
+    ],
+    "M3": [
+      "P03",
+      "P06",
+      "P15",
+      "P16",
+      "P18"
+    ],
+    "M4": [
+      "P07",
+      "P08",
+      "P13",
+      "P21",
+      "P23"
+    ],
+    "M5": [
+      "G0",
+      "P22a",
+      "G1",
+      "P22b",
+      "G2",
+      "P22c",
+      "G3",
+      "P22d",
+      "G4",
+      "RC",
+      "DEV"
+    ]
+  },
+  "mediated_overlaps": [
+    {
+      "paths": [
+        "contracts/**",
+        "contracts/openapi/modules/*",
+        "contracts/events/*",
+        "contracts/dataio/**"
+      ],
+      "rule": "P02 owns contracts/** until G0; afterwards each module owns only its own fragments; anything else is a CCR resolved by M5 (P00)."
+    },
+    {
+      "paths": [
+        "tests/contract/**"
+      ],
+      "rule": "P02 owns schema tests; P22 (M5) only runs them."
+    },
+    {
+      "paths": [
+        "deploy/**",
+        "deploy/keycloak/realm-template.json"
+      ],
+      "rule": "P04 owns the realm template file; compose wiring stays P03 via CCR."
+    },
+    {
+      "paths": [
+        "tests/regulatory/**",
+        "tests/regulatory/payroll/**",
+        "tests/regulatory/map.yaml"
+      ],
+      "rule": "P06 owns tests/regulatory/** except payroll/ (P13) and map.yaml (P23)."
+    },
+    {
+      "paths": [
+        "docs/compliance/**",
+        "docs/compliance/parameter-verification.md",
+        "docs/compliance/annex-versions.md"
+      ],
+      "rule": "P23 owns docs/compliance/** except the P06 and P15 files, which P23 only reviews."
+    },
+    {
+      "paths": [
+        "backend/kernel/**",
+        "backend/kernel/fixtures/demo_tenant.yaml"
+      ],
+      "rule": "P21 owns the demo tenant data file; loader code stays P01."
+    },
+    {
+      "paths": [
+        "contracts/permissions/catalog.yaml"
+      ],
+      "rule": "Append-only: each module adds only its own <module>.* codes; M5 checks the diff."
+    }
+  ],
+  "common_paths_per_task": [
+    "docs/handoffs/{prompt}.md",
+    "contracts/change-requests/{prompt}-*",
+    "contracts/change-requests/DEP-{prompt}-*",
+    "contracts/permissions/catalog.yaml"
+  ],
+  "m5_only_paths": [
+    "docs/adr/**",
+    "docs/gates/**",
+    "docs/STATUS.md",
+    "docs/five-machine/**",
+    "docs/prompt-pack/**"
+  ]
+}
