@@ -6,7 +6,7 @@
   "reason": "",
   "branch": "claude/new-session-q0i4n6",
   "base_sha": "75ca9cafb91940b63e5ba83ee5afd5f7f4ee44de",
-  "tested_sha": "4fe8c52059d31033b721a29a6d8ffdd6e9f331c0",
+  "tested_sha": "ea276d8c176524c5b9f2fee4b11754bafb8ec30c",
   "changed_paths": [
     "backend/iam/README.md",
     "backend/iam/__init__.py",
@@ -63,6 +63,7 @@
     "deploy/keycloak/realm-template.json",
     "docs/handoffs/P04.md",
     "docs/run/progress/P04.md",
+    "docs/run/reports/P04.json",
     "frontend/src/features/iam/api.ts",
     "frontend/src/features/iam/module.ts"
   ],
@@ -76,5 +77,5 @@
   },
   "missing_tests": [],
   "session_url": "https://claude.ai/code/session_01XNGgzNBGnKv5i9APbNDeP4",
-  "created_at": "2026-11-09T16:48:50Z"
+  "created_at": "2026-11-09T16:52:52Z"
 }
