@@ -43,3 +43,9 @@ class LedgerDimensions:
         if dimension not in service.DIMENSIONS:
             raise NotFound("unknown dimension")
         service.check_line_reference(ctx, company_id, dimension, node_id, on)
+
+    def list_nodes(self, company_id: uuid.UUID, dimension: str) -> list[NodeInfo]:
+        """All nodes of one dimension of ``company_id`` (consumer: P04 subtree scopes, CCR P04-3)."""
+        ctx = tenancy.require_current()
+        nodes = service.nodes_qs(ctx, company_id, service.check_dimension(dimension)).order_by("path")
+        return [_info(n) for n in nodes]

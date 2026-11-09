@@ -69,6 +69,8 @@ export function DimensionsPage({ tab, onTabChange, companyId = null, api, canWri
   const byId = useMemo(() => new Map((nodes ?? []).map((n) => [n.id, n])), [nodes]);
   const treeNodes = useMemo<TreeNode[]>(() => (nodes ?? []).map(toTreeNode), [nodes]);
   const groups = useMemo(() => (nodes ?? []).filter((n) => n.node_type === "AGRUPADOR" && n.status === "ACTIVE"), [nodes]);
+  // TreeTable reads defaultExpanded at mount: remount when a group appears so new nodes are visible expanded.
+  const groupsKey = useMemo(() => groups.map((g) => g.id).sort().join(","), [groups]);
 
   const openArchive = async (node: DimensionNodeDto) => {
     setDialog({ kind: "archive", node, usage: null });
@@ -189,7 +191,7 @@ export function DimensionsPage({ tab, onTabChange, companyId = null, api, canWri
           {nodes !== null && nodes.length === 0 ? <p className="text-sm text-muted">{msg.empty(current.label)}</p> : null}
           {nodes !== null ? (
             <TreeTable
-              key={current.key}
+              key={`${current.key}:${groupsKey}`}
               label={current.label}
               nodes={treeNodes}
               view={view}

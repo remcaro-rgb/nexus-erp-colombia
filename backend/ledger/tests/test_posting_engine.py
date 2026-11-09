@@ -79,7 +79,7 @@ def test_T_P05_03_closed_and_soft_closed_periods(world, ledger_services):
     world.run(lambda u: periods.change_status(u, nov, "SOFT_CLOSED"))
     lines = [line("EXPENSE", "DEBIT", "10"), line("BANK", "CREDIT", "10")]
     assert _code(lambda: world.post(lines)) == "period_closed"
-    ledger_services["policy"].grant(world.ctx.principal_id, "ledger.period.post_soft_closed")
+    ledger_services["policy"].grant(world.ctx.principal_id, "ledger.period.update")
     world.post(lines)
     with world.scope():
         nov = Period.objects.get(id=nov.id)
