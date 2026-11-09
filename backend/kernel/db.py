@@ -104,3 +104,29 @@ def rls_policy_sql(table: str, company_scoped: bool = True) -> tuple[str, str]:
         f"ALTER TABLE {t} DISABLE ROW LEVEL SECURITY;"
     )
     return forward, reverse
+
+
+#: Transaction-local marker a cross-tenant platform job sets with ``kernel.tenancy.bind_platform`` (ADR-003).
+PLATFORM_JOB_SETTING = "app.platform_job"
+
+
+def platform_rls_policy_sql(table: str, job: str) -> tuple[str, str]:
+    """RLS for a platform table (``kernel_outbox``, ``kernel_dead_letter``): ENABLE + FORCE.
+
+    Two permissive policies: ``<t>_tenant_isolation`` (the tenant bound with
+    ``kernel.tenancy.bind`` sees and writes only its rows) and ``<t>_platform_<job>``
+    (a transaction that ran ``kernel.tenancy.bind_platform(job)`` — the outbox relay /
+    dead-letter worker — sees every tenant's rows of this table only). An unbound
+    session matches neither and sees no rows.
+    """
+    t = _ident(table)
+    if not _IDENT.match(job):
+        raise ValueError(f"unsafe platform job name: {job!r}")
+    forward, reverse = rls_policy_sql(t, company_scoped=False)
+    policy = _ident(f"{t}_platform_{job}"[:63])
+    pred = f"current_setting('{PLATFORM_JOB_SETTING}', true) = '{job}'"
+    forward += (
+        f"\nDROP POLICY IF EXISTS {policy} ON {t};\nCREATE POLICY {policy} ON {t} USING ({pred}) WITH CHECK ({pred});"
+    )
+    reverse = f"DROP POLICY IF EXISTS {policy} ON {t};\n" + reverse
+    return forward, reverse

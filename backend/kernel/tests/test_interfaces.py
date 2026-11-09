@@ -264,15 +264,22 @@ def test_fake_policy_audit_workflow(ctx, company):
     policy.grant(ctx.principal_id, "kernel.sequence.read")
     assert policy.policy_version(ctx) == 2
     from kernel.models import Sequence
+    from kernel.testing.tenancy import bound
 
-    Sequence.objects.create(tenant_id=ctx.tenant_id, company_id=company, sequence_code="A")
-    Sequence.objects.create(tenant_id=uuid.uuid4(), company_id=company, sequence_code="B")
-    assert list(
-        policy.scope_queryset(ctx, "kernel.sequence.read", Sequence.objects.all()).values_list(
-            "sequence_code", flat=True
-        )
-    ) == ["A"]
-    assert policy.scope_queryset(ctx, "other.read", Sequence.objects.all()).count() == 0
+    # RLS (kernel_sequence) shows both rows to a binding with both companies; the fake must still
+    # narrow the queryset to ctx's companies (application-level scoping, ADR-004).
+    wide = make_context(tenant_id=ctx.tenant_id, company_ids=[company, uuid.uuid4()])
+    other_company = next(c for c in wide.company_ids if c != company)
+    with bound(wide):
+        Sequence.objects.create(tenant_id=ctx.tenant_id, company_id=company, sequence_code="A")
+        Sequence.objects.create(tenant_id=ctx.tenant_id, company_id=other_company, sequence_code="B")
+        assert Sequence.objects.count() == 2
+        assert list(
+            policy.scope_queryset(ctx, "kernel.sequence.read", Sequence.objects.all()).values_list(
+                "sequence_code", flat=True
+            )
+        ) == ["A"]
+        assert policy.scope_queryset(ctx, "other.read", Sequence.objects.all()).count() == 0
     assert policy.field_mask(ctx, "x").readable == frozenset()
 
     audit = fakes.FakeAuditService()
@@ -372,7 +379,10 @@ def test_fake_notifications_dimensions_ar_payments_payroll(ctx, company):
     notes = fakes.FakeNotificationService()
     with uow.unit_of_work(ctx) as u:
         notes.notify(u, NotificationRequest(uuid.uuid4(), "po.approved", company_id=company))
-    assert OutboxMessage.objects.filter(event_type="notifications.notification.requested.v1").count() == 1
+    from kernel.testing.tenancy import bound
+
+    with bound(ctx):
+        assert OutboxMessage.objects.filter(event_type="notifications.notification.requested.v1").count() == 1
 
     group = DimensionNode(uuid.uuid4(), company, "cost_center", "100", "Admin", "AGRUPADOR", None)
     leaf = DimensionNode(uuid.uuid4(), company, "cost_center", "101", "Contab", "DETALLE", group.id)

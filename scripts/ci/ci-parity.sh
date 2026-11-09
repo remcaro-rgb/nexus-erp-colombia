@@ -6,8 +6,9 @@
 #   scripts/ci/ci-parity.sh [JOB...] [--step NAME]
 #     JOB: policy | p03-tests | make-ci | compose-startup        (default: all four)
 #     --step NAME: run only that step of the job (what one workflow step does); default: every step in order
-#                  (compose-startup default = T-P03-01: dev-up, dev-seed, dev-health; its extra workflow steps
-#                  dr-drill, image-scan, logs, dev-down run only by name)
+#                  (compose-startup default = T-P03-01 dev-up, dev-seed, dev-health, then the DR drill T-P03-03
+#                  dr-drill, exactly as the workflow job runs them; its extra steps image-scan, logs, dev-down
+#                  run only by name)
 #
 # Prints `CI-PARITY <job> exit=N` per job, then `CI-PARITY-OK n/n` or `CI-PARITY-FAILED k/n` (exit 1).
 # Variables the workflow already set (DATABASE_URL, ERP_DB_ADMIN_URL, ERP_FIELD_ENCRYPTION_KEY) are honoured;
@@ -178,10 +179,12 @@ job_compose_startup() {
   step dev-up bash scripts/ci/dev-up.sh
   step dev-seed bash scripts/ci/dev-seed.sh
   step dev-health cs_health
+  # DR drill T-P03-03 against the running stack (backup -> restore into a scratch db -> invariants such as
+  # rls_forced_on_tenant_tables). Part of the default run so local parity catches what the CI job's DR step does.
+  step dr-drill python3 scripts/ci/dr_drill.py
   # Further steps of the same workflow job, run by name (`--step NAME`) — the commands live only here:
-  #   dr-drill (T-P03-03), image-scan (SBOM + grype), logs (on failure), dev-down (always; never `down -v`).
+  #   image-scan (SBOM + grype), logs (on failure), dev-down (always; never `down -v`).
   case "$STEP" in
-    dr-drill) python3 scripts/ci/dr_drill.py ;;
     image-scan) cs_sbom ;;
     logs) cs_logs ;;
     dev-down) bash scripts/ci/dev-down.sh ;;

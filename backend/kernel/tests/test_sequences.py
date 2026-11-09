@@ -6,6 +6,7 @@ import pytest
 from kernel import sequences, uow
 from kernel.errors import FeatureDisabled, SequenceExhausted, SequenceNotFound, SequenceNotValid, UnitOfWorkRequired
 from kernel.models import OutboxMessage
+from kernel.testing.tenancy import bound
 
 from .conftest import run_threads
 
@@ -59,9 +60,11 @@ def test_T_P01_06_range_validity_thresholds_and_exhaustion(ctx, company, make_se
     ]
     assert [g.number for g in got] == list(range(91, 101))
     assert got[0].resolution_number == "SYN-RES-0001"
-    thresholds = [
-        m.envelope["payload"]["threshold"] for m in OutboxMessage.objects.filter(event_type=sequences.THRESHOLD_EVENT)
-    ]
+    with bound(ctx):
+        thresholds = [
+            m.envelope["payload"]["threshold"]
+            for m in OutboxMessage.objects.filter(event_type=sequences.THRESHOLD_EVENT)
+        ]
     assert sorted(thresholds) == ["0.80", "0.95"]
     with pytest.raises(SequenceExhausted):
         uow.run_in_unit_of_work(lambda u: sequences.allocate(company, "FV", "R", on_date=day), ctx)
@@ -90,8 +93,9 @@ def test_T_P01_06_terminal_block_allocation_fails_closed(ctx, company):
         sequences.allocate_terminal_block(company, "POS", 10)
     from kernel.models import FeatureFlagOverride
 
-    FeatureFlagOverride.objects.create(
-        tenant_id=ctx.tenant_id, company_id=company, code="pos_offline_fiscal_selling", enabled=True
-    )
+    with bound(ctx):
+        FeatureFlagOverride.objects.create(
+            tenant_id=ctx.tenant_id, company_id=company, code="pos_offline_fiscal_selling", enabled=True
+        )
     with pytest.raises(FeatureDisabled, match="not available"), uow.unit_of_work(ctx):
         sequences.allocate_terminal_block(company, "POS", 10)

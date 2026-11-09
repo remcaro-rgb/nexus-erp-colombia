@@ -10,6 +10,9 @@
 
 ``kernel_outbox``/``kernel_inbox``/``kernel_dead_letter`` are platform tables
 read by the relay role; they carry ``tenant_id`` for audit and replay scoping.
+RLS (kernel migration 0002): a session bound to a tenant sees only that tenant's
+outbox / dead-letter rows; the relay and dead-letter paths here run with
+``tenancy.bind_platform("outbox")``; an unbound session sees none.
 """
 
 from __future__ import annotations
@@ -26,11 +29,14 @@ import structlog
 from django.conf import settings
 from django.db import IntegrityError, transaction
 
-from kernel import clock
+from kernel import clock, tenancy
 from kernel.events import DomainEvent
 from kernel.models import DeadLetter, InboxRecord, OutboxMessage
 
 log = structlog.get_logger("kernel.outbox")
+
+#: RLS platform scope of kernel_outbox / kernel_dead_letter (migration 0002, ADR-003).
+PLATFORM_JOB = "outbox"
 
 QUEUES = ("einvoice", "notifications", "reporting", "ai", "default")
 
@@ -47,8 +53,10 @@ def metrics() -> dict[str, int]:
     """Process counters plus current backlog sizes."""
     with _metrics_lock:
         snapshot = dict(_metrics)
-    snapshot["pending"] = OutboxMessage.objects.filter(status=OutboxMessage.Status.PENDING).count()
-    snapshot["dead"] = OutboxMessage.objects.filter(status=OutboxMessage.Status.DEAD).count()
+    with transaction.atomic():
+        tenancy.bind_platform(PLATFORM_JOB)
+        snapshot["pending"] = OutboxMessage.objects.filter(status=OutboxMessage.Status.PENDING).count()
+        snapshot["dead"] = OutboxMessage.objects.filter(status=OutboxMessage.Status.DEAD).count()
     return snapshot
 
 
@@ -116,6 +124,7 @@ def relay_batch(publisher: Publisher | None = None, batch_size: int = 100, using
     max_attempts = int(getattr(settings, "ERP_OUTBOX_MAX_ATTEMPTS", 10))
     published = failed = dead = 0
     with transaction.atomic(using=using):
+        tenancy.bind_platform(PLATFORM_JOB, using)
         batch = list(
             OutboxMessage.objects.using(using)
             .select_for_update(skip_locked=True)
@@ -204,16 +213,18 @@ def consume(consumer: str, envelope: dict[str, Any], handler: Handler, using: st
 
 def record_consumer_failure(consumer: str, envelope: dict[str, Any], error: BaseException, attempts: int) -> DeadLetter:
     _inc("consumer_dead")
-    return DeadLetter.objects.create(
-        stage=DeadLetter.Stage.CONSUMER,
-        consumer=consumer,
-        event_id=envelope["event_id"],
-        event_type=envelope["event_type"],
-        tenant_id=envelope["tenant_id"],
-        envelope=envelope,
-        error=f"{type(error).__name__}: {error}"[:2000],
-        attempts=attempts,
-    )
+    with transaction.atomic():
+        tenancy.bind_platform(PLATFORM_JOB)
+        return DeadLetter.objects.create(
+            stage=DeadLetter.Stage.CONSUMER,
+            consumer=consumer,
+            event_id=envelope["event_id"],
+            event_type=envelope["event_type"],
+            tenant_id=envelope["tenant_id"],
+            envelope=envelope,
+            error=f"{type(error).__name__}: {error}"[:2000],
+            attempts=attempts,
+        )
 
 
 def dispatch(envelope: dict[str, Any], max_attempts: int = 1) -> dict[str, str]:
@@ -232,6 +243,7 @@ def replay_dead_letter(dead_letter_id: Any, publisher: Publisher | None = None) 
     """Re-publish a dead-lettered event (P07 provides the audited replay UI)."""
     pub = publisher or CeleryPublisher()
     with transaction.atomic():
+        tenancy.bind_platform(PLATFORM_JOB)
         dl = DeadLetter.objects.select_for_update().get(pk=dead_letter_id)
         pub.publish(route_for(dl.event_type), dl.envelope)
         dl.replayed_at = clock.now()

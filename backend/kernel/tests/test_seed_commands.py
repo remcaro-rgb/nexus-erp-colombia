@@ -8,6 +8,7 @@ from django.core.management import CommandError, call_command
 
 from kernel import outbox, seed
 from kernel.models import OutboxMessage
+from kernel.testing.tenancy import platform
 
 
 def _write(tmp_path: Path, data) -> Path:
@@ -44,7 +45,8 @@ def test_seed_demo_runs_registered_loaders_in_one_uow(tmp_path):
         text = out.getvalue()
         assert "parties: 2 rows" in text and "items: no loader registered" in text
         assert seen == [("service", "import")]
-        assert OutboxMessage.objects.filter(event_type="onboarding.seed.loaded.v1").count() == 1
+        with platform():  # the seed's synthetic tenant is not bound here; the outbox platform scope sees it
+            assert OutboxMessage.objects.filter(event_type="onboarding.seed.loaded.v1").count() == 1
     finally:
         seed.unregister_loader("parties")
 

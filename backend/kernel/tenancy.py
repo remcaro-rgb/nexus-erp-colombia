@@ -18,9 +18,13 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from typing import Any
 
+import structlog
 from django.db import connections, transaction
 
+from kernel.db import PLATFORM_JOB_SETTING
 from kernel.errors import TenancyNotBound, ValidationFailed
+
+_log = structlog.get_logger("kernel.tenancy")
 
 
 class PrincipalType(enum.StrEnum):
@@ -169,6 +173,36 @@ def bind(ctx: TenantContext, using: str = "default") -> None:
             "SELECT " + ", ".join("set_config(%s, %s, true)" for _ in values),
             [x for pair in values.items() for x in pair],
         )
+
+
+#: Cross-tenant platform jobs that have their own RLS policy (``kernel.db.platform_rls_policy_sql``).
+#: ``outbox``: the outbox relay and the dead-letter worker, on kernel_outbox / kernel_dead_letter only.
+PLATFORM_JOBS = frozenset({"outbox"})
+
+
+def bind_platform(job: str, using: str = "default") -> None:
+    """``SET LOCAL app.platform_job = job`` for a cross-tenant platform job (ADR-003).
+
+    Only the tables whose migration installed a ``<table>_platform_<job>`` policy become
+    visible across tenants (kernel_outbox, kernel_dead_letter for ``outbox``); every other
+    tenant table still needs :func:`bind`. Transaction-local like :func:`bind`; every use is
+    logged (ADR-003: platform access is audited).
+    """
+    if job not in PLATFORM_JOBS:
+        raise ValidationFailed(f"unknown platform job: {job!r}")
+    conn = connections[using]
+    if not conn.in_atomic_block:
+        raise TenancyNotBound("bind_platform() must run inside a transaction (SET LOCAL semantics)")
+    with conn.cursor() as cur:
+        cur.execute("SELECT set_config(%s, %s, true)", [PLATFORM_JOB_SETTING, job])
+    _log.debug("tenancy.platform_bind", job=job)
+
+
+#: ``(relrowsecurity, relforcerowsecurity, has_policy)`` of one table (RLS self-checks and tests).
+RLS_STATUS_QUERY = (
+    "SELECT c.relrowsecurity, c.relforcerowsecurity, EXISTS (SELECT 1 FROM pg_policy p WHERE p.polrelid = c.oid) "
+    "FROM pg_class c WHERE c.oid = to_regclass(%s)"
+)
 
 
 #: ADR-003: the application role must be neither SUPERUSER nor BYPASSRLS, otherwise RLS is not enforced.

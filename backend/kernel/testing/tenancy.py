@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import contextlib
 import uuid
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 
-from kernel import ids
+from django.db import transaction
+
+from kernel import ids, tenancy
 from kernel.tenancy import Channel, PrincipalType, TenantContext
 
 
@@ -30,3 +33,20 @@ def make_context(
 
 def first_company(ctx: TenantContext) -> uuid.UUID:
     return sorted(ctx.company_ids)[0]
+
+
+@contextlib.contextmanager
+def bound(ctx: TenantContext, using: str = "default") -> Iterator[TenantContext]:
+    """Test-side transaction bound to ``ctx`` (``SET LOCAL``): direct ORM / SQL reads and
+    writes of RLS tables see exactly what that tenant would (ADR-003)."""
+    with transaction.atomic(using=using), tenancy.activate(ctx):
+        tenancy.bind(ctx, using)
+        yield ctx
+
+
+@contextlib.contextmanager
+def platform(job: str = "outbox", using: str = "default") -> Iterator[None]:
+    """Test-side transaction with the cross-tenant platform binding (``kernel.tenancy.bind_platform``)."""
+    with transaction.atomic(using=using):
+        tenancy.bind_platform(job, using)
+        yield
