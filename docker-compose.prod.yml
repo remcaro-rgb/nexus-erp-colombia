@@ -1,0 +1,50 @@
+# Production overlay — REFERENCE ONLY (ADR-014, P03 deliverable 2). Owner: P03.
+# This run is DEV-only (CCR-DEV-001): production/staging are out of scope and this file is never deployed.
+# It documents the hardening a later production project must apply and is validated with `docker compose config`.
+# No dev services (mailpit has profile devtools), secrets via Docker secrets files, resource limits, healthchecks,
+# restart policies, read-only root FS. Keycloak runs `start` (optimized) against PostgreSQL, not start-dev.
+services:
+  proxy:
+    deploy:
+      resources: {limits: {cpus: "0.50", memory: 256M}}
+  db:
+    deploy:
+      resources: {limits: {cpus: "2.0", memory: 4G}}
+    command: ["postgres", "-c", "wal_level=replica", "-c", "archive_mode=on",
+              "-c", "archive_command=wal-g wal-push %p", "-c", "archive_timeout=300"]
+  valkey:
+    deploy:
+      resources: {limits: {cpus: "0.50", memory: 512M}}
+  keycloak:
+    command: ["start", "--optimized", "--import-realm"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db:5432/keycloak
+      KC_DB_USERNAME: erp_keycloak
+      KC_DB_PASSWORD_FILE: /run/secrets/keycloak_db_password
+    secrets: [keycloak_db_password]
+    deploy:
+      resources: {limits: {cpus: "1.0", memory: 1536M}}
+  mailpit:
+    profiles: [devtools]
+  api:
+    deploy:
+      replicas: 2
+      resources: {limits: {cpus: "1.0", memory: 1G}}
+    environment:
+      ERP_ENVIRONMENT: prod
+  worker:
+    deploy:
+      resources: {limits: {cpus: "1.0", memory: 1G}}
+    environment:
+      ERP_ENVIRONMENT: prod
+  scheduler:
+    environment:
+      ERP_ENVIRONMENT: prod
+  outbox-relay:
+    environment:
+      ERP_ENVIRONMENT: prod
+
+secrets:
+  keycloak_db_password:
+    file: ${ERP_SECRETS_DIR:-./deploy/dev/secrets}/keycloak_db_password

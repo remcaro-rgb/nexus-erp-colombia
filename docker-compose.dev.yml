@@ -1,0 +1,32 @@
+# Dev overlay (ADR-014): hot reload for backend code, Prism mock of the OpenAPI contract. Owner: P03.
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file deploy/dev/runtime.env \
+#     --env-file deploy/dev/secrets/dev.env --profile app up
+# Still loopback-only, still the same authentication/authorization (dev never relaxes security, D-ALL 1).
+services:
+  api:
+    read_only: false
+    volumes:
+      - ./backend:/app:ro
+    environment:
+      ERP_DEV_AUTORELOAD: "true"
+    command: ["python", "-m", "uvicorn", "erp.asgi:application", "--reload", "--reload-dir", "/app", "--host", "api", "--port", "8000"]
+
+  worker:
+    volumes:
+      - ./backend:/app:ro
+
+  # Contract mock of the frozen OpenAPI (P02) for frontend work before the real endpoint exists.
+  # Reached only inside the internal network (no published port); responses are examples, labelled mock.
+  prism:
+    profiles: [mock]
+    image: docker.io/stoplight/prism:5.15.10@sha256:586d1f0f94f8d0eaf20b26b8b41f985f2a2d494bea297bd3988c3de3eb87094e
+    restart: unless-stopped
+    command: ["mock", "-h", "prism", "-p", "4010", "/contracts/openapi/openapi.yaml"]
+    volumes:
+      - ./contracts:/contracts:ro
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://prism:4010/ || test $$? -eq 8"]
+      interval: 15s
+      timeout: 5s
+      retries: 5

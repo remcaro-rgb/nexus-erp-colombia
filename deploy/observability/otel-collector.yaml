@@ -1,0 +1,208 @@
+# OpenTelemetry Collector (P03 deliverable 5). Owner: P03. DEV profile `observability`.
+# OTLP in -> PII scrubbing (generated from pii-patterns.json) -> Jaeger (traces), Prometheus (metrics), debug (logs).
+# Logs must carry trace_id, tenant_id, company_id and no PII; the scrubber is the second line after the backend filter.
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: otel-collector:4317
+      http:
+        endpoint: otel-collector:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 256
+  batch: {}
+  transform/scrub_pii:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        statements:
+          # BEGIN generated pii statements log
+          - 'replace_pattern(log.body, "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(log.body)'
+          - 'replace_pattern(log.attributes["message"], "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(log.attributes["message"])'
+          - 'replace_pattern(log.attributes["exception.message"], "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(log.attributes["exception.message"])'
+          - 'replace_pattern(log.attributes["exception.stacktrace"], "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(log.attributes["exception.stacktrace"])'
+          - 'replace_pattern(log.attributes["http.url"], "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(log.attributes["http.url"])'
+          - 'replace_pattern(log.attributes["url.full"], "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(log.attributes["url.full"])'
+          - 'replace_pattern(log.attributes["url.query"], "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(log.attributes["url.query"])'
+          - 'replace_pattern(log.attributes["db.statement"], "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(log.attributes["db.statement"])'
+          - 'replace_pattern(log.attributes["db.query.text"], "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(log.attributes["db.query.text"])'
+          - 'replace_pattern(log.attributes["user.email"], "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(log.attributes["user.email"])'
+          - 'replace_pattern(log.attributes["enduser.id"], "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(log.attributes["enduser.id"])'
+          - 'replace_pattern(log.attributes["code.function.args"], "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(log.attributes["code.function.args"])'
+          - 'replace_pattern(log.body, "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(log.body)'
+          - 'replace_pattern(log.attributes["message"], "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(log.attributes["message"])'
+          - 'replace_pattern(log.attributes["exception.message"], "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(log.attributes["exception.message"])'
+          - 'replace_pattern(log.attributes["exception.stacktrace"], "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(log.attributes["exception.stacktrace"])'
+          - 'replace_pattern(log.attributes["http.url"], "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(log.attributes["http.url"])'
+          - 'replace_pattern(log.attributes["url.full"], "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(log.attributes["url.full"])'
+          - 'replace_pattern(log.attributes["url.query"], "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(log.attributes["url.query"])'
+          - 'replace_pattern(log.attributes["db.statement"], "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(log.attributes["db.statement"])'
+          - 'replace_pattern(log.attributes["db.query.text"], "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(log.attributes["db.query.text"])'
+          - 'replace_pattern(log.attributes["user.email"], "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(log.attributes["user.email"])'
+          - 'replace_pattern(log.attributes["enduser.id"], "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(log.attributes["enduser.id"])'
+          - 'replace_pattern(log.attributes["code.function.args"], "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(log.attributes["code.function.args"])'
+          - 'replace_pattern(log.body, "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(log.body)'
+          - 'replace_pattern(log.attributes["message"], "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(log.attributes["message"])'
+          - 'replace_pattern(log.attributes["exception.message"], "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(log.attributes["exception.message"])'
+          - 'replace_pattern(log.attributes["exception.stacktrace"], "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(log.attributes["exception.stacktrace"])'
+          - 'replace_pattern(log.attributes["http.url"], "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(log.attributes["http.url"])'
+          - 'replace_pattern(log.attributes["url.full"], "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(log.attributes["url.full"])'
+          - 'replace_pattern(log.attributes["url.query"], "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(log.attributes["url.query"])'
+          - 'replace_pattern(log.attributes["db.statement"], "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(log.attributes["db.statement"])'
+          - 'replace_pattern(log.attributes["db.query.text"], "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(log.attributes["db.query.text"])'
+          - 'replace_pattern(log.attributes["user.email"], "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(log.attributes["user.email"])'
+          - 'replace_pattern(log.attributes["enduser.id"], "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(log.attributes["enduser.id"])'
+          - 'replace_pattern(log.attributes["code.function.args"], "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(log.attributes["code.function.args"])'
+          - 'replace_pattern(log.body, "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(log.body)'
+          - 'replace_pattern(log.attributes["message"], "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(log.attributes["message"])'
+          - 'replace_pattern(log.attributes["exception.message"], "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(log.attributes["exception.message"])'
+          - 'replace_pattern(log.attributes["exception.stacktrace"], "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(log.attributes["exception.stacktrace"])'
+          - 'replace_pattern(log.attributes["http.url"], "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(log.attributes["http.url"])'
+          - 'replace_pattern(log.attributes["url.full"], "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(log.attributes["url.full"])'
+          - 'replace_pattern(log.attributes["url.query"], "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(log.attributes["url.query"])'
+          - 'replace_pattern(log.attributes["db.statement"], "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(log.attributes["db.statement"])'
+          - 'replace_pattern(log.attributes["db.query.text"], "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(log.attributes["db.query.text"])'
+          - 'replace_pattern(log.attributes["user.email"], "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(log.attributes["user.email"])'
+          - 'replace_pattern(log.attributes["enduser.id"], "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(log.attributes["enduser.id"])'
+          - 'replace_pattern(log.attributes["code.function.args"], "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(log.attributes["code.function.args"])'
+          - 'replace_pattern(log.body, "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(log.body)'
+          - 'replace_pattern(log.attributes["message"], "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(log.attributes["message"])'
+          - 'replace_pattern(log.attributes["exception.message"], "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(log.attributes["exception.message"])'
+          - 'replace_pattern(log.attributes["exception.stacktrace"], "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(log.attributes["exception.stacktrace"])'
+          - 'replace_pattern(log.attributes["http.url"], "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(log.attributes["http.url"])'
+          - 'replace_pattern(log.attributes["url.full"], "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(log.attributes["url.full"])'
+          - 'replace_pattern(log.attributes["url.query"], "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(log.attributes["url.query"])'
+          - 'replace_pattern(log.attributes["db.statement"], "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(log.attributes["db.statement"])'
+          - 'replace_pattern(log.attributes["db.query.text"], "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(log.attributes["db.query.text"])'
+          - 'replace_pattern(log.attributes["user.email"], "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(log.attributes["user.email"])'
+          - 'replace_pattern(log.attributes["enduser.id"], "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(log.attributes["enduser.id"])'
+          - 'replace_pattern(log.attributes["code.function.args"], "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(log.attributes["code.function.args"])'
+          - 'replace_pattern(log.body, "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(log.body)'
+          - 'replace_pattern(log.attributes["message"], "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(log.attributes["message"])'
+          - 'replace_pattern(log.attributes["exception.message"], "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(log.attributes["exception.message"])'
+          - 'replace_pattern(log.attributes["exception.stacktrace"], "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(log.attributes["exception.stacktrace"])'
+          - 'replace_pattern(log.attributes["http.url"], "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(log.attributes["http.url"])'
+          - 'replace_pattern(log.attributes["url.full"], "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(log.attributes["url.full"])'
+          - 'replace_pattern(log.attributes["url.query"], "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(log.attributes["url.query"])'
+          - 'replace_pattern(log.attributes["db.statement"], "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(log.attributes["db.statement"])'
+          - 'replace_pattern(log.attributes["db.query.text"], "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(log.attributes["db.query.text"])'
+          - 'replace_pattern(log.attributes["user.email"], "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(log.attributes["user.email"])'
+          - 'replace_pattern(log.attributes["enduser.id"], "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(log.attributes["enduser.id"])'
+          - 'replace_pattern(log.attributes["code.function.args"], "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(log.attributes["code.function.args"])'
+          # END generated pii statements
+    trace_statements:
+      - context: span
+        statements:
+          # BEGIN generated pii statements span
+          - 'replace_pattern(span.name, "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(span.name)'
+          - 'replace_pattern(span.attributes["message"], "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(span.attributes["message"])'
+          - 'replace_pattern(span.attributes["exception.message"], "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(span.attributes["exception.message"])'
+          - 'replace_pattern(span.attributes["exception.stacktrace"], "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(span.attributes["exception.stacktrace"])'
+          - 'replace_pattern(span.attributes["http.url"], "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(span.attributes["http.url"])'
+          - 'replace_pattern(span.attributes["url.full"], "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(span.attributes["url.full"])'
+          - 'replace_pattern(span.attributes["url.query"], "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(span.attributes["url.query"])'
+          - 'replace_pattern(span.attributes["db.statement"], "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(span.attributes["db.statement"])'
+          - 'replace_pattern(span.attributes["db.query.text"], "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(span.attributes["db.query.text"])'
+          - 'replace_pattern(span.attributes["user.email"], "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(span.attributes["user.email"])'
+          - 'replace_pattern(span.attributes["enduser.id"], "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(span.attributes["enduser.id"])'
+          - 'replace_pattern(span.attributes["code.function.args"], "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "[EMAIL]") where IsString(span.attributes["code.function.args"])'
+          - 'replace_pattern(span.name, "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(span.name)'
+          - 'replace_pattern(span.attributes["message"], "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(span.attributes["message"])'
+          - 'replace_pattern(span.attributes["exception.message"], "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(span.attributes["exception.message"])'
+          - 'replace_pattern(span.attributes["exception.stacktrace"], "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(span.attributes["exception.stacktrace"])'
+          - 'replace_pattern(span.attributes["http.url"], "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(span.attributes["http.url"])'
+          - 'replace_pattern(span.attributes["url.full"], "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(span.attributes["url.full"])'
+          - 'replace_pattern(span.attributes["url.query"], "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(span.attributes["url.query"])'
+          - 'replace_pattern(span.attributes["db.statement"], "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(span.attributes["db.statement"])'
+          - 'replace_pattern(span.attributes["db.query.text"], "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(span.attributes["db.query.text"])'
+          - 'replace_pattern(span.attributes["user.email"], "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(span.attributes["user.email"])'
+          - 'replace_pattern(span.attributes["enduser.id"], "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(span.attributes["enduser.id"])'
+          - 'replace_pattern(span.attributes["code.function.args"], "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}\\s?-\\s?\\d\\b", "[NIT]") where IsString(span.attributes["code.function.args"])'
+          - 'replace_pattern(span.name, "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(span.name)'
+          - 'replace_pattern(span.attributes["message"], "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(span.attributes["message"])'
+          - 'replace_pattern(span.attributes["exception.message"], "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(span.attributes["exception.message"])'
+          - 'replace_pattern(span.attributes["exception.stacktrace"], "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(span.attributes["exception.stacktrace"])'
+          - 'replace_pattern(span.attributes["http.url"], "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(span.attributes["http.url"])'
+          - 'replace_pattern(span.attributes["url.full"], "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(span.attributes["url.full"])'
+          - 'replace_pattern(span.attributes["url.query"], "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(span.attributes["url.query"])'
+          - 'replace_pattern(span.attributes["db.statement"], "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(span.attributes["db.statement"])'
+          - 'replace_pattern(span.attributes["db.query.text"], "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(span.attributes["db.query.text"])'
+          - 'replace_pattern(span.attributes["user.email"], "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(span.attributes["user.email"])'
+          - 'replace_pattern(span.attributes["enduser.id"], "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(span.attributes["enduser.id"])'
+          - 'replace_pattern(span.attributes["code.function.args"], "\\b\\d{3,4}[- ]\\d{3,8}[- ]\\d{2,8}\\b", "[CUENTA]") where IsString(span.attributes["code.function.args"])'
+          - 'replace_pattern(span.name, "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(span.name)'
+          - 'replace_pattern(span.attributes["message"], "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(span.attributes["message"])'
+          - 'replace_pattern(span.attributes["exception.message"], "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(span.attributes["exception.message"])'
+          - 'replace_pattern(span.attributes["exception.stacktrace"], "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(span.attributes["exception.stacktrace"])'
+          - 'replace_pattern(span.attributes["http.url"], "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(span.attributes["http.url"])'
+          - 'replace_pattern(span.attributes["url.full"], "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(span.attributes["url.full"])'
+          - 'replace_pattern(span.attributes["url.query"], "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(span.attributes["url.query"])'
+          - 'replace_pattern(span.attributes["db.statement"], "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(span.attributes["db.statement"])'
+          - 'replace_pattern(span.attributes["db.query.text"], "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(span.attributes["db.query.text"])'
+          - 'replace_pattern(span.attributes["user.email"], "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(span.attributes["user.email"])'
+          - 'replace_pattern(span.attributes["enduser.id"], "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(span.attributes["enduser.id"])'
+          - 'replace_pattern(span.attributes["code.function.args"], "\\b\\d{11,20}\\b", "[CUENTA]") where IsString(span.attributes["code.function.args"])'
+          - 'replace_pattern(span.name, "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(span.name)'
+          - 'replace_pattern(span.attributes["message"], "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(span.attributes["message"])'
+          - 'replace_pattern(span.attributes["exception.message"], "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(span.attributes["exception.message"])'
+          - 'replace_pattern(span.attributes["exception.stacktrace"], "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(span.attributes["exception.stacktrace"])'
+          - 'replace_pattern(span.attributes["http.url"], "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(span.attributes["http.url"])'
+          - 'replace_pattern(span.attributes["url.full"], "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(span.attributes["url.full"])'
+          - 'replace_pattern(span.attributes["url.query"], "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(span.attributes["url.query"])'
+          - 'replace_pattern(span.attributes["db.statement"], "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(span.attributes["db.statement"])'
+          - 'replace_pattern(span.attributes["db.query.text"], "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(span.attributes["db.query.text"])'
+          - 'replace_pattern(span.attributes["user.email"], "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(span.attributes["user.email"])'
+          - 'replace_pattern(span.attributes["enduser.id"], "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(span.attributes["enduser.id"])'
+          - 'replace_pattern(span.attributes["code.function.args"], "\\b\\d{1,3}(?:\\.\\d{3}){2,3}\\b", "[DOC_ID]") where IsString(span.attributes["code.function.args"])'
+          - 'replace_pattern(span.name, "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(span.name)'
+          - 'replace_pattern(span.attributes["message"], "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(span.attributes["message"])'
+          - 'replace_pattern(span.attributes["exception.message"], "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(span.attributes["exception.message"])'
+          - 'replace_pattern(span.attributes["exception.stacktrace"], "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(span.attributes["exception.stacktrace"])'
+          - 'replace_pattern(span.attributes["http.url"], "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(span.attributes["http.url"])'
+          - 'replace_pattern(span.attributes["url.full"], "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(span.attributes["url.full"])'
+          - 'replace_pattern(span.attributes["url.query"], "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(span.attributes["url.query"])'
+          - 'replace_pattern(span.attributes["db.statement"], "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(span.attributes["db.statement"])'
+          - 'replace_pattern(span.attributes["db.query.text"], "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(span.attributes["db.query.text"])'
+          - 'replace_pattern(span.attributes["user.email"], "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(span.attributes["user.email"])'
+          - 'replace_pattern(span.attributes["enduser.id"], "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(span.attributes["enduser.id"])'
+          - 'replace_pattern(span.attributes["code.function.args"], "\\b\\d{6,10}\\b", "[DOC_ID]") where IsString(span.attributes["code.function.args"])'
+          # END generated pii statements
+  attributes/drop_secrets:
+    actions:
+      - {pattern: "(?i).*(password|secret|token|authorization|cookie|api[_-]?key).*", action: delete}
+
+exporters:
+  debug:
+    verbosity: basic
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+  prometheusremotewrite:
+    endpoint: http://prometheus:9090/api/v1/write
+
+extensions:
+  health_check:
+    endpoint: otel-collector:13133
+
+service:
+  extensions: [health_check]
+  telemetry:
+    logs:
+      level: warn
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes/drop_secrets, transform/scrub_pii, batch]
+      exporters: [otlp/jaeger]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [prometheusremotewrite]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes/drop_secrets, transform/scrub_pii, batch]
+      exporters: [debug]

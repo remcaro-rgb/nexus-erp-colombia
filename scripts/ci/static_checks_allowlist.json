@@ -1,0 +1,14 @@
+{
+  "secured_base_modules": {
+    "reason": "Modules that define SecuredViewSet / SecuredAPIView themselves (ADR-004); they must subclass DRF bases.",
+    "paths": ["backend/iam/policy/*", "backend/iam/views_base.py", "backend/iam/api/base.py", "backend/kernel/api/*", "backend/kernel/views.py", "backend/kernel/http/*"]
+  },
+  "raw_sql": {
+    "reason": "ADR-004 allow-list: RLS policies (iam/rls), the report compiler, migrations; ADR-003 tenancy binding uses SET LOCAL inside kernel.tenancy.bind().",
+    "paths": ["backend/iam/rls/*", "backend/iam/rls.py", "backend/reporting/compiler/*", "*/migrations/*", "backend/kernel/tenancy/*", "backend/kernel/tenancy.py"]
+  },
+  "http_clients": {
+    "reason": "Outbound HTTP only inside integration adapters (DIAN, PILA, banks, payments, LLM, e-mail).",
+    "paths": ["*/adapters/*", "*/adapters.py", "*/adapter.py"]
+  }
+}

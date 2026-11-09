@@ -1,0 +1,8 @@
+# Prometheus (DEV profile observability). Owner: P03. Metrics arrive by remote-write from the OTel Collector.
+global:
+  scrape_interval: 30s
+scrape_configs:
+  - job_name: keycloak
+    metrics_path: /auth/metrics
+    static_configs:
+      - targets: ["keycloak:9000"]
