@@ -6,11 +6,15 @@ import { ApiError } from "@lib/api/client";
 import type { KpiResponse, KpiValue, PanelResponse, RegistryPanel } from "@lib/api/types";
 import { can } from "@lib/permissions";
 import { KpiCard } from "@ds/components/KpiCard";
-import { ChartPanel } from "@ds/components/ChartPanel";
+import { lazy, Suspense } from "react";
+import { Skeleton } from "@ds/components/Feedback";
 import { FeedPanel } from "@ds/components/FeedPanel";
 import { useResource, useShell } from "./ShellContext";
 import type { ResolvedModule } from "./registry";
 import { HomeWidgets } from "./widgets";
+
+// Chart.js is loaded on demand (route-level code splitting; JS initial budget < 250 KB gz).
+const ChartPanel = lazy(() => import("@ds/components/ChartPanel").then((m) => ({ default: m.ChartPanel })));
 
 function notProvided(e: unknown): boolean {
   return e instanceof ApiError && (e.status === 404 || e.status === 501);
@@ -28,7 +32,11 @@ function Panel({ module, panel }: { module: ResolvedModule; panel: RegistryPanel
   if (panel.type === "feed" || panel.type === "list") {
     return <FeedPanel title={panel.title} items={data?.items ?? null} loading={res.loading} />;
   }
-  return <ChartPanel title={panel.title} data={data} loading={res.loading} />;
+  return (
+    <Suspense fallback={<Skeleton className="h-72 w-full" />}>
+      <ChartPanel title={panel.title} data={data} loading={res.loading} />
+    </Suspense>
+  );
 }
 
 export function ModuleDashboard({ module }: { module: ResolvedModule }) {

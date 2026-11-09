@@ -50,7 +50,7 @@ export default defineConfig({
     host: "127.0.0.1",
     port: devPort,
     strictPort: false,
-    fs: { allow: [here, resolve(repoRoot, "docs/spec/ui")] },
+    fs: { allow: [here, resolve(repoRoot, "node_modules"), resolve(repoRoot, "docs/spec/ui")] },
     proxy: {
       "/api": { target: apiTarget, changeOrigin: false },
     },

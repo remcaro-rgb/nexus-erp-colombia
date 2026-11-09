@@ -78,7 +78,7 @@ describe("P08 lib", () => {
         status: 422,
       });
     });
-    const err = await api.post("/api/v1/x:post", { body: {} }).catch((e) => e);
+    const err = (await api.post("/api/v1/x:post", { body: {} }).catch((e: unknown) => e)) as ApiError;
     expect(err).toBeInstanceOf(ApiError);
     expect(err.code).toBe("validation_failed");
     expect(err.traceId).toBe("tr-9");
