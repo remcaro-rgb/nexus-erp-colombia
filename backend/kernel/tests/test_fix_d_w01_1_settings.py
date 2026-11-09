@@ -16,7 +16,7 @@ import environ
 import pytest
 from django.core.exceptions import ImproperlyConfigured
 
-from erp.settings.base import field_encryption_key
+from erp.settings.base import read_field_key
 from kernel import devdb, envconfig
 
 BACKEND = Path(__file__).resolve().parents[2]
@@ -72,25 +72,25 @@ def test_FIX_D_W01_1_clear_error_when_no_database_configured():
 
 
 def test_FIX_D_W01_1_encryption_key_from_env_or_file(tmp_path):
-    assert field_encryption_key({"ERP_FIELD_ENCRYPTION_KEY": KEY}, required=True) == KEY
+    assert read_field_key({"ERP_FIELD_ENCRYPTION_KEY": KEY}, required=True) == KEY
     key_file = tmp_path / "field-encryption.key"
     key_file.write_text(KEY + "\n", encoding="utf-8")
-    assert field_encryption_key({"ERP_FIELD_ENCRYPTION_KEY_FILE": str(key_file)}, required=True) == KEY
-    assert field_encryption_key({}, required=False) is None
+    assert read_field_key({"ERP_FIELD_ENCRYPTION_KEY_FILE": str(key_file)}, required=True) == KEY
+    assert read_field_key({}, required=False) is None
 
 
 def test_FIX_D_W01_1_encryption_key_clear_error_never_prints_value(tmp_path):
     with pytest.raises(ImproperlyConfigured, match="ERP_FIELD_ENCRYPTION_KEY is not set") as exc:
-        field_encryption_key({}, required=True)
+        read_field_key({}, required=True)
     assert "ERP_FIELD_ENCRYPTION_KEY_FILE" in str(exc.value)
     bad = "not-a-valid-key-" + "x" * 20
     with pytest.raises(ImproperlyConfigured, match="url-safe base64 of 32 bytes") as exc:
-        field_encryption_key({"ERP_FIELD_ENCRYPTION_KEY": bad}, required=True)
+        read_field_key({"ERP_FIELD_ENCRYPTION_KEY": bad}, required=True)
     assert bad not in str(exc.value)
     empty = tmp_path / "empty.key"
     empty.write_text("", encoding="utf-8")
     with pytest.raises(ImproperlyConfigured, match="ERP_FIELD_ENCRYPTION_KEY_FILE points to an empty file"):
-        field_encryption_key({"ERP_FIELD_ENCRYPTION_KEY_FILE": str(empty)}, required=True)
+        read_field_key({"ERP_FIELD_ENCRYPTION_KEY_FILE": str(empty)}, required=True)
 
 
 def _load_dev_settings(env):

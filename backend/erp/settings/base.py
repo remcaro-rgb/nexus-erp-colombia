@@ -100,7 +100,7 @@ ERP_REQUIRE_SAFE_DB_ROLE = env.bool("ERP_REQUIRE_SAFE_DB_ROLE", default=True)
 # the dev profile requires it, the test profile uses an ephemeral per-process key.
 
 
-def field_encryption_key(environ: Mapping[str, str], *, required: bool) -> str | None:
+def read_field_key(environ: Mapping[str, str], *, required: bool) -> str | None:
     value = read_secret("ERP_FIELD_ENCRYPTION_KEY", environ, required=required)
     if value is None:
         return None
@@ -115,7 +115,7 @@ def field_encryption_key(environ: Mapping[str, str], *, required: bool) -> str |
     return value
 
 
-ERP_FIELD_ENCRYPTION_KEY = field_encryption_key(os.environ, required=False)
+ERP_FIELD_ENCRYPTION_KEY = read_field_key(os.environ, required=False)
 
 CACHES = {
     "default": env.cache_url("ERP_CACHE_URL", default="locmemcache://nexus-erp"),

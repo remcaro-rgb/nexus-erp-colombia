@@ -8,7 +8,7 @@ import base64
 import secrets
 
 from erp.settings.base import *  # noqa: F403
-from erp.settings.base import field_encryption_key
+from erp.settings.base import read_field_key
 
 ERP_ENVIRONMENT = "test"
 SECRET_KEY = "test-only-not-a-secret"  # noqa: S105 - test profile, never deployed
@@ -17,6 +17,6 @@ CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 
 # Ephemeral per-process key unless one is provided (test databases are thrown away).
-ERP_FIELD_ENCRYPTION_KEY = field_encryption_key(os.environ, required=False) or base64.urlsafe_b64encode(
+ERP_FIELD_ENCRYPTION_KEY = read_field_key(os.environ, required=False) or base64.urlsafe_b64encode(
     secrets.token_bytes(32)
 ).decode("ascii")

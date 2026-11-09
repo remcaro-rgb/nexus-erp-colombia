@@ -156,7 +156,7 @@ job_make_ci() {
 }
 
 # ------------------------------------------------------------------------------------- compose-startup
-cs_health() { bash scripts/ci/dev-health.sh | tee reports-health.json; }
+cs_health() { mkdir -p reports; bash scripts/ci/dev-health.sh | tee reports/dev-health.json; }
 cs_sbom() {
   bash scripts/ci/build-images.sh --sbom
   local img
