@@ -74,7 +74,7 @@ export default defineConfig({
     globals: true,
     // Unit tests live in __tests__ folders and end in .unit.ts(x) so that a config-less `playwright test`
     // (Makefile test-ids) never picks them up.
-    include: ["src/**/__tests__/**/*.unit.{ts,tsx}"],
+    include: ["src/**/__tests__/**/*.unit.{ts,tsx}", "src/**/__tests__/**/*.test.{ts,tsx}"],
     setupFiles: ["src/app/test/setup.ts"],
     css: false,
     testTimeout: 30_000,
