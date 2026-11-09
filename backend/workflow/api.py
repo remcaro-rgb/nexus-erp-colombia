@@ -18,7 +18,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from kernel import clock, tenancy
-from kernel.errors import NotAuthenticated, NotFound, ValidationFailed
+from kernel.errors import DomainError, NotAuthenticated, NotFound, ValidationFailed
 from kernel.events import to_jsonable
 from kernel.idempotency import StoredResponse
 from kernel.tenancy import TenantContext
@@ -50,10 +50,14 @@ def company_of(request: Request, ctx: TenantContext) -> uuid.UUID:
     raise ValidationFailed("X-Company-Id header required (several companies)")
 
 
+class IdempotencyKeyRequired(DomainError):
+    code, status, title = "idempotency_key_required", 400, "Idempotency-Key header required"
+
+
 def idem_key(request: Request) -> str:
     key = request.headers.get("Idempotency-Key", "")
     if not 8 <= len(key) <= 128:
-        raise ValidationFailed("Idempotency-Key header required", code="idempotency_key_required")
+        raise IdempotencyKeyRequired("send an Idempotency-Key header (8-128 characters)")
     return key
 
 

@@ -74,7 +74,7 @@ def test_formula_validate_and_simulate(client, user_factory) -> None:  # type: i
                     format="json", HTTP_IDEMPOTENCY_KEY=key())  # fmt: skip
     assert r.status_code == 422 and r.json()["code"] == "formula_division_by_zero"
     r = client.post("/api/v1/workflow/formulas:validate", {"parameters": FORMULA}, format="json")
-    assert r.status_code == 422 and r.json()["code"] == "idempotency_key_required"
+    assert r.status_code == 400 and r.json()["code"] == "idempotency_key_required"
 
 
 def test_formula_crud_and_lifecycle_over_api(client, user_factory) -> None:  # type: ignore[no-untyped-def]
