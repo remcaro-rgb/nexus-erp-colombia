@@ -1,6 +1,6 @@
 # Handoff FIX-D-W01-1 (v2) — D-W01-1 + the four red CI checks
 
-Branch: `claude/new-session-l6mzbb` · DEV-only · no secrets in this file (paths only).
+Branch: `claude/new-session-7cbu2u` (attempt 2; merges attempt 1 `claude/new-session-l6mzbb`) · DEV-only · no secrets in this file (paths only).
 
 ## Root causes and fixes
 
@@ -33,6 +33,36 @@ Branch: `claude/new-session-l6mzbb` · DEV-only · no secrets in this file (path
     `_FILE` (used by `make dev` / `make seed-demo`).
   * Makefile: when neither `DATABASE_URL` nor `ERP_DB_*` is set, it exports the local unix-socket URL. This is the
     former settings default, now made explicit in one place.
+
+### CI-4 (attempt 2) — DR drill T-P03-03 in the compose job
+* **Root cause** (GitHub run 42683848570, job "T-P03-01 docker compose up healthy from a clean clone", step
+  "DR drill (T-P03-03) against the running stack", log read through the REST API): `scripts/ci/dr_drill.py` restored the
+  dump and the invariant `rls_forced_on_tenant_tables` (`deploy/dr/invariants.d/00-platform.sql`, ADR-003) reported
+  FAILED for `kernel_dead_letter, kernel_feature_flag, kernel_idempotency, kernel_outbox, kernel_sequence`. These kernel
+  tables carry `tenant_id` but no kernel migration enabled RLS (open CCR P01-5 → P04, answered by CCR P04-4 item 1:
+  "P01 adds the RLS in a kernel migration"). The step had never been reached on `main` before.
+* **Fix — the invariant is met, not weakened.** `backend/kernel/migrations/0002_rls_kernel_tenant_tables.py` ENABLEs +
+  FORCEs RLS with the reference policy `kernel.db.rls_policy_sql` (the same SQL P04's `iam.rls.enable` emits):
+  `kernel_sequence` tenant + company (`app.company_ids`); `kernel_idempotency`, `kernel_feature_flag` tenant
+  (`company_id` nullable). `kernel_outbox` / `kernel_dead_letter` get the tenant policy **plus** one platform policy
+  (`kernel.db.platform_rls_policy_sql`): rows are visible across tenants only inside a transaction that ran
+  `kernel.tenancy.bind_platform("outbox")` (SET LOCAL `app.platform_job`; only `outbox` is accepted; each use is logged).
+  The relay (`outbox.relay_batch`), `outbox.metrics`, `record_consumer_failure` and `replay_dead_letter` bind it.
+  This is the ADR-003 "cross-tenant platform job" path, limited to those two platform tables; every other tenant table
+  still needs a tenant binding. Unbound sessions see 0 rows everywhere (deny by default). Not a bypass: no role gets
+  BYPASSRLS, no policy is `USING (true)`.
+* **Decision.** Attempt 1 stopped because RLS looked like an access-control change. It tightens access (deny by
+  default), is mandated by ADR-003, and was requested of the kernel owner by CCR P04-4; `backend/kernel/**` is in this
+  fix's paths. No permission was widened.
+* **Tests.** Kernel tests that read/write these tables outside a unit of work now do so inside
+  `kernel.testing.tenancy.bound(ctx)` (new helper; also `platform()`). Assertions were kept, not relaxed: e.g. the
+  rollback test's "0 rows" check now reads as the tenant (otherwise RLS would make it vacuous), and the fake-policy test
+  uses two companies of one tenant so the fake's own filter is still what is tested. New
+  `backend/kernel/tests/test_fix_d_w01_1_rls.py` (4 `FIX_D_W01_1` tests): forced RLS + policy on every kernel tenant
+  table; tenant/company isolation and unbound = 0 rows; cross-tenant and unbound writes rejected; the platform scope
+  reaches only outbox tables and rejects unknown jobs / use outside a transaction.
+* **Parity.** `scripts/ci/ci-parity.sh compose-startup` now runs `dr-drill` in its default sequence (dev-up, dev-seed,
+  dev-health, dr-drill), so local parity runs the same DR step as the workflow.
 
 ### CI-1 — forbidden-pattern scan (`policy`), 19 hits in `backend/kernel/**`
 The code was fixed; no pattern was removed and no root was narrowed.
@@ -104,30 +134,31 @@ only in the script; setup (checkout, services, uv/node, ephemeral key) stays in 
 * `make-ci`: if `DATABASE_URL` is unset, it starts a throwaway PostgreSQL container on `127.0.0.1:<free port>` with
   generated credentials (never printed, removed afterwards) and refuses a unix-socket URL. Then `make ci`,
   `makemigrations --check`, `mypy backend`, and frontend when present.
-* `compose-startup`: T-P03-01 (`dev-up`, `dev-seed`, `dev-health`). The job's further steps `dr-drill`, `image-scan`,
-  `logs` and `dev-down` run by name.
+* `compose-startup`: T-P03-01 (`dev-up`, `dev-seed`, `dev-health`) followed by the DR drill `dr-drill` (T-P03-03).
+  The job's further steps `image-scan`, `logs` and `dev-down` run by name.
 
-## Results in this session (exit codes only)
-* `make ci` exit=0 (P01 suite incl. the 8 new `FIX_D_W01_1` tests; 142 passed).
-* `bash scripts/ci/ci-parity.sh` → `CI-PARITY-OK 4/4` (policy, p03-tests, make-ci, compose-startup all exit=0) on 586a368.
-* `make dev-up && make dev-seed && make dev-health` exit=0. Migrations ran in the one-shot job; live/ready/environment
-  were PASSED on 127.0.0.1:8080. The seed was SKIPPED by design (the P21 command doesn't exist yet).
-* Secret files: mode 600. `git ls-files deploy/dev/secrets` lists only `.gitkeep` and `README.md`.
-* GitHub Actions on this branch (run 56, sha 5cf7c99): `policy` success, `make ci` success, `P03 tests` success. In the
-  compose job, steps dev-up / dev-seed / dev-health succeeded. **The DR-drill step failed** (see Residual).
+## Results in this session (attempt 2, exit codes only)
+* `make ci` exit=0.
+* `bash scripts/ci/ci-parity.sh` → `CI-PARITY-OK 4/4` (policy, p03-tests, make-ci, compose-startup incl. dr-drill:
+  `ok: true, failed: []`).
+* `make dev-up && make dev-seed && make dev-health` exit=0 on the existing dev volume (migration kernel.0002 applied;
+  the five kernel tables show relrowsecurity/relforcerowsecurity = t; outbox-relay healthy, publishing under the
+  `outbox` platform scope). Secret files mode 600; `git ls-files deploy/dev/secrets` lists only `.gitkeep`, `README.md`.
+* **GitHub Actions observed** on code commit `db089d2` (run 42693201807): `policy` success, `make ci` success,
+  `P03 tests` success, `T-P03-01 docker compose up healthy from a clean clone` success — including the DR-drill step
+  and the image SBOM + grype scan step (which had never been reached before).
+* **W02 trial merge** (local, nothing pushed): P04, P05, P06, P07, P08, P22a all merged without conflict. Backend tests
+  829 passed (the kernel RLS breaks no W02 test). `policy` exit=1 and `make ci` exit=2, both from W02 code:
+  `backend/workflow/tests/test_formula_adversarial.py:33` contains `print(` (P07; C2-8 scan) and `frontend` `tsc`
+  errors in `src/features/ledger/**` (P05 UI vs the P22a shell/Playwright typings: `toContainText`, `route` in the
+  module descriptor). They fail on their own; the integrator handles them as REWORK. No W02 path was edited.
 
 ## Status
-Reported **BLOCKED**, not DONE. All four causes are fixed and green on GitHub. The compose job's own conclusion is
-still `failure` because of Residual 1, and the report checker correctly refuses DONE while an observed job is red. To
-unblock: apply CCR P04-4 item 1 (kernel migration enabling forced RLS on the kernel tenant tables, after P04 merges),
-or have the operator accept this branch with that DR-drill failure tracked as a new defect.
+DONE. D-W01-1 and CI-1…CI-4 are fixed; all four GitHub jobs are green, DR drill included.
 
-## Residual issues (not fixed here — need an owner decision)
-1. **DR drill T-P03-03 fails `rls_forced_on_tenant_tables`** for `kernel_dead_letter`, `kernel_feature_flag`,
-   `kernel_idempotency`, `kernel_outbox` and `kernel_sequence`. The step had never run on `main` because the job always
-   stopped at dev-up. This is the open CCR P01-5 / P04-4 (RLS on kernel tenant tables; the P04 branch doesn't add it).
-   Enabling RLS is an access-control change, which this fix may not make. The invariant was not changed. Until that
-   CCR lands, the job named "T-P03-01 docker compose up healthy from a clean clone" stays red at its DR-drill step.
-2. The image scan (syft/grype) couldn't be verified in this sandbox: grype can't download its DB through the session
-   proxy (x509 inside the container). On GitHub it is skipped behind item 1.
-3. `make dev` / `make seed-demo` now read the key from `deploy/dev/secrets/field-encryption.key` (generated on demand).
+## Residual issues
+1. W02 trial-merge failures above (P07 forbidden pattern, P05/P22a frontend typecheck) — not this fix's paths.
+2. Module owners: tenant tables created by W02 modules must also get forced RLS (the DR invariant covers every table
+   with `tenant_id`); P04's `iam.rls.tables_without_rls()` test may now widen its prefix to `kernel_` (CCR P04-4).
+   Consumers that write module data must bind the event's tenant themselves (the dispatch path binds only `outbox`).
+3. `make dev` / `make seed-demo` read the key from `deploy/dev/secrets/field-encryption.key` (generated on demand).
