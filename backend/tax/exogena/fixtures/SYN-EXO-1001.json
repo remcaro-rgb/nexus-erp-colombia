@@ -11,7 +11,7 @@
     {
       "name": "concepto",
       "type": "code",
-      "length": 8,
+      "length": 20,
       "required": true,
       "rules": [
         "R-CONCEPTO"

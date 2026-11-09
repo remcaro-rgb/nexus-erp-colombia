@@ -33,10 +33,15 @@ HOLIDAY_NS = uuid.UUID("6f1d4d70-5a0e-4c8e-9a4b-3d7c0b6f2a11")
 # ----------------------------------------------------------------------------- parameters
 
 
+def tenant_or_scoped(ctx: Any, qs: Any, permission: str) -> Any:
+    """Tenant-wide rows (``company_id`` NULL) plus company rows filtered by the policy row scope."""
+    qs = qs.filter(tenant_id=ctx.tenant_id)
+    company_rows = services.get(PolicyService).scope_queryset(ctx, permission, qs.filter(company_id__isnull=False))
+    return qs.filter(Q(company_id__isnull=True) | Q(id__in=company_rows.values("id")))
+
+
 def _parameters(ctx: Any, action: str = "read") -> Any:
-    qs = Parameter.objects.select_related("source").filter(tenant_id=ctx.tenant_id)
-    qs = qs.filter(Q(company_id__isnull=True) | Q(company_id__in=list(ctx.company_ids)))
-    return services.get(PolicyService).scope_queryset(ctx, f"tax.parameter.{action}", qs)
+    return tenant_or_scoped(ctx, Parameter.objects.select_related("source"), f"tax.parameter.{action}")
 
 
 def _proposal(data: dict[str, Any], *, code: str | None = None) -> workflow.ProposalInput:
@@ -359,9 +364,7 @@ class HolidayDetail(base.TaxAPIView):
 
 
 def _packs(ctx: Any) -> Any:
-    return ExogenaFormatPack.objects.filter(tenant_id=ctx.tenant_id).filter(
-        Q(company_id__isnull=True) | Q(company_id__in=list(ctx.company_ids))
-    )
+    return tenant_or_scoped(ctx, ExogenaFormatPack.objects.all(), "tax.exogena_format_pack.read")
 
 
 class ExogenaPackList(base.TaxAPIView):

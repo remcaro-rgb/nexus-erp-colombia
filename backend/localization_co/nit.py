@@ -34,7 +34,7 @@ def normalize(raw: str) -> str:
 
 def check_digit(number: str) -> int:
     """Return the DV for ``number`` (digits only, without the DV)."""
-    digits = normalize(number)
+    digits = normalize(number).lstrip("0") or "0"  # leading zeros carry no weight
     if len(digits) > MAX_DIGITS:
         raise NitInvalid(f"el NIT admite como máximo {MAX_DIGITS} dígitos", field="nit")
     total = sum(int(d) * w for d, w in zip(reversed(digits), WEIGHTS, strict=False))

@@ -3,8 +3,8 @@
 Resolution for ``get(code, at_date, company, scope_ref="")``: only APPROVED,
 ACTIVE rows of the current tenant effective on ``at_date``; a company row wins
 over a tenant-wide row; a ``scope_ref`` (e.g. a municipality DANE code) must
-match exactly when given. :func:`kernel.parameters.enforce` then applies the
-fail-closed policy (UNKNOWN/missing → ``parameter_unknown``; production rules
+match exactly when given. then applies the
+fail-closed policy (:func:`enforce`; UNKNOWN/missing → ``parameter_unknown``; production rules
 without a legal-review stamp → ``parameter_not_verified``).
 """
 
@@ -18,9 +18,24 @@ from django.db.models import Q
 
 from kernel import tenancy
 from kernel.dates import effective_q
-from kernel.parameters import ParameterStatus, ParameterValue, enforce
+from kernel.errors import ParameterNotVerified, ParameterUnknown
+from kernel.parameters import ParameterStatus, ParameterValue
 from tax.models import Parameter
 from tax.parameters import values
+
+
+def enforce(value: ParameterValue | None, code: str, *, production: bool) -> ParameterValue:
+    """Same policy as ``kernel.parameters.enforce`` with stable error codes.
+
+    The kernel helper passes ``code=<parameter code>`` to the exception, which
+    replaces the error code (``"uvt"`` instead of ``parameter_unknown``); see
+    CCR P06-2. The parameter code travels in ``extra["parameter"]`` here.
+    """
+    if value is None or value.status is ParameterStatus.UNKNOWN:
+        raise ParameterUnknown(f"parameter {code} is UNKNOWN for the requested date", parameter=code)
+    if production and (value.synthetic or not value.legal_review_stamp):
+        raise ParameterNotVerified(f"parameter {code} has no legal-review stamp", parameter=code)
+    return value
 
 
 def production_rules_default() -> bool:
