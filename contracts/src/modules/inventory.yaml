@@ -1,0 +1,160 @@
+module: inventory
+title: Inventario
+owner: P09
+description: Ítems, bodegas, ubicaciones (F-INV-LOC), lotes/series, movimientos, traslados, conteos, ajustes, salidas por concepto (F-INV-ISSUE), presentaciones (F-INV-PRES), códigos de barras (F-INV-BARCODE), recetas (F-INV-BOM) y transformaciones (F-INV-XFORM).
+resources:
+  - {path: items, kind: master, fields: {base_uom: code internal req, item_type: 'enum(STOCKABLE|SERVICE|CONSUMABLE|KIT) internal req', category: string internal, valuation_method: 'enum(AVERAGE|FIFO) internal',
+       tracking: 'enum(NONE|LOT|SERIAL) internal', sales_tax_code: string internal null, purchase_tax_code: string internal null, gtin: string internal null, default_bin_id: ref internal null, standard_cost: unitcost confidential null},
+     coll_actions: [bulk]}
+  - path: items/{item_id}/presentations
+    schema: Presentation
+    perm: presentation
+    kind: master
+    label: presentaciones de un ítem
+    ops: list create get update delete
+    fields: {factor: decimal internal req, uom: code internal req, barcode: string internal null, precision: int internal, is_default_purchase: bool internal, is_default_sale: bool internal}
+    actions: [archive, unarchive]
+    errors: [presentation_factor_invalid, presentation_barcode_duplicate, uom_precision_violation, packaged_exceeds_canonical]
+    features: [F-INV-PRES]
+  - {path: uoms, kind: master, fields: {precision: int internal req, category: string internal}}
+  - {path: warehouses, kind: master, fields: {branch_id: ref internal null, allow_negative: bool internal, address: string internal}}
+  - path: warehouses/{warehouse_id}/locations
+    schema: Location
+    perm: location
+    kind: master
+    label: ubicaciones de una bodega
+    fields: {parent_id: ref internal null, location_type: 'enum(VIEW|INTERNAL|TRANSIT|SCRAP) internal req', is_leaf: bool internal ro, barcode: string internal null, capacity: qty internal null, path: string internal ro}
+    actions: [archive]
+    coll_actions: [import]
+    extra: [{path: tree, method: GET, op: tree, perm: read, returns: tree}]
+    errors: [location_not_leaf, location_cross_warehouse, location_not_empty]
+    features: [F-INV-LOC]
+  - path: warehouses/{warehouse_id}/putaway-rules
+    schema: PutawayRule
+    perm: putaway_rule
+    kind: config
+    fields: {name: null, item_id: ref internal null, category: string internal null, location_id: ref internal req, priority: int internal}
+    errors: [location_not_leaf]
+    features: [F-INV-LOC]
+  - {path: locations, kind: readonly, schema: LocationSearch, perm: location, label: búsqueda global de ubicaciones, fields: {warehouse_id: ref internal ro, code: code internal ro, path: string internal ro}, features: [F-INV-LOC]}
+  - {path: lots, kind: master, fields: {name: null, item_id: ref internal req, expiry_date: date internal null}}
+  - {path: serials, kind: master, fields: {name: null, item_id: ref internal req}}
+  - path: moves
+    kind: readonly
+    schema: StockMove
+    fields: {item_id: ref internal ro, quantity: qty internal ro, from_location_id: ref internal ro, to_location_id: ref internal ro, lot_id: ref internal ro null, value: money confidential ro, source: docref internal ro, move_date: date internal ro}
+    actions: [cancel]
+    coll_actions:
+      - internal: {perm: post, returns: result, summary: Movimiento interno entre ubicaciones (bin-to-bin) en una sola transacción, errors: [stock_insufficient, location_not_leaf, location_cross_warehouse, reservation_conflict], features: [F-INV-LOC]}
+  - {path: quants, kind: readonly, fields: {item_id: ref internal ro, location_id: ref internal ro, lot_id: ref internal ro null, on_hand: qty internal ro, reserved: qty internal ro, value: money confidential ro}}
+  - path: availability
+    kind: report
+    perm: availability
+    label: disponibilidad (base, empacada por presentación, suelta)
+    params: [item, presentation, warehouse, location, lot]
+    report_errors: [packaged_exceeds_canonical, uom_precision_violation]
+    features: [F-INV-PRES, F-INV-LOC]
+  - path: transfers
+    kind: document
+    fields: {party: null, from_warehouse_id: ref internal req, to_warehouse_id: ref internal req, transit_location_id: ref internal ro null, requisition: docref internal ro null}
+    lines: {presentation_id: ref internal null, lot_id: ref internal null, from_location_id: ref internal null, to_location_id: ref internal null}
+    actions: [submit, approve, ship, receive, cancel]
+    errors: [stock_insufficient, transfer_cross_company, reservation_conflict, location_not_leaf]
+    features: [F-INV-REQ]
+  - {path: counts, kind: document, fields: {party: null, warehouse_id: ref internal req}, actions: [freeze, submit, approve], errors: [count_frozen]}
+  - {path: adjustments, kind: document, fields: {party: null, warehouse_id: ref internal req, reason: string internal req}, actions: [post, simulate], errors: [stock_insufficient]}
+  - {path: scraps, kind: document, fields: {party: null, warehouse_id: ref internal req, reason: string internal req}, actions: [post], errors: [stock_insufficient]}
+  - {path: reorder-rules, kind: config, fields: {name: null, item_id: ref internal req, warehouse_id: ref internal req, min_qty: qty internal req, max_qty: qty internal req}}
+  - {path: reorder, kind: process, perm: reorder_rule, coll_actions: [run]}
+  - {path: reports/kardex, kind: report, perm: kardex, params: [item_id, warehouse_id, date_from, date_to, presentation_id, location_id]}
+  - {path: reports/valuation, kind: report, perm: valuation, params: [as_of, warehouse_id, category]}
+  - {path: reports/availability, kind: report, perm: availability, params: [item_id, warehouse_id]}
+  - {path: reports/traceability, kind: report, perm: traceability, params: [lot_id, serial_id]}
+  - {path: kits, kind: master, fields: {item_id: ref internal req, components: json internal req}}
+  # ---------------------------------------------------------------- F-INV-ISSUE
+  - path: issue-concepts
+    kind: master
+    schema: IssueConcept
+    label: conceptos de salida
+    fields: {account_role: string internal req, requires_dimension: bool internal, requires_reason: bool internal, requires_approval: bool internal}
+    errors: [issue_concept_inactive]
+    features: [F-INV-ISSUE]
+  - path: issues
+    kind: document
+    schema: InventoryIssue
+    label: salidas de inventario
+    fields: {party: null, concept_id: ref internal req, warehouse_id: ref internal req, reason: string internal null, dimensions: dims internal}
+    lines: {presentation_id: ref internal null, lot_id: ref internal null, location_id: ref internal null}
+    actions: [submit, approve, post, reverse, simulate]
+    coll_actions: [{export: {ext: csv}}]
+    extra: [{path: '{id}/pdf', method: GET, op: pdf, perm: export, returns: 'file:pdf'}]
+    errors: [stock_insufficient, issue_concept_inactive, dimension_required, issue_reason_required, lot_required, location_not_leaf, period_closed]
+    features: [F-INV-ISSUE]
+  # ---------------------------------------------------------------- F-INV-BARCODE
+  - path: barcodes
+    kind: process
+    perm: barcode
+    coll_actions:
+      - generate: {perm: create, returns: result, summary: Generar código (owner, simbología Code 128 / EAN-13 con prefijo GS1), errors: [gs1_prefix_missing, barcode_duplicate], features: [F-INV-BARCODE]}
+      - validate: {perm: read, returns: result, summary: Validar dígito de control y unicidad, errors: [barcode_checkdigit_invalid, barcode_duplicate], features: [F-INV-BARCODE]}
+    extra: [{path: lookup, method: GET, op: lookup, perm: read, params: [value], summary: Resolver un escaneo (ítem/presentación/ubicación/lote), errors: [barcode_unknown], features: [F-INV-BARCODE]}]
+    features: [F-INV-BARCODE]
+  - {path: label-templates, kind: master, schema: LabelTemplate, fields: {symbology: 'enum(CODE128|EAN13|QR|GS1_128) internal req', layout: json internal req, size_mm: string internal}, features: [F-INV-BARCODE]}
+  - path: label-print-jobs
+    kind: record
+    schema: LabelPrintJob
+    fields: {template_id: ref internal req, targets: json internal req, copies: int internal}
+    extra: [{path: '{id}/pdf', method: GET, op: pdf, perm: export, returns: 'file:pdf'}, {path: '{id}/preview.png', method: GET, op: preview_png, perm: export, returns: 'file:png'}]
+    features: [F-INV-BARCODE]
+  # ---------------------------------------------------------------- F-INV-BOM
+  - path: boms
+    kind: master
+    schema: Bom
+    label: recetas / listas de materiales
+    fields: {item_id: ref internal req, version_no: int internal ro, valid_from: date internal req, valid_to: date internal null, output_qty: qty internal req, yield_percent: percent internal,
+             components: json internal req, bom_status: 'enum(DRAFT|ACTIVE|OBSOLETE) internal ro'}
+    actions: [activate, obsolete, copy-version]
+    extra: [{path: '{id}/explode', method: GET, op: explode, perm: read, returns: report, params: [qty, date], summary: 'Explosión multinivel costeada'}]
+    errors: [bom_cycle, bom_version_overlap, bom_component_inactive, bom_yield_invalid]
+    features: [F-INV-BOM]
+  # ---------------------------------------------------------------- F-INV-XFORM
+  - path: transformations
+    kind: document
+    label: transformaciones (presentación, porcionado, manual)
+    fields: {party: null, transformation_type: 'enum(PRESENTATION|PORTIONING|MANUAL) internal req', template_id: ref internal null, warehouse_id: ref internal req, additional_costs: money confidential null}
+    lines: {role: 'enum(INPUT|OUTPUT|WASTE) internal req', presentation_id: ref internal null, lot_id: ref internal null, location_id: ref internal null, cost_share: percent internal null, actual_weight: qty internal null}
+    actions: [reserve, submit, approve, post, reverse, simulate]
+    coll_actions: [{export: {ext: csv}}]
+    errors: [stock_insufficient, transformation_unbalanced_value, transformation_yield_out_of_tolerance, transformation_no_inputs, transformation_cross_scope, reservation_conflict, uom_precision_violation]
+    features: [F-INV-XFORM]
+  - {path: portioning-templates, kind: master, fields: {input_item_id: ref internal req, outputs: json internal req, tolerance_percent: percent internal}, features: [F-INV-XFORM]}
+  - {path: repack-rules, kind: readonly, schema: RepackRule, fields: {item_id: ref internal ro, from_presentation_id: ref internal ro, to_presentation_id: ref internal ro}, features: [F-INV-XFORM]}
+events:
+  - {type: inventory.move.done.v1, description: Movimiento de inventario realizado, payload: {move_id: ref internal req, item_id: ref internal req, quantity: qty internal req, from_location_id: ref internal, to_location_id: ref internal, value: money confidential, source: docref internal}}
+  - {type: inventory.valuation.changed.v1, description: Cambio de costo promedio o capa, payload: {item_id: ref internal req, new_unit_cost: unitcost confidential req, method: 'enum(AVERAGE|FIFO) internal req'}}
+  - {type: inventory.stock.below_min.v1, description: Existencia bajo el mínimo, payload: {item_id: ref internal req, warehouse_id: ref internal req, on_hand: qty internal req, min_qty: qty internal req}}
+  - {type: inventory.count.approved.v1, description: Conteo aprobado, payload: {count_id: ref internal req, warehouse_id: ref internal req}}
+  - {type: inventory.issue.posted.v1, description: Salida de inventario contabilizada, features: [F-INV-ISSUE], payload: {issue_id: ref internal req, number: string internal req, concept_id: ref internal req, total: money confidential req, journal_entry_id: ref internal req}}
+  - {type: inventory.transformation.posted.v1, description: Transformación contabilizada, features: [F-INV-XFORM], payload: {transformation_id: ref internal req, number: string internal req, value_in: money confidential req, value_out: money confidential req, journal_entry_id: ref internal}}
+  - {type: inventory.transfer.status_changed.v1, description: Traslado despachado o recibido, features: [F-INV-REQ], payload: {transfer_id: ref internal req, to_status: 'enum(SHIPPED|RECEIVED|CANCELLED) internal req'}}
+  - {type: inventory.bom.activated.v1, description: Versión de receta activada, features: [F-INV-BOM], payload: {bom_id: ref internal req, item_id: ref internal req, version_no: int internal req}}
+  - {type: inventory.barcode.generated.v1, description: Código de barras generado, features: [F-INV-BARCODE], payload: {value: string internal req, symbology: string internal req, owner: docref internal req}}
+  - {type: inventory.location.changed.v1, description: Ubicación creada, movida o archivada, features: [F-INV-LOC], payload: {location_id: ref internal req, warehouse_id: ref internal req, change: 'enum(created|updated|archived) internal req'}}
+  - {type: inventory.presentation.changed.v1, description: Presentación creada o modificada, features: [F-INV-PRES], payload: {presentation_id: ref internal req, item_id: ref internal req, factor: decimal internal req}}
+dataio:
+  - {entity: items, schema: Item, key: [code], permission: inventory.item.create}
+  - {entity: uoms, schema: Uom, key: [code], permission: inventory.uom.create}
+  - {entity: warehouses, schema: Warehouse, key: [code], permission: inventory.warehouse.create}
+  - {entity: opening-stock, key: [item_code, warehouse_code, location_code, lot_code], permission: inventory.adjustment.create,
+     columns: {item_code: code internal req, warehouse_code: code internal req, location_code: code internal, lot_code: code internal, expiry_date: date internal, quantity: decimal internal req, uom: code internal req, unit_cost: decimal confidential req},
+     rules: ['posted as one opening adjustment per warehouse in one transaction (stock + valuation + GL)']}
+  - {entity: presentations, schema: Presentation, key: [item_code, code], permission: inventory.presentation.create, features: [F-INV-PRES]}
+  - {entity: locations, schema: Location, key: [warehouse_code, code], permission: inventory.location.create, features: [F-INV-LOC], rules: ['two-pass parent resolution', 'cycles rejected atomically']}
+  - {entity: issue-concepts, schema: IssueConcept, key: [code], permission: inventory.issue_concept.create, features: [F-INV-ISSUE]}
+  - {entity: inventory-issues, schema: InventoryIssue, key: [number], permission: inventory.issue.export, features: [F-INV-ISSUE], export_only: true}
+  - {entity: gtins, key: [gtin], permission: inventory.barcode.create, features: [F-INV-BARCODE],
+     columns: {gtin: string internal req, item_code: code internal req, presentation_code: code internal},
+     rules: ['mod-10 validated; imported GTINs are never claimed as owned (D-004)']}
+  - {entity: boms, schema: Bom, key: [item_code, version_no], permission: inventory.bom.create, features: [F-INV-BOM], rules: ['header + lines in one file; bom_cycle rejected atomically']}
+  - {entity: portioning-templates, schema: PortioningTemplate, key: [code], permission: inventory.portioning_template.create, features: [F-INV-XFORM]}
+  - {entity: transformations, schema: Transformation, key: [number], permission: inventory.transformation.export, features: [F-INV-XFORM], export_only: true}

@@ -1,0 +1,180 @@
+# Stable error code registry (contracts-v1.0.0). Codes are part of the public contract: never renamed or reused (contracts/VERSIONING.md).
+# Problem responses (RFC 9457) carry `code`; warnings use severity `warning` and never block unless stated.
+# Columns: code, http status, module, severity, title_es (UI message key default), title_en.
+# Registry codes (docs/spec/features/feature-registry.json) win over the original prompt names:
+#   `stock_insufficient` is THE stock code (the P02 prompt example `insufficient_stock` is not registered, to avoid two codes for one rule).
+version: 1.0.0
+codes:
+  # ---------------------------------------------------------------- kernel / common
+  - {code: unauthenticated, http: 401, module: kernel, severity: error, title_es: Autenticación requerida, title_en: Authentication required}
+  - {code: policy_denied, http: 403, module: iam, severity: error, title_es: Acceso denegado por la política, title_en: Denied by access policy}
+  - {code: sod_violation, http: 403, module: iam, severity: error, title_es: Violación de segregación de funciones, title_en: Segregation of duties violation}
+  - {code: field_forbidden, http: 403, module: iam, severity: error, title_es: Campo no autorizado para escritura, title_en: Field not writable for this principal}
+  - {code: company_not_allowed, http: 403, module: iam, severity: error, title_es: Empresa no permitida para el usuario, title_en: Company not allowed for the principal}
+  - {code: not_found, http: 404, module: kernel, severity: error, title_es: Recurso no encontrado, title_en: Resource not found}
+  - {code: validation_failed, http: 422, module: kernel, severity: error, title_es: Datos inválidos, title_en: Validation failed}
+  - {code: filter_invalid, http: 400, module: kernel, severity: error, title_es: Filtro u ordenamiento inválido, title_en: Invalid filter, sort or fields}
+  - {code: idempotency_key_required, http: 400, module: kernel, severity: error, title_es: Falta Idempotency-Key, title_en: Idempotency-Key header required}
+  - {code: idempotency_conflict, http: 409, module: kernel, severity: error, title_es: Idempotency-Key reutilizada con otro contenido, title_en: Idempotency key reused with a different body}
+  - {code: version_conflict, http: 412, module: kernel, severity: error, title_es: El registro cambió; recargue, title_en: Resource version changed (If-Match mismatch)}
+  - {code: precondition_required, http: 428, module: kernel, severity: error, title_es: Falta If-Match, title_en: If-Match header required}
+  - {code: invalid_state_transition, http: 409, module: kernel, severity: error, title_es: Acción no permitida en el estado actual, title_en: Action not allowed in the current state}
+  - {code: document_immutable, http: 409, module: kernel, severity: error, title_es: Documento contabilizado inmutable (use reverso), title_en: Posted document is immutable (use reversal)}
+  - {code: reason_required, http: 422, module: kernel, severity: error, title_es: Se requiere motivo, title_en: Reason required}
+  - {code: rate_limited, http: 429, module: kernel, severity: error, title_es: Demasiadas solicitudes, title_en: Too many requests}
+  - {code: bulk_limit_exceeded, http: 422, module: kernel, severity: error, title_es: Máximo 1.000 elementos por lote, title_en: Bulk request exceeds 1,000 items}
+  - {code: operation_not_cancellable, http: 409, module: kernel, severity: error, title_es: La operación no se puede cancelar, title_en: Operation cannot be cancelled}
+  - {code: parameter_unknown, http: 422, module: kernel, severity: error, title_es: Parámetro regulatorio desconocido (falla cerrada), title_en: Regulatory parameter unknown (fail closed)}
+  - {code: parameter_not_verified, http: 422, module: kernel, severity: error, title_es: Parámetro sin revisión legal, title_en: Parameter lacks legal-review stamp}
+  - {code: parameter_disputed_warning, http: 200, module: kernel, severity: warning, title_es: Parámetro en disputa; se guardó instantánea, title_en: Disputed parameter used; snapshot stored}
+  - {code: production_endpoint_refused, http: 403, module: kernel, severity: error, title_es: Entorno DEV; endpoint productivo rechazado, title_en: DEV-only runtime refuses production endpoints}
+  - {code: sequence_exhausted, http: 409, module: kernel, severity: error, title_es: Rango de numeración agotado, title_en: Numbering range exhausted}
+  - {code: period_closed, http: 422, module: ledger, severity: error, title_es: Período cerrado, title_en: Accounting period closed}
+  # ---------------------------------------------------------------- iam (P04)
+  - {code: branch_code_duplicate, http: 422, module: iam, severity: error, title_es: Código de sucursal duplicado, title_en: Branch code duplicate in company}
+  - {code: branch_cross_company, http: 422, module: iam, severity: error, title_es: Sucursal de otra empresa, title_en: Branch belongs to another company}
+  - {code: branch_in_use, http: 409, module: iam, severity: error, title_es: Sucursal en uso, title_en: Branch in use}
+  - {code: branch_head_office_required, http: 422, module: iam, severity: error, title_es: Se requiere una sede principal, title_en: Exactly one head office required}
+  - {code: external_account_scope_violation, http: 403, module: iam, severity: error, title_es: Fuera del alcance de la cuenta externa, title_en: Outside the external account scope}
+  - {code: invitation_expired, http: 410, module: iam, severity: error, title_es: Invitación vencida, title_en: Invitation expired}
+  - {code: external_role_forbidden, http: 403, module: iam, severity: error, title_es: Rol interno no asignable a usuario externo, title_en: Internal role cannot be granted to external user}
+  - {code: portal_kind_mismatch, http: 403, module: iam, severity: error, title_es: Tipo de portal no corresponde, title_en: Portal kind mismatch}
+  - {code: break_glass_required, http: 403, module: iam, severity: error, title_es: Requiere acceso de emergencia, title_en: Break-glass session required}
+  - {code: delegation_exceeds_grantor, http: 403, module: iam, severity: error, title_es: La delegación excede los permisos del delegante, title_en: Delegation exceeds the grantor's permissions}
+  - {code: consent_required, http: 422, module: iam, severity: error, title_es: Se requiere autorización de tratamiento de datos, title_en: Data processing consent required (Ley 1581)}
+  # ---------------------------------------------------------------- ledger (P05)
+  - {code: entry_unbalanced, http: 422, module: ledger, severity: error, title_es: Asiento descuadrado, title_en: Journal entry not balanced}
+  - {code: account_not_postable, http: 422, module: ledger, severity: error, title_es: Cuenta no imputable, title_en: Account not postable}
+  - {code: account_determination_missing, http: 422, module: ledger, severity: error, title_es: Falta determinación de cuenta, title_en: Account determination missing}
+  - {code: fx_rate_missing, http: 422, module: ledger, severity: error, title_es: Falta tasa de cambio, title_en: Exchange rate missing}
+  - {code: period_locked, http: 422, module: ledger, severity: error, title_es: Período bloqueado, title_en: Period locked}
+  - {code: reopen_requires_approval, http: 403, module: ledger, severity: error, title_es: Reapertura requiere aprobación, title_en: Period reopen requires approval}
+  - {code: dimension_node_not_postable, http: 422, module: ledger, severity: error, title_es: Nodo agrupador no imputable, title_en: AGRUPADOR node is not postable}
+  - {code: dimension_required, http: 422, module: ledger, severity: error, title_es: Dimensión obligatoria, title_en: Dimension required by rule}
+  - {code: dimension_forbidden, http: 422, module: ledger, severity: error, title_es: Dimensión no permitida, title_en: Dimension forbidden by rule}
+  - {code: dimension_cross_company, http: 422, module: ledger, severity: error, title_es: Dimensión de otra empresa, title_en: Dimension node of another company}
+  - {code: dimension_cycle, http: 422, module: ledger, severity: error, title_es: Ciclo en la jerarquía, title_en: Hierarchy cycle}
+  - {code: dimension_depth_exceeded, http: 422, module: ledger, severity: error, title_es: Profundidad máxima excedida, title_en: Maximum depth exceeded}
+  - {code: dimension_in_use, http: 409, module: ledger, severity: error, title_es: Nodo en uso, title_en: Node in use}
+  - {code: dimension_archived, http: 422, module: ledger, severity: error, title_es: Nodo archivado, title_en: Node archived}
+  - {code: dimension_code_duplicate, http: 422, module: ledger, severity: error, title_es: Código duplicado, title_en: Code duplicate (case-insensitive)}
+  # ---------------------------------------------------------------- tax (P06)
+  - {code: tax_parameter_unknown, http: 422, module: tax, severity: error, title_es: Parámetro tributario desconocido, title_en: Tax parameter unknown (fail closed)}
+  - {code: tax_code_inactive, http: 422, module: tax, severity: error, title_es: Código de impuesto inactivo, title_en: Tax code inactive}
+  - {code: nit_invalid, http: 422, module: tax, severity: error, title_es: NIT o dígito de verificación inválido, title_en: NIT or check digit invalid}
+  - {code: parameter_source_required, http: 422, module: tax, severity: error, title_es: Parámetro sin fuente, title_en: Parameter source required}
+  - {code: exogena_pack_invalid, http: 422, module: tax, severity: error, title_es: Paquete de formatos inválido, title_en: Exógena format pack invalid}
+  - {code: exogena_mapping_incomplete, http: 422, module: reporting, severity: error, title_es: Mapeo de exógena incompleto, title_en: Exógena mapping incomplete}
+  - {code: exogena_party_data_missing, http: 422, module: reporting, severity: error, title_es: Faltan datos del tercero, title_en: Third-party data missing}
+  - {code: exogena_pack_not_verified, http: 200, module: reporting, severity: warning, title_es: Paquete no verificado (SINTÉTICO), title_en: Format pack not legally verified (warning in dev; blocks files labelled official)}
+  # ---------------------------------------------------------------- workflow (P07)
+  - {code: approval_required, http: 409, module: workflow, severity: error, title_es: Requiere aprobación, title_en: Approval required}
+  - {code: approver_is_requester, http: 403, module: workflow, severity: error, title_es: El solicitante no puede aprobar, title_en: Requester cannot approve (SoD)}
+  - {code: audit_chain_broken, http: 409, module: workflow, severity: error, title_es: Cadena de auditoría alterada, title_en: Audit hash chain broken}
+  - {code: attachment_rejected, http: 422, module: workflow, severity: error, title_es: Adjunto rechazado, title_en: Attachment rejected (type/size/malware)}
+  - {code: webhook_url_forbidden, http: 422, module: workflow, severity: error, title_es: URL de webhook no permitida, title_en: Webhook URL not allowed (SSRF guard)}
+  - {code: formula_syntax_error, http: 422, module: workflow, severity: error, title_es: Error de sintaxis en la fórmula, title_en: Formula syntax error (position)}
+  - {code: formula_unknown_identifier, http: 422, module: workflow, severity: error, title_es: Identificador desconocido, title_en: Unknown identifier}
+  - {code: formula_type_error, http: 422, module: workflow, severity: error, title_es: Error de tipos, title_en: Type error}
+  - {code: formula_budget_exceeded, http: 422, module: workflow, severity: error, title_es: Fórmula excede el presupuesto de evaluación, title_en: Evaluation budget exceeded (D-008)}
+  - {code: formula_dependency_cycle, http: 422, module: workflow, severity: error, title_es: Ciclo de dependencias, title_en: Dependency cycle}
+  - {code: formula_test_case_failed, http: 422, module: workflow, severity: error, title_es: Falló un caso de prueba de la fórmula, title_en: Formula test case failed}
+  - {code: formula_division_by_zero, http: 422, module: workflow, severity: error, title_es: División por cero, title_en: Division by zero (explicit, never NaN)}
+  - {code: formula_not_approved, http: 422, module: workflow, severity: error, title_es: Fórmula no aprobada, title_en: Formula version not approved}
+  # ---------------------------------------------------------------- inventory (P09)
+  - {code: stock_insufficient, http: 422, module: inventory, severity: error, title_es: Existencias insuficientes, title_en: Insufficient stock}
+  - {code: reservation_conflict, http: 409, module: inventory, severity: error, title_es: Conflicto de reservas, title_en: Reservation conflict}
+  - {code: lot_required, http: 422, module: inventory, severity: error, title_es: Lote obligatorio, title_en: Lot required}
+  - {code: serial_required, http: 422, module: inventory, severity: error, title_es: Serial obligatorio, title_en: Serial required}
+  - {code: issue_concept_inactive, http: 422, module: inventory, severity: error, title_es: Concepto de salida inactivo, title_en: Issue concept inactive}
+  - {code: issue_reason_required, http: 422, module: inventory, severity: error, title_es: Motivo de salida obligatorio, title_en: Issue reason required}
+  - {code: location_not_leaf, http: 422, module: inventory, severity: error, title_es: La ubicación no es una hoja, title_en: Location is not a leaf bin}
+  - {code: location_cross_warehouse, http: 422, module: inventory, severity: error, title_es: Ubicación de otra bodega, title_en: Location of another warehouse}
+  - {code: location_not_empty, http: 409, module: inventory, severity: error, title_es: Ubicación con existencias, title_en: Location not empty}
+  - {code: presentation_factor_invalid, http: 422, module: inventory, severity: error, title_es: Factor de presentación inválido, title_en: Presentation factor invalid}
+  - {code: presentation_barcode_duplicate, http: 422, module: inventory, severity: error, title_es: Código de barras de presentación duplicado, title_en: Presentation barcode duplicate}
+  - {code: packaged_exceeds_canonical, http: 422, module: inventory, severity: error, title_es: Empacado excede existencia canónica, title_en: Packaged quantity exceeds canonical stock}
+  - {code: uom_precision_violation, http: 422, module: inventory, severity: error, title_es: Precisión de unidad excedida, title_en: UoM precision violation}
+  - {code: barcode_duplicate, http: 422, module: inventory, severity: error, title_es: Código de barras duplicado, title_en: Barcode duplicate}
+  - {code: barcode_checkdigit_invalid, http: 422, module: inventory, severity: error, title_es: Dígito de control inválido, title_en: Barcode check digit invalid}
+  - {code: gs1_prefix_missing, http: 422, module: inventory, severity: error, title_es: Falta prefijo GS1 de la empresa, title_en: Company GS1 prefix missing (D-004)}
+  - {code: barcode_unknown, http: 404, module: inventory, severity: error, title_es: Código no reconocido, title_en: Barcode unknown}
+  - {code: bom_cycle, http: 422, module: inventory, severity: error, title_es: Ciclo en la receta, title_en: BOM cycle}
+  - {code: bom_version_overlap, http: 422, module: inventory, severity: error, title_es: Versiones de receta superpuestas, title_en: BOM version validity overlap}
+  - {code: bom_component_inactive, http: 422, module: inventory, severity: error, title_es: Componente inactivo, title_en: BOM component inactive}
+  - {code: bom_yield_invalid, http: 422, module: inventory, severity: error, title_es: Rendimiento inválido, title_en: BOM yield invalid}
+  - {code: transformation_unbalanced_value, http: 422, module: inventory, severity: error, title_es: Valor de entrada ≠ salida, title_en: Transformation value in ≠ value out (D-016)}
+  - {code: transformation_yield_out_of_tolerance, http: 422, module: inventory, severity: error, title_es: Rendimiento fuera de tolerancia, title_en: Yield out of tolerance (D-015)}
+  - {code: transformation_no_inputs, http: 422, module: inventory, severity: error, title_es: Transformación sin insumos, title_en: Transformation without inputs}
+  - {code: transformation_cross_scope, http: 422, module: inventory, severity: error, title_es: Transformación entre empresas o bodegas no permitida, title_en: Transformation across company/warehouse scope}
+  - {code: transfer_cross_company, http: 422, module: inventory, severity: error, title_es: Traslado entre empresas no permitido, title_en: Transfer across companies (D-012)}
+  - {code: count_frozen, http: 409, module: inventory, severity: error, title_es: Conteo congelado, title_en: Count frozen}
+  # ---------------------------------------------------------------- sales / crm (P10)
+  - {code: credit_limit_exceeded, http: 422, module: sales, severity: error, title_es: Cupo de crédito excedido, title_en: Credit limit exceeded}
+  - {code: party_duplicate, http: 422, module: sales, severity: error, title_es: Tercero duplicado, title_en: Party duplicate (same NIT)}
+  - {code: price_not_found, http: 422, module: sales, severity: error, title_es: Precio no encontrado, title_en: Price not found}
+  - {code: pricing_formula_missing_input, http: 422, module: sales, severity: error, title_es: Falta un dato de la fórmula de precio, title_en: Pricing formula input missing}
+  - {code: pricing_override_requires_approval, http: 422, module: sales, severity: error, title_es: El precio manual requiere aprobación, title_en: Price override requires approval (D-024)}
+  - {code: pricing_posted_document_immutable, http: 409, module: sales, severity: error, title_es: Documento contabilizado no se re-precia, title_en: Posted document cannot be repriced}
+  - {code: portal_document_not_owned, http: 404, module: portal, severity: error, title_es: Documento no pertenece al usuario del portal, title_en: Document not owned by the portal account}
+  - {code: payment_intent_amount_invalid, http: 422, module: portal, severity: error, title_es: Monto de intención de pago inválido, title_en: Payment intent amount invalid}
+  # ---------------------------------------------------------------- purchasing (P11)
+  - {code: requisition_not_approved, http: 422, module: purchasing, severity: error, title_es: Solicitud no aprobada, title_en: Requisition not approved}
+  - {code: sourcing_overallocation, http: 422, module: purchasing, severity: error, title_es: Abastecimiento excede lo solicitado, title_en: Sourcing over-allocation}
+  - {code: auto_po_limit_exceeded, http: 200, module: purchasing, severity: warning, title_es: Límite de orden automática excedido (se crea tarea al comprador), title_en: Auto PO limit exceeded (creates buyer task instead, D-011)}
+  - {code: rfq_deadline_passed, http: 422, module: purchasing, severity: error, title_es: Venció el plazo de la cotización, title_en: RFQ deadline passed}
+  - {code: quote_late, http: 200, module: purchasing, severity: warning, title_es: Cotización tardía (no puntúa), title_en: Late quote (stored LATE, excluded from scoring, D-010)}
+  - {code: quote_currency_rate_missing, http: 422, module: purchasing, severity: error, title_es: Falta tasa para la moneda de la cotización, title_en: Quote currency rate missing}
+  - {code: award_reason_required, http: 422, module: purchasing, severity: error, title_es: La adjudicación requiere motivo, title_en: Award reason required}
+  - {code: award_not_approved, http: 422, module: purchasing, severity: error, title_es: Adjudicación no aprobada, title_en: Award not approved}
+  - {code: receipt_over_tolerance, http: 422, module: purchasing, severity: error, title_es: Recepción excede la tolerancia, title_en: Receipt over tolerance}
+  - {code: three_way_mismatch, http: 422, module: purchasing, severity: error, title_es: Diferencia en cruce de tres vías, title_en: Three-way match mismatch}
+  - {code: portal_rfq_closed, http: 422, module: portal, severity: error, title_es: Cotización cerrada, title_en: RFQ closed}
+  - {code: portal_profile_change_pending, http: 409, module: portal, severity: error, title_es: Hay un cambio de perfil pendiente, title_en: Profile change already pending}
+  # ---------------------------------------------------------------- pos (P12)
+  - {code: pos_session_closed, http: 422, module: pos, severity: error, title_es: Sesión de caja cerrada, title_en: POS session closed}
+  - {code: pos_offline_finalization_forbidden, http: 422, module: pos, severity: error, title_es: No se finaliza sin conexión al servidor, title_en: Offline finalization forbidden (C1-12)}
+  - {code: cash_difference_requires_approval, http: 422, module: pos, severity: error, title_es: Diferencia de caja requiere aprobación, title_en: Cash difference requires approval}
+  # ---------------------------------------------------------------- hr / payroll (P13)
+  - {code: payroll_parameter_unknown, http: 422, module: payroll, severity: error, title_es: Parámetro de nómina desconocido, title_en: Payroll parameter unknown (fail closed)}
+  - {code: payroll_run_locked, http: 409, module: payroll, severity: error, title_es: Nómina bloqueada, title_en: Payroll run locked}
+  - {code: contract_overlap, http: 422, module: hr, severity: error, title_es: Contratos superpuestos, title_en: Employment contracts overlap}
+  - {code: vacation_balance_insufficient, http: 422, module: portal, severity: error, title_es: Saldo de vacaciones insuficiente, title_en: Vacation balance insufficient}
+  # ---------------------------------------------------------------- assets (P14)
+  - {code: asset_already_disposed, http: 409, module: assets, severity: error, title_es: Activo ya dado de baja, title_en: Asset already disposed}
+  - {code: depreciation_run_exists, http: 409, module: assets, severity: error, title_es: Ya existe depreciación del período, title_en: Depreciation run already posted for period}
+  # ---------------------------------------------------------------- einvoice (P15)
+  - {code: fiscal_rejected, http: 422, module: einvoice, severity: error, title_es: Documento rechazado por la DIAN (simulador), title_en: Fiscal document rejected (simulator in dev)}
+  - {code: numbering_range_missing, http: 422, module: einvoice, severity: error, title_es: Sin rango de numeración autorizado, title_en: No authorized numbering range}
+  - {code: provider_not_configured, http: 422, module: einvoice, severity: error, title_es: Proveedor tecnológico no configurado, title_en: Technology provider not configured}
+  - {code: provider_contract_test_failed, http: 422, module: einvoice, severity: error, title_es: Falló la prueba de contrato del proveedor, title_en: Provider contract test failed}
+  - {code: certificate_missing, http: 422, module: einvoice, severity: error, title_es: Falta certificado de firma, title_en: Signing certificate missing (EXTERNAL)}
+  - {code: contingency_active, http: 200, module: einvoice, severity: warning, title_es: Contingencia activa, title_en: Contingency active}
+  # ---------------------------------------------------------------- treasury (P16)
+  - {code: treasury_period_closed, http: 422, module: treasury, severity: error, title_es: Período de tesorería cerrado, title_en: Treasury period closed}
+  - {code: treasury_overapplication, http: 422, module: treasury, severity: error, title_es: Aplicación excede el saldo abierto, title_en: Application exceeds open item balance}
+  - {code: treasury_open_item_mismatch_party, http: 422, module: treasury, severity: error, title_es: Partida abierta de otro tercero, title_en: Open item belongs to another party}
+  - {code: treasury_currency_mismatch, http: 422, module: treasury, severity: error, title_es: Moneda no coincide, title_en: Currency mismatch}
+  - {code: treasury_approval_required, http: 422, module: treasury, severity: error, title_es: Requiere aprobación de tesorería, title_en: Treasury approval required}
+  - {code: treasury_insufficient_funds_warning, http: 200, module: treasury, severity: warning, title_es: Fondos insuficientes, title_en: Insufficient funds (CE; blocking only if the fund forbids overdraft)}
+  - {code: statement_line_already_matched, http: 409, module: treasury, severity: error, title_es: Línea de extracto ya conciliada, title_en: Statement line already matched}
+  - {code: intercompany_mismatch, http: 422, module: intercompany, severity: error, title_es: Diferencia intercompañía, title_en: Intercompany mismatch}
+  # ---------------------------------------------------------------- reporting / documents (P17)
+  - {code: report_period_open_warning, http: 200, module: reporting, severity: warning, title_es: Período abierto (cifras provisionales), title_en: Period open (non-blocking)}
+  - {code: report_mapping_incomplete, http: 422, module: reporting, severity: error, title_es: Mapeo de flujo de efectivo incompleto, title_en: Report mapping incomplete (cash flow)}
+  - {code: semantic_query_invalid, http: 400, module: reporting, severity: error, title_es: Consulta semántica inválida, title_en: Semantic query invalid}
+  - {code: template_render_failed, http: 422, module: documents, severity: error, title_es: Falló la generación del documento, title_en: Document render failed}
+  # ---------------------------------------------------------------- dataio (P18)
+  - {code: import_validation_failed, http: 422, module: dataio, severity: error, title_es: Importación con errores por fila, title_en: Import validation failed (row errors)}
+  - {code: import_duplicate_batch, http: 409, module: dataio, severity: error, title_es: Lote ya importado, title_en: Duplicate import batch (same hash)}
+  - {code: import_file_rejected, http: 422, module: dataio, severity: error, title_es: Archivo rechazado, title_en: Import file rejected (bomb, zip-slip, type)}
+  - {code: template_unknown, http: 404, module: dataio, severity: error, title_es: Plantilla desconocida, title_en: Template unknown}
+  # ---------------------------------------------------------------- ai / mcp (P19, P20)
+  - {code: ai_action_requires_confirmation, http: 409, module: ai, severity: error, title_es: La acción de IA requiere confirmación del usuario, title_en: AI action requires user confirmation}
+  - {code: ai_provider_unavailable, http: 503, module: ai, severity: error, title_es: Proveedor de IA no disponible (modo de prueba), title_en: AI provider unavailable (fixture mode)}
+  - {code: ai_budget_exceeded, http: 429, module: ai, severity: error, title_es: Presupuesto de IA excedido, title_en: AI budget exceeded}
+  - {code: prompt_injection_blocked, http: 422, module: ai, severity: error, title_es: Instrucción no confiable bloqueada, title_en: Untrusted instruction blocked}
+  - {code: mcp_scope_insufficient, http: 403, module: mcp, severity: error, title_es: Alcance MCP insuficiente, title_en: MCP scope insufficient}
+  # ---------------------------------------------------------------- onboarding (P21)
+  - {code: opening_balance_unbalanced, http: 422, module: onboarding, severity: error, title_es: Saldos iniciales descuadrados, title_en: Opening balances not balanced}
+  - {code: go_live_check_failed, http: 422, module: onboarding, severity: error, title_es: Verificación de salida en vivo fallida, title_en: Go-live check failed}

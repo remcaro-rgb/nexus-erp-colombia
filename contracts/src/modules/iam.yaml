@@ -1,0 +1,87 @@
+module: iam
+title: Identidad y acceso
+owner: P04
+description: Tenants, empresas, sucursales (F-ACC-BRANCH), usuarios, roles, políticas ABAC, políticas de campo, SoD, cuentas de servicio, delegaciones, acceso de emergencia, consentimientos y cuentas externas de portales (F-PORTAL-CORE).
+resources:
+  - {path: companies, kind: master, tenant_level: true, label: empresas,
+     fields: {name: null, legal_name: name internal req, trade_name: string internal null, nit: nit internal req, timezone: string internal, functional_currency: currency public,
+              gs1_prefix: string internal null, default_book_id: ref internal null}}
+  # ---------------------------------------------------------------- F-ACC-BRANCH
+  - path: companies/{company_id}/branches
+    schema: Branch
+    perm: branch
+    kind: master
+    tenant_level: true
+    ops: list create
+    label: sucursales de una empresa
+    fields: &branch
+      company_id: ref internal ro
+      is_head_office: bool internal
+      address: string internal
+      municipality_code: string internal null
+      phone: phone internal null
+      default_business_unit_id: ref internal null
+      default_warehouse_id: ref internal null
+      valid_from: date internal
+      valid_to: date internal null
+    errors: [branch_code_duplicate, branch_cross_company, branch_head_office_required]
+    features: [F-ACC-BRANCH]
+  - path: branches
+    schema: Branch
+    perm: branch
+    kind: master
+    ops: list get update
+    label: sucursales
+    tenant_level: true
+    fields: *branch
+    actions: [archive, unarchive]
+    errors: [branch_code_duplicate, branch_cross_company, branch_in_use, branch_head_office_required]
+    features: [F-ACC-BRANCH]
+  - path: cost-centers
+    kind: readonly
+    perm: cost_center_scope
+    schema: CostCenterScope
+    label: centros de costo (vista de alcance para roles; maestro en /api/v1/ledger/dimensions/cost-centers)
+    description: 'Superseded master (F-ACC-DIM): read-only projection of ledger cost-center ids usable in role scopes.'
+    fields: {code: code internal ro, description: string internal ro, path: string internal ro}
+    features: [F-ACC-DIM]
+  - {path: users, kind: master, tenant_level: true, fields: {name: null, code: null, username: string internal req, email: email restricted-pii req, full_name: name restricted-pii req,
+       default_company_id: ref internal null, locale: string public, mfa_enabled: bool internal ro}, actions: [suspend, reactivate]}
+  - {path: roles, kind: master, tenant_level: true, fields: {template_key: string internal null, grants: 'array(string) internal', denies: 'array(string) internal', max_classification: 'enum(public|internal|confidential|restricted-pii|sensitive-pii|secret) internal'}}
+  - {path: role-assignments, kind: config, fields: {name: null, user_id: ref internal req, role_id: ref internal req, scope: json internal, valid_from: date internal, valid_to: date internal null}, ops: list create get delete}
+  - {path: policies, kind: config, fields: {effect: 'enum(ALLOW|DENY) internal req', action_pattern: string internal req, resource_type: string internal req, condition: json internal, priority: int internal},
+     coll_actions: [simulate], errors: [policy_denied]}
+  - {path: field-policies, kind: config, fields: {resource_type: string internal req, field: string internal req, classification: 'enum(public|internal|confidential|restricted-pii|sensitive-pii|secret) internal req',
+       readable_by: 'array(string) internal', writable_by: 'array(string) internal'}}
+  - {path: sod-rules, kind: config, fields: {conflicting_permissions: 'array(string) internal req', severity: 'enum(BLOCK|WARN) internal'}, errors: [sod_violation]}
+  - {path: service-accounts, kind: master, tenant_level: true, fields: {client_id: string internal ro, roles: 'array(ref) internal'}, actions: [rotate-credentials, revoke]}
+  - {path: delegated-grants, kind: config, fields: {name: null, grantor_user_id: ref internal req, grantee: string internal req, permissions: 'array(string) internal req', expires_at: datetime internal req},
+     actions: [revoke], errors: [delegation_exceeds_grantor]}
+  - {path: break-glass, kind: process, perm: break_glass, coll_actions: [{open: {perm: admin, errors: [reason_required]}}, {close: {perm: admin}}]}
+  - {path: consents, kind: record, fields: {subject: partyref restricted-pii req, purpose: string internal req, granted: bool internal req, granted_at: datetime internal ro, evidence: string internal}, actions: [revoke]}
+  - {path: me, kind: singleton, ops: getone, schema: Me, perm: me, tenant_level: true,
+     fields: {status: null, user_id: ref internal ro, companies: 'array(ref) internal ro', permissions: 'array(string) internal ro', field_masks: json internal ro, portal_kind: string internal ro null}}
+  # ---------------------------------------------------------------- F-PORTAL-CORE
+  - path: external-accounts
+    kind: master
+    schema: ExternalAccount
+    label: cuentas externas de portal
+    ops: list create get
+    fields: {code: null, name: null, email: email restricted-pii req, portal_kind: 'enum(supplier|customer|employee) internal req', party: partyref confidential req,
+             employee_id: ref restricted-pii null, external_status: 'enum(INVITED|ACTIVE|SUSPENDED|REVOKED|EXPIRED) internal ro', invitation_expires_at: datetime internal ro}
+    actions: [suspend, reactivate, revoke, resend]
+    coll_actions: [import]
+    errors: [external_account_scope_violation, invitation_expired, external_role_forbidden, portal_kind_mismatch]
+    features: [F-PORTAL-CORE]
+events:
+  - {type: iam.policy.changed.v1, description: Cambio de política, rol o asignación, payload: {policy_type: 'enum(role|policy|field_policy|sod_rule|assignment|delegation) internal req', object_id: ref internal req, change: 'enum(created|updated|deleted) internal req'}}
+  - {type: iam.branch.changed.v1, description: Sucursal creada, modificada o archivada, features: [F-ACC-BRANCH], payload: {branch_id: ref internal req, company_id: ref internal req, change: 'enum(created|updated|archived|unarchived) internal req'}}
+  - {type: iam.external_account.status_changed.v1, description: Cambio de estado de cuenta externa, features: [F-PORTAL-CORE], payload: {external_account_id: ref internal req, portal_kind: 'enum(supplier|customer|employee) internal req', to_status: string internal req}}
+  - {type: iam.break_glass.opened.v1, description: Acceso de emergencia abierto, payload: {session_id: ref internal req, user_id: ref internal req, reason: text internal req}}
+dataio:
+  - {entity: branches, schema: Branch, key: [company_nit, code], permission: iam.branch.create, features: [F-ACC-BRANCH], lookups: {company_id: 'iam.company by NIT'}}
+  - {entity: users, schema: User, key: [username], permission: iam.user.create}
+  - {entity: roles, schema: Role, key: [code], permission: iam.role.create}
+  - {entity: external-account-invitations, key: [portal_kind, party_nit, email], permission: iam.external_account.create, features: [F-PORTAL-CORE],
+     columns: {portal_kind: 'enum(supplier|customer|employee) internal req', party_nit: string confidential req, email: email restricted-pii req, full_name: name restricted-pii},
+     rules: ['each row creates an INVITED external account; invitations go to the local mail capture (Mailpit, D-018)']}

@@ -1,0 +1,27 @@
+module: dataio
+title: Importación y exportación
+owner: P18
+description: Plantillas por entidad (contracts/dataio/*.yaml), importación en dos fases (validar → aplicar; atómica por lote; idempotente por hash), exportación con máscaras de campo y políticas de fila.
+resources:
+  - path: templates
+    kind: readonly
+    schema: DataioTemplate
+    perm: template
+    label: plantillas de importación/exportación
+    fields: {entity: string internal ro, columns: json internal ro, natural_key: 'array(string) internal ro', export_only: bool internal ro}
+    extra: [{path: '{entity}/download', method: GET, op: download, perm: read, returns: 'file:xlsx', errors: [template_unknown]}]
+    features: [F-X-DATAIO]
+  - path: imports
+    kind: record
+    schema: ImportJob
+    fields: {entity: string internal req, batch_hash: string internal ro, import_status: 'enum(UPLOADED|MAPPED|VALIDATED|COMMITTED|FAILED|CANCELLED) internal ro', row_count: int internal ro, error_count: int internal ro}
+    actions: [{upload: {perm: create}}, map, validate, dry-run, commit, cancel, {resume: {perm: post, async: true}}]
+    extra: [{path: '{id}/report', method: GET, op: report, perm: read, returns: report}]
+    errors: [import_validation_failed, import_duplicate_batch, import_file_rejected, template_unknown]
+    features: [F-X-DATAIO]
+  - {path: exports, kind: record, schema: ExportJob, fields: {source: string internal req, format: 'enum(csv|xlsx|jsonl) internal req', export_status: string internal ro, row_count: int internal ro},
+     actions: [start], extra: [{path: '{id}/file', method: GET, op: file, perm: export, returns: 'file:zip'}], features: [F-X-DATAIO]}
+  - {path: mapping-profiles, kind: config, fields: {entity: string internal req, mapping: json internal req}}
+events:
+  - {type: dataio.import.committed.v1, description: Importación aplicada (lote atómico), features: [F-X-DATAIO], payload: {import_id: ref internal req, entity: string internal req, rows: int internal req, batch_hash: string internal req}}
+  - {type: dataio.export.completed.v1, description: Exportación terminada (auditada con conteo de filas), features: [F-X-DATAIO], payload: {export_id: ref internal req, rows: int internal req}}

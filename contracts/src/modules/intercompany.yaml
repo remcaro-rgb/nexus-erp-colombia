@@ -1,0 +1,9 @@
+module: intercompany
+title: Intercompañía
+owner: P16
+tenant_level: true
+resources:
+  - {path: agreements, kind: master, schema: IntercompanyAgreement, fields: {company_a_id: ref internal req, company_b_id: ref internal req, accounts: json internal req}}
+  - {path: reconciliation, kind: report, perm: reconciliation, params: [period, company_a_id, company_b_id], report_errors: [intercompany_mismatch]}
+events:
+  - {type: intercompany.mismatch.detected.v1, description: Diferencia intercompañía detectada, payload: {agreement_id: ref internal req, difference: money confidential req}}

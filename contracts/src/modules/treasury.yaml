@@ -1,0 +1,48 @@
+module: treasury
+title: Tesorería
+owner: P16
+description: Bancos, cajas, recibos de caja (F-TRE-RC), comprobantes de egreso (F-TRE-CE), conceptos, fondos, extractos y conciliación, lotes de pago (archivo bancario simulado).
+resources:
+  - {path: bank-accounts, kind: master, schema: BankAccount, fields: {bank_code: string internal req, account_number: string confidential req, currency: currency public req, account_id: ref internal req, fund_id: ref internal null}}
+  - {path: cash-boxes, kind: master, schema: CashBox, fields: {currency: currency public req, account_id: ref internal req, fund_id: ref internal null}}
+  - {path: funds, kind: master, label: fondos (bancos/cajas), fields: {fund_type: 'enum(BANK|CASH) internal req', allow_overdraft: bool internal}, extra: [{path: '{id}/snapshot', method: GET, op: snapshot, perm: read, returns: report}], features: [F-TRE-RC, F-TRE-CE]}
+  - {path: concepts, kind: master, schema: TreasuryConcept, label: conceptos de tesorería, fields: {direction: 'enum(IN|OUT|BOTH) internal req', account_role: string internal req, withholding_concept_ids: 'array(ref) internal', requires_dimension: bool internal}, features: [F-TRE-RC, F-TRE-CE]}
+  # ---------------------------------------------------------------- F-TRE-RC / F-TRE-CE
+  - &voucher
+    path: receipts
+    kind: document
+    schema: CashReceipt
+    label: recibos de caja
+    params: [status, date, party, fund, number]
+    fields: {fund_id: ref internal req, payment_method: 'enum(CASH|TRANSFER|CHECK|CARD|OTHER) internal req', reference: string internal null, withholdings: json internal ro, branch_id: ref internal null}
+    lines: {concept_id: ref internal null, open_item_id: ref internal null, applied_amount: money internal}
+    actions: [submit, approve, reject, post, reverse, simulate]
+    coll_actions: [{bulk-print: {perm: export}}]
+    extra: [{path: '{id}/pdf', method: GET, op: pdf, perm: export, returns: 'file:pdf'}]
+    errors: [treasury_period_closed, treasury_overapplication, treasury_open_item_mismatch_party, treasury_currency_mismatch, treasury_approval_required, treasury_insufficient_funds_warning, tax_parameter_unknown, dimension_required]
+    features: [F-TRE-RC]
+  - {<<: *voucher, path: disbursements, schema: Disbursement, label: comprobantes de egreso, features: [F-TRE-CE]}
+  - {path: transfers, kind: document, schema: FundTransfer, fields: {party: null, from_fund_id: ref internal req, to_fund_id: ref internal req, amount: money confidential req}, actions: [post, simulate], errors: [treasury_insufficient_funds_warning]}
+  - {path: statements, kind: record, schema: BankStatement, fields: {bank_account_id: ref internal req, period: daterange internal req}, coll_actions: [import]}
+  - {path: statement-lines, kind: readonly, schema: StatementLine, fields: {statement_id: ref internal ro, amount: money confidential ro, value_date: date internal ro, description: string confidential ro, matched: bool internal ro},
+     actions: [match, unmatch, create-entry], errors: [statement_line_already_matched]}
+  - {path: reconciliation-rules, kind: config, fields: {pattern: string internal req, concept_id: ref internal null, priority: int internal}}
+  - path: payment-batches
+    kind: document
+    schema: PaymentBatch
+    fields: {party: null, fund_id: ref internal req, payment_date: date internal req}
+    actions: [submit, approve, generate-file, mark-sent, {execute: {perm: post, async: true, summary: 'Ejecutar: un CE por beneficiario (archivo bancario simulado, FIXTURE_NOT_CERTIFIED)', features: [F-TRE-CE]}}]
+    errors: [treasury_approval_required, treasury_insufficient_funds_warning]
+  - {path: exchange-rates, kind: process, perm: exchange_rate, coll_actions: [sync]}
+  - {path: cash-position, kind: report, perm: cash_position, params: [as_of, currency]}
+events:
+  - {type: treasury.receipt.posted.v1, description: Recibo de caja contabilizado, features: [F-TRE-RC], payload: {receipt_id: ref internal req, number: string internal req, party: partyref confidential req, amount: money confidential req, journal_entry_id: ref internal req}}
+  - {type: treasury.receipt.reversed.v1, description: Recibo de caja reversado, features: [F-TRE-RC], payload: {receipt_id: ref internal req, reversal_entry_id: ref internal req, reason: text internal req}}
+  - {type: treasury.disbursement.posted.v1, description: Comprobante de egreso contabilizado, features: [F-TRE-CE], payload: {disbursement_id: ref internal req, number: string internal req, party: partyref confidential req, amount: money confidential req, journal_entry_id: ref internal req}}
+  - {type: treasury.disbursement.reversed.v1, description: Comprobante de egreso reversado, features: [F-TRE-CE], payload: {disbursement_id: ref internal req, reversal_entry_id: ref internal req, reason: text internal req}}
+  - {type: treasury.statement_line.matched.v1, description: Línea de extracto conciliada, payload: {statement_line_id: ref internal req, matched_to: docref internal req}}
+dataio:
+  - {entity: bank-accounts, schema: BankAccount, key: [bank_code, account_number], permission: treasury.bank_account.create}
+  - {entity: treasury-concepts, schema: TreasuryConcept, key: [code], permission: treasury.concept.create, features: [F-TRE-RC, F-TRE-CE]}
+  - {entity: cash-receipts, schema: CashReceipt, key: [number], permission: treasury.receipt.export, features: [F-TRE-RC], export_only: true}
+  - {entity: disbursements, schema: Disbursement, key: [number], permission: treasury.disbursement.export, features: [F-TRE-CE], export_only: true}

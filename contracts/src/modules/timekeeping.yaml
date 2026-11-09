@@ -1,0 +1,12 @@
+module: timekeeping
+title: Control de tiempo
+owner: P13
+resources:
+  - {path: clock-events, kind: record, schema: ClockEvent, fields: {employee_id: ref restricted-pii req, event_type: 'enum(IN|OUT) internal req', at: datetime internal ro, device: string internal null, geo: string sensitive-pii null},
+     coll_actions: [{clock-in: {perm: create, returns: schema}}, {clock-out: {perm: create, returns: schema}}]}
+  - {path: shifts, kind: master, fields: {start_time: string internal req, end_time: string internal req}}
+  - {path: timesheets, kind: document, fields: {party: null, employee_id: ref restricted-pii req, period: string internal req}, actions: [submit, approve]}
+  - {path: overtime-requests, kind: document, schema: OvertimeRequest, fields: {party: null, employee_id: ref restricted-pii req, hours: decimal internal req}, actions: [submit, approve, reject]}
+  - {path: absences, kind: document, fields: {party: null, employee_id: ref restricted-pii req, absence_type: string internal req, start_date: date internal req, end_date: date internal req, medical_note: string sensitive-pii null}, actions: [submit, approve, reject]}
+events:
+  - {type: timekeeping.timesheet.approved.v1, description: Planilla de tiempo aprobada, payload: {timesheet_id: ref internal req, employee_id: ref restricted-pii req}}

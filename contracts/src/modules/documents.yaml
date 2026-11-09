@@ -1,0 +1,12 @@
+module: documents
+title: Plantillas y documentos
+owner: P17
+description: Plantillas de documentos y renderizado (kernel.interfaces.DocumentRenderer, D-005).
+resources:
+  - {path: templates, kind: master, schema: DocumentTemplate, fields: {document_type: string internal req, engine: 'enum(weasyprint) internal', body: text internal req, locale: string public}, actions: [preview]}
+  - path: render
+    kind: process
+    perm: render
+    extra:
+      - {path: '', method: POST, op: render, perm: export, returns: 'file:pdf', summary: 'Renderizar documento pequeño (síncrono)', errors: [template_render_failed]}
+    coll_actions: [{render-batch: {perm: export, summary: Renderizado por lotes (202)}}]

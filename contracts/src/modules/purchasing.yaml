@@ -1,0 +1,84 @@
+module: purchasing
+title: Compras y cuentas por pagar
+owner: P11
+description: Solicitudes internas (F-INV-REQ), consolidación, ciclo de compras con cotizaciones (F-PUR-CYCLE), órdenes, recepciones, facturas de proveedor, documento soporte, costos de importación, facturas recibidas, pagos.
+resources:
+  - {path: requisitions, kind: document, schema: PurchaseRequisition, fields: {party: null, needed_by: date internal null}, actions: [submit, approve, reject, to-rfq, to-po]}
+  # ---------------------------------------------------------------- F-INV-REQ
+  - path: internal-requisitions
+    kind: document
+    schema: InternalRequisition
+    label: solicitudes internas de mercancía
+    fields: {party: null, requesting_warehouse_id: ref internal req, needed_by: date internal req, priority: 'enum(LOW|NORMAL|HIGH|URGENT) internal', dimensions: dims internal}
+    lines: {presentation_id: ref internal null, sourced_qty: qty internal ro, remaining_qty: qty internal ro}
+    actions:
+      - submit
+      - approve
+      - reject
+      - cancel
+      - source: {perm: post, returns: result, params: [mode], summary: 'Abastecer (mode=simulate|apply): traslado automático y/o borrador de compra (D-011, D-012)',
+                 errors: [requisition_not_approved, sourcing_overallocation, auto_po_limit_exceeded, stock_insufficient, transfer_cross_company]}
+    coll_actions: [import]
+    errors: [requisition_not_approved]
+    features: [F-INV-REQ]
+  - path: consolidations
+    kind: readonly
+    schema: Consolidation
+    label: consolidaciones de solicitudes
+    fields: {lineage: json internal ro, lines: json internal ro, run_at: datetime internal ro}
+    coll_actions:
+      - run: {perm: create, async: true, params: [dry_run], summary: 'Consolidar líneas APROBADAS (D-031); dry_run=true|false', errors: [requisition_not_approved, sourcing_overallocation]}
+    features: [F-INV-REQ]
+  # ---------------------------------------------------------------- F-PUR-CYCLE
+  - path: rfqs
+    kind: document
+    schema: Rfq
+    label: solicitudes de cotización
+    fields: {party: null, deadline: datetime internal req, invited_vendors: 'array(ref) internal req', scoring_weights: json internal, awarded_quote_id: ref internal ro null, award_reason: text internal ro null}
+    actions: [send, close, reopen, evaluate, award, approve-award]
+    extra: [{path: '{id}/comparison', method: GET, op: comparison, perm: read, returns: report, summary: 'Comparativo explicable (D-009)'}]
+    errors: [rfq_deadline_passed, quote_currency_rate_missing, award_reason_required, award_not_approved]
+    features: [F-PUR-CYCLE]
+  - path: rfqs/{rfq_id}/quotes
+    kind: document
+    schema: VendorQuote
+    perm: quote
+    label: cotizaciones de proveedor
+    fields: {received_at: datetime internal ro, lead_time_days: int internal, payment_terms_days: int internal, quote_status: 'enum(RECEIVED|LATE|DISQUALIFIED|AWARDED) internal ro', landed_total: money confidential ro}
+    extra:
+      - {path: '{id}/attachments', method: GET, op: attachments, perm: read, returns: page}
+      - {path: '{id}/attachments', method: POST, op: add_attachment, perm: update, body: upload}
+    coll_actions: [import]
+    errors: [quote_late, rfq_deadline_passed, quote_currency_rate_missing]
+    features: [F-PUR-CYCLE]
+  - {path: orders, kind: document, schema: PurchaseOrder, fields: {expected_date: date internal null, rfq: docref internal ro null}, actions: [submit, approve, send, close, cancel], features: [F-PUR-CYCLE, F-INV-REQ]}
+  - {path: receipts, kind: document, schema: PurchaseReceipt, fields: {order: docref internal null, warehouse_id: ref internal req, partial: bool internal},
+     lines: {presentation_id: ref internal null, lot_id: ref internal null, location_id: ref internal null}, actions: [validate, simulate], errors: [receipt_over_tolerance, location_not_leaf, lot_required], features: [F-PUR-CYCLE]}
+  - {path: vendor-invoices, kind: document, schema: VendorInvoice, fields: {vendor_invoice_number: string internal req, due_date: date internal null, received_einvoice: docref internal null},
+     actions: [match, post, simulate], errors: [three_way_mismatch, tax_parameter_unknown], features: [F-PUR-CYCLE]}
+  - {path: vendor-credit-notes, kind: document, schema: VendorCreditNote, fields: {original: docref internal req}, actions: [post, simulate]}
+  - {path: support-documents, kind: document, schema: SupportDocument, actions: [post, simulate], extra: [{path: '{id}/adjustment-notes', method: POST, op: adjustment_notes, perm: create}], errors: [numbering_range_missing]}
+  - {path: landed-costs, kind: document, schema: LandedCost, actions: [allocate, post, simulate]}
+  - {path: received-einvoices, kind: readonly, schema: ReceivedEinvoice, fields: {issuer: partyref confidential ro, cufe: string internal ro, xml_ref: string internal ro, acceptance_status: string internal ro},
+     actions: [accept, claim], coll_actions: [ingest]}
+  - {path: ap/open-items, kind: readonly, perm: ap_open_item, schema: ApOpenItem, fields: {party: partyref confidential ro, document: docref internal ro, due_date: date internal ro, balance: money confidential ro}}
+  - {path: ap/aging, kind: report, perm: ap_aging, params: [as_of, party_id]}
+  - {path: payment-proposals, kind: document, schema: PaymentProposal, fields: {party: null, payment_date: date internal req}, actions: [approve, generate-file]}
+  - {path: payments, kind: document, schema: VendorPayment, actions: [post, simulate], errors: [treasury_overapplication]}
+  - {path: offsets, kind: document, actions: [post, simulate]}
+  - {path: reports/grni, kind: report, perm: grni, params: [as_of]}
+events:
+  - {type: purchasing.receipt.validated.v1, description: Recepción validada, features: [F-PUR-CYCLE], payload: {receipt_id: ref internal req, order_id: ref internal, warehouse_id: ref internal req}}
+  - {type: purchasing.vendor_invoice.posted.v1, description: Factura de proveedor contabilizada, features: [F-PUR-CYCLE], payload: {vendor_invoice_id: ref internal req, party: partyref confidential req, total: money confidential req, journal_entry_id: ref internal req}}
+  - {type: purchasing.support_document.posted.v1, description: Documento soporte contabilizado, payload: {support_document_id: ref internal req, total: money confidential req}}
+  - {type: purchasing.payment.posted.v1, description: Pago a proveedor contabilizado, payload: {payment_id: ref internal req, party: partyref confidential req, amount: money confidential req}}
+  - {type: purchasing.einvoice.received.v1, description: Factura electrónica recibida, payload: {received_einvoice_id: ref internal req, cufe: string internal req}}
+  - {type: purchasing.internal_requisition.approved.v1, description: Solicitud interna aprobada, features: [F-INV-REQ], payload: {requisition_id: ref internal req, number: string internal req}}
+  - {type: purchasing.internal_requisition.sourced.v1, description: Solicitud interna abastecida (traslado y/o compra), features: [F-INV-REQ], payload: {requisition_id: ref internal req, transfers: 'array(ref) internal', purchase_drafts: 'array(ref) internal'}}
+  - {type: purchasing.rfq.awarded.v1, description: Cotización adjudicada y aprobada, features: [F-PUR-CYCLE], payload: {rfq_id: ref internal req, quote_id: ref internal req, vendor: partyref confidential req, reason: text internal req}}
+dataio:
+  - {entity: internal-requisitions, schema: InternalRequisition, key: [number], permission: purchasing.internal_requisition.create, features: [F-INV-REQ], rules: ['imported as DRAFT']}
+  - {entity: vendor-quotes, schema: VendorQuote, key: [rfq_number, vendor_nit], permission: purchasing.quote.create, features: [F-PUR-CYCLE], rules: ['CSV per vendor; late quotes stored LATE (D-010)']}
+  - {entity: open-ap, key: [party_nit, document_number], permission: purchasing.vendor_invoice.create,
+     columns: {party_nit: string confidential req, document_number: string internal req, document_date: date internal req, due_date: date internal req, amount: decimal confidential req, currency: currency public req},
+     rules: ['loaded as opening AP open items; GL(AP) = Σ open items']}

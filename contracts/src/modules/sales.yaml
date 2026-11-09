@@ -1,0 +1,61 @@
+module: sales
+title: Ventas y cartera
+owner: P10
+description: Maestro de terceros (PartyService), listas de precios, precios formulados (F-SAL-PRICING), cotizaciones, pedidos, despachos, facturas, notas, recaudos y cartera.
+resources:
+  - path: parties
+    kind: master
+    label: terceros
+    fields: {name: null, legal_name: name confidential req, trade_name: string confidential null, nit: nit confidential req, person_type: 'enum(NATURAL|JURIDICA) internal req',
+             roles: 'array(enum(customer|vendor|employee|other)) internal', email: email restricted-pii null, phone: phone restricted-pii null, address: string restricted-pii null,
+             municipality_code: string internal null, credit_limit: money confidential null, payment_terms_days: int internal null, price_list_id: ref internal null, salesperson_id: ref internal null}
+    actions: [merge]
+    coll_actions: [bulk]
+    errors: [party_duplicate, nit_invalid]
+  - {path: price-lists, kind: master, fields: {currency: currency public req, valid_from: date internal, valid_to: date internal null, prices: json confidential}}
+  # ---------------------------------------------------------------- F-SAL-PRICING
+  - path: price-formulas
+    kind: master
+    schema: PriceFormula
+    label: fórmulas de precio
+    fields: {formula_id: ref internal req, scope: json internal req, priority: int internal, valid_from: date internal, valid_to: date internal null}
+    errors: [formula_not_approved, formula_unknown_identifier, formula_type_error, formula_syntax_error]
+    features: [F-SAL-PRICING]
+  - path: pricing
+    kind: process
+    perm: pricing
+    coll_actions:
+      - quote: {perm: read, returns: result, summary: 'Resolver precio (cliente, ítems, cantidad, fecha, moneda) → precio + explicación (D-024)',
+                errors: [pricing_formula_missing_input, pricing_override_requires_approval, price_not_found, formula_budget_exceeded, formula_division_by_zero], features: [F-SAL-PRICING]}
+    features: [F-SAL-PRICING]
+  - {path: quotes, kind: document, schema: SalesQuote, fields: {valid_until: date internal null, salesperson_id: ref internal null}, actions: [send, accept, to-order, cancel], errors: [pricing_override_requires_approval], features: [F-SAL-PRICING]}
+  - {path: orders, kind: document, schema: SalesOrder, actions: [confirm, cancel, to-invoice], errors: [credit_limit_exceeded, pricing_override_requires_approval, stock_insufficient], features: [F-SAL-PRICING]}
+  - {path: deliveries, kind: document, fields: {warehouse_id: ref internal req}, actions: [validate], errors: [stock_insufficient, lot_required]}
+  - path: invoices
+    kind: document
+    schema: SalesInvoice
+    fields: {due_date: date internal null, fiscal_status: string internal ro, cufe: string internal ro null, branch_id: ref internal null}
+    actions: [post, simulate, send]
+    errors: [credit_limit_exceeded, tax_parameter_unknown, numbering_range_missing, pricing_posted_document_immutable, dimension_required, stock_insufficient]
+    features: [F-SAL-PRICING]
+  - {path: credit-notes, kind: document, schema: SalesCreditNote, fields: {original: docref internal req, reason: string internal req}, actions: [post, simulate], errors: [tax_parameter_unknown]}
+  - {path: debit-notes, kind: document, schema: SalesDebitNote, fields: {original: docref internal req, reason: string internal req}, actions: [post, simulate]}
+  - {path: receipts, kind: document, schema: SalesReceipt, label: recaudos de cartera (vía tesorería RC), fields: {applications: json internal}, actions: [post], errors: [treasury_overapplication]}
+  - {path: ar/open-items, kind: readonly, perm: ar_open_item, schema: ArOpenItem, fields: {party: partyref confidential ro, document: docref internal ro, due_date: date internal ro, balance: money confidential ro}}
+  - {path: ar/aging, kind: report, perm: ar_aging, params: [as_of, party_id, salesperson_id]}
+  - {path: ar/statements, kind: report, perm: ar_statement, params: [party_id, date_from, date_to]}
+  - {path: write-offs, kind: document, actions: [post, simulate]}
+  - {path: returns, kind: document, schema: SalesReturn, fields: {original: docref internal req, warehouse_id: ref internal req}, actions: [submit, approve, post]}
+events:
+  - {type: sales.order.confirmed.v1, description: Pedido confirmado, payload: {order_id: ref internal req, number: string internal req, party: partyref confidential req, total: money confidential req}}
+  - {type: sales.delivery.done.v1, description: Despacho validado, payload: {delivery_id: ref internal req, order_id: ref internal}}
+  - {type: sales.invoice.posted.v1, description: Factura de venta contabilizada, features: [F-SAL-PRICING], payload: {invoice_id: ref internal req, number: string internal req, party: partyref confidential req, total: money confidential req, journal_entry_id: ref internal req}}
+  - {type: sales.credit_note.posted.v1, description: Nota crédito contabilizada, payload: {credit_note_id: ref internal req, original: docref internal req, total: money confidential req}}
+  - {type: sales.receipt.posted.v1, description: Recaudo aplicado a cartera, payload: {receipt_id: ref internal req, party: partyref confidential req, amount: money confidential req}}
+dataio:
+  - {entity: parties, schema: Party, key: [nit], permission: sales.party.create, rules: ['NIT check digit validated by P06', 'duplicates by NIT rejected (party_duplicate)']}
+  - {entity: price-lists, schema: PriceList, key: [code], permission: sales.price_list.create}
+  - {entity: price-formulas, schema: PriceFormula, key: [code], permission: sales.price_formula.create, features: [F-SAL-PRICING]}
+  - {entity: open-ar, key: [party_nit, document_number], permission: sales.invoice.create,
+     columns: {party_nit: string confidential req, document_number: string internal req, document_date: date internal req, due_date: date internal req, amount: decimal confidential req, currency: currency public req},
+     rules: ['loaded as opening AR open items against the opening balance account; GL(AR) = Σ open items']}

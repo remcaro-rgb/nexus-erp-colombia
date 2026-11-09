@@ -1,0 +1,31 @@
+module: einvoice
+title: Facturación electrónica DIAN (simulador en DEV)
+owner: P15
+description: Documentos fiscales, rangos de numeración, contingencia, eventos RADIAN, set de habilitación, certificados (solo metadatos), configuración y proveedores tecnológicos abiertos (F-PT-OPEN). DEV usa SandboxSimulator; nunca endpoints DIAN reales.
+resources:
+  - {path: documents, kind: readonly, schema: FiscalDocument, fields: {source: docref internal ro, document_type: string internal ro, fiscal_status: 'enum(PENDING|SENT|ACCEPTED|REJECTED|CONTINGENCY) internal ro', cufe: string internal ro null, synthetic: bool public ro},
+     actions: [retry, resend-email], extra: [{path: '{id}/events', method: GET, op: events, perm: read, returns: page}, {path: '{id}/xml', method: GET, op: xml, perm: export, returns: 'file:xml'}], errors: [fiscal_rejected]}
+  - {path: numbering-ranges, kind: master, schema: NumberingRange, fields: {name: null, prefix: string internal req, from_number: int internal req, to_number: int internal req, resolution: string internal req, valid_to: date internal req, technical_key_ref: string secret wo},
+     coll_actions: [sync], errors: [numbering_range_missing]}
+  - {path: contingency, kind: singleton, ops: getone, schema: Contingency, perm: contingency, fields: {status: null, active: bool internal ro, since: datetime internal ro null}, coll_actions: [{declare: {perm: admin, returns: schema}}, {end: {perm: admin, returns: schema}}]}
+  - {path: radian/events, kind: record, schema: RadianEvent, perm: radian_event, fields: {document: docref internal req, event_code: string internal req}, coll_actions: [{emit: {perm: create, returns: result}}]}
+  - {path: habilitation/test-sets, kind: record, schema: HabilitationTestSet, perm: habilitation, fields: {test_set_id: string internal req, results: json internal ro}, actions: [run]}
+  - {path: certificates, kind: readonly, schema: SigningCertificateMeta, perm: certificate, label: certificados (solo metadatos), fields: {subject: string internal ro, valid_to: date internal ro, thumbprint: string internal ro}, errors: [certificate_missing]}
+  - {path: settings, kind: singleton, schema: EinvoiceSettings, perm: settings, put_perm: admin, fields: {status: null, mode: 'enum(SANDBOX_SIMULATOR|PROVIDER_SANDBOX) internal req', adapter: 'enum(simulator|provider|direct) internal req', provider_id: ref internal null,
+       software_id: string confidential null, software_pin_ref: string secret wo}, errors: [production_endpoint_refused]}
+  # ---------------------------------------------------------------- F-PT-OPEN
+  - path: providers
+    kind: master
+    schema: TechnologyProvider
+    label: proveedores tecnológicos
+    fields: {adapter: string internal req, base_url: url internal req, environment: 'enum(SANDBOX) internal req', credentials_ref: string secret wo, contract_version: string internal}
+    actions: [{test-connection: {perm: admin, returns: result, summary: 'Prueba de contrato (solo SANDBOX con credenciales del operador)', errors: [provider_contract_test_failed, provider_not_configured, production_endpoint_refused]}}]
+    coll_actions: [{export: {ext: csv}}]
+    errors: [provider_not_configured]
+    features: [F-PT-OPEN]
+events:
+  - {type: einvoice.document.status_changed.v1, description: Cambio de estado fiscal (simulador), payload: {document_id: ref internal req, source: docref internal req, from_status: string internal req, to_status: string internal req, cufe: string internal}}
+  - {type: einvoice.provider.tested.v1, description: Prueba de contrato de proveedor ejecutada, features: [F-PT-OPEN], payload: {provider_id: ref internal req, passed: bool internal req}}
+dataio:
+  - {entity: einvoice-providers, schema: TechnologyProvider, key: [code], permission: einvoice.provider.export, features: [F-PT-OPEN], export_only: true,
+     rules: ['export without secrets (secret refs omitted); import disabled: secrets are entered only via the secrets file/vault']}

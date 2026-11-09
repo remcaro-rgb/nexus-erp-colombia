@@ -1,0 +1,86 @@
+module: portal
+title: Portales de autoservicio
+owner: P04
+base: /api/portal/v1
+portal: any
+tenant_level: true
+description: |
+  API de portales (F-PORTAL-CORE/SUP/CUS/EMP). Solo identidades externas (cliente OIDC `erp-portal`, D-018/D-033). El alcance de tercero/empleado viene
+  del token, nunca del cuerpo ni de parámetros; un documento ajeno responde 404 `portal_document_not_owned`. Sin X-Company-Id: la empresa es la de la cuenta externa.
+resources:
+  # ---------------------------------------------------------------- F-PORTAL-CORE
+  - {path: me, kind: singleton, ops: getone, schema: PortalMe, perm: me, fields: {status: null, external_account_id: ref internal ro, portal_kind: 'enum(supplier|customer|employee) internal ro', display_name: name restricted-pii ro, email: email restricted-pii ro},
+     errors: [portal_kind_mismatch], features: [F-PORTAL-CORE]}
+  - {path: context, kind: singleton, ops: getone, schema: PortalContext, perm: context, fields: {status: null, company_name: string public ro, party: partyref confidential ro, menu: json internal ro, session_idle_minutes: int internal ro},
+     features: [F-PORTAL-CORE]}
+  # ---------------------------------------------------------------- F-PORTAL-SUP
+  - &sup
+    path: supplier/profile
+    kind: singleton
+    ops: getone
+    schema: SupplierProfile
+    perm: supplier_profile
+    owner: P11
+    portal_kind: supplier
+    fields: {status: null, legal_name: name confidential ro, nit: nit confidential ro, bank_account: string confidential ro, contacts: json restricted-pii ro, pending_change: bool internal ro}
+    extra: [{path: change-requests, method: POST, op: change_request, perm: create, summary: Solicitar cambio de perfil (revisión interna), errors: [portal_profile_change_pending]}]
+    errors: [external_account_scope_violation]
+    features: [F-PORTAL-SUP]
+  - {<<: *sup, path: supplier/documents, kind: record, ops: list create get, schema: SupplierDocument, perm: supplier_document, extra: [],
+     fields: {document_type: string internal req, file_name: string internal req, expires_on: date internal null, review_status: string internal ro}}
+  - {<<: *sup, path: supplier/rfqs, kind: readonly, ops: list get, schema: SupplierRfq, perm: supplier_rfq, extra: [], fields: {number: string internal ro, deadline: datetime internal ro, rfq_status: string internal ro}, errors: [external_account_scope_violation, portal_rfq_closed]}
+  - {<<: *sup, path: 'supplier/rfqs/{rfq_id}/quotes', kind: record, ops: list create get, schema: SupplierQuoteSubmission, perm: supplier_quote, extra: [],
+     fields: {lines: json internal req, currency: currency public req, valid_until: date internal, lead_time_days: int internal}, errors: [external_account_scope_violation, portal_rfq_closed, rfq_deadline_passed, quote_late]}
+  - {<<: *sup, path: supplier/purchase-orders, kind: readonly, ops: list get, schema: SupplierPurchaseOrder, perm: supplier_purchase_order, extra: [], fields: {number: string internal ro, total: money confidential ro, acknowledged_at: datetime internal ro null},
+     actions: [{acknowledge: {perm: update, returns: schema}}]}
+  - {<<: *sup, path: supplier/shipments, kind: record, ops: list create get, schema: SupplierShipment, perm: supplier_shipment, extra: [], fields: {purchase_order_id: ref internal req, expected_date: date internal req, lines: json internal req}}
+  - {<<: *sup, path: supplier/invoices, kind: record, ops: list create get, schema: SupplierInvoice, perm: supplier_invoice, extra: [], label: facturas (estado; carga de XML para ingesta de P11),
+     fields: {number: string internal req, xml_file: file confidential wo, processing_status: string internal ro}}
+  - {<<: *sup, path: supplier/payments, kind: readonly, ops: list get, schema: SupplierPayment, perm: supplier_payment, extra: [], fields: {document: docref internal ro, amount: money confidential ro, paid_on: date internal ro null}}
+  # ---------------------------------------------------------------- F-PORTAL-CUS
+  - &cus
+    path: customer/quotes
+    kind: readonly
+    ops: list get
+    schema: CustomerQuote
+    perm: customer_quote
+    owner: P10
+    portal_kind: customer
+    fields: {number: string internal ro, total: money confidential ro, valid_until: date internal ro, quote_status: string internal ro}
+    errors: [portal_document_not_owned, external_account_scope_violation]
+    features: [F-PORTAL-CUS]
+  - {<<: *cus, path: customer/orders, schema: CustomerOrder, perm: customer_order}
+  - {<<: *cus, path: customer/invoices, schema: CustomerInvoice, perm: customer_invoice,
+     extra: [{path: '{id}/pdf', method: GET, op: pdf, perm: read, returns: 'file:pdf', summary: 'PDF (SINTÉTICO en DEV)'}, {path: '{id}/xml', method: GET, op: xml, perm: read, returns: 'file:xml', summary: 'XML UBL (SINTÉTICO en DEV)'}]}
+  - {<<: *cus, path: customer/credit-notes, schema: CustomerCreditNote, perm: customer_credit_note}
+  - {<<: *cus, path: customer/receipts, schema: CustomerReceipt, perm: customer_receipt}
+  - {<<: *cus, path: customer/statement, kind: report, perm: customer_statement, params: [from, to]}
+  - {<<: *cus, path: customer/payment-intents, kind: record, ops: list create get, schema: CustomerPaymentIntent, perm: customer_payment_intent, label: 'intenciones de pago (proveedor simulado, D-021; nunca contabilizan solas)',
+     fields: {documents: 'array(ref) internal req', amount: money confidential req, intent_status: 'enum(CREATED|SUCCEEDED_SIMULATED|FAILED|CONFIRMED_BY_TREASURY) internal ro', provider: string internal ro},
+     errors: [payment_intent_amount_invalid, portal_document_not_owned, external_account_scope_violation]}
+  - {<<: *cus, path: customer/requests, kind: record, ops: list create get, schema: CustomerRequest, perm: customer_request, fields: {request_type: string internal req, message: text confidential req, request_status: string internal ro}}
+  - {<<: *cus, path: customer/profile, kind: singleton, ops: getone, schema: CustomerProfile, perm: customer_profile, fields: {status: null, legal_name: name confidential ro, nit: nit confidential ro, email: email restricted-pii ro}}
+  # ---------------------------------------------------------------- F-PORTAL-EMP
+  - &emp
+    path: employee/payslips
+    kind: readonly
+    ops: list get
+    schema: EmployeePayslip
+    perm: employee_payslip
+    owner: P13
+    portal_kind: employee
+    fields: {period: string internal ro, net_pay: money confidential ro}
+    extra: [{path: '{id}/pdf', method: GET, op: pdf, perm: read, returns: 'file:pdf'}]
+    errors: [portal_document_not_owned, external_account_scope_violation]
+    features: [F-PORTAL-EMP]
+  - {<<: *emp, path: employee/certificates, schema: EmployeeCertificate, perm: employee_certificate, label: 'certificados (laboral, ingresos y retenciones — fixture NOT LEGALLY VERIFIED)',
+     fields: {certificate_type: 'enum(LABORAL|INGRESOS_RETENCIONES) internal ro', year: int internal ro}}
+  - {<<: *emp, path: employee/vacations, kind: record, ops: list create get, schema: EmployeeVacationRequest, perm: employee_vacation, extra: [],
+     fields: {start_date: date internal req, end_date: date internal req, days: decimal internal ro, request_status: string internal ro}, errors: [vacation_balance_insufficient, portal_document_not_owned]}
+  - {<<: *emp, path: employee/data-updates, kind: record, ops: list create get, schema: EmployeeDataUpdate, perm: employee_data_update, extra: [], fields: {changes: json restricted-pii req, review_status: string internal ro}}
+  - {<<: *emp, path: employee/profile, kind: singleton, ops: getone, schema: EmployeeProfile, perm: employee_profile, extra: [], fields: {status: null, full_name: name restricted-pii ro, email: email restricted-pii ro, position: string internal ro}}
+events:
+  - {type: portal.payment_intent.succeeded_simulated.v1, description: 'Intención de pago exitosa en el proveedor simulado (tesorería confirma y crea el RC, D-021)', features: [F-PORTAL-CUS],
+     payload: {payment_intent_id: ref internal req, amount: money confidential req}}
+  - {type: portal.quote.submitted.v1, description: Cotización enviada desde el portal de proveedores, features: [F-PORTAL-SUP], payload: {rfq_id: ref internal req, quote_id: ref internal req, late: bool internal req}}
+  - {type: portal.vacation_request.submitted.v1, description: Solicitud de vacaciones desde el portal de empleados, features: [F-PORTAL-EMP], payload: {request_id: ref internal req, days: decimal internal req}}

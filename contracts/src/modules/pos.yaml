@@ -1,0 +1,24 @@
+module: pos
+title: Punto de venta
+owner: P12
+description: 'POS en línea (ADR-015, C1-12): la venta es final solo cuando el servidor confirma la transacción de checkout.'
+resources:
+  - {path: configs, kind: config, schema: PosConfig, fields: {warehouse_id: ref internal req, price_list_id: ref internal null, numbering_range_id: ref internal null, allow_returns: bool internal}}
+  - {path: terminals, kind: master, schema: PosTerminal, fields: {config_id: ref internal req, device_fingerprint: string internal ro}, actions: [register]}
+  - {path: sessions, kind: record, schema: PosSession, fields: {terminal_id: ref internal req, opened_at: datetime internal ro, closed_at: datetime internal ro null, opening_cash: money confidential, counted_cash: money confidential null, difference: money confidential ro},
+     coll_actions: [{open: {perm: create, returns: schema}}], actions: [close], errors: [cash_difference_requires_approval, pos_session_closed]}
+  - path: tickets
+    kind: document
+    schema: PosTicket
+    fields: {session_id: ref internal req, payments: json confidential, client_uuid: uuid internal req}
+    coll_actions:
+      - checkout: {perm: post, returns: result, summary: 'Único camino de finalización: una UoW (número, impuestos, stock, GL, caja, outbox DEE). Idempotency-Key = UUID del cliente.',
+                   errors: [stock_insufficient, pos_session_closed, numbering_range_missing, tax_parameter_unknown, pos_offline_finalization_forbidden, period_closed]}
+    actions: [to-invoice]
+  - {path: returns, kind: document, schema: PosReturn, fields: {original: docref internal req}, actions: [post, simulate]}
+  - {path: cash-movements, kind: record, schema: CashMovement, fields: {session_id: ref internal req, movement_type: 'enum(IN|OUT) internal req', amount: money confidential req, reason: string internal req}}
+  - {path: reports/z, kind: report, perm: z_report, params: [session_id, date]}
+  - {path: catalog-snapshot, kind: report, perm: catalog_snapshot, label: catálogo para lectura offline (delta con ETag; solo lectura), params: [since]}
+events:
+  - {type: pos.ticket.checked_out.v1, description: Tiquete POS finalizado en el servidor, payload: {ticket_id: ref internal req, number: string internal req, total: money confidential req, journal_entry_id: ref internal req}}
+  - {type: pos.session.closed.v1, description: Sesión de caja cerrada, payload: {session_id: ref internal req, difference: money confidential req}}

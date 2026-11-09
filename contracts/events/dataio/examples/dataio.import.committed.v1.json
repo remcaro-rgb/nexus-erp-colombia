@@ -1,0 +1,21 @@
+{
+  "event_id": "0190f000-0000-7000-8000-00000000e001",
+  "event_type": "dataio.import.committed.v1",
+  "occurred_at": "2026-11-09T15:00:00Z",
+  "tenant_id": "0190f000-0000-7000-8000-0000000000a1",
+  "company_id": "0190f000-0000-7000-8000-0000000000c1",
+  "actor": {
+    "type": "user",
+    "id": "0190f000-0000-7000-8000-0000000000b1",
+    "on_behalf_of": null
+  },
+  "correlation_id": "corr-SINTETICO-1",
+  "causation_id": null,
+  "payload": {
+    "import_id": "0190f000-0000-7000-8000-000000000002",
+    "entity": "SINTETICO-001",
+    "rows": 1,
+    "batch_hash": "SINTETICO-001"
+  },
+  "schema_version": "1.0.0"
+}
