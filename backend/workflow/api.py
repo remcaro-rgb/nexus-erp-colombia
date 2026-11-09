@@ -55,7 +55,7 @@ class IdempotencyKeyRequired(DomainError):
 
 
 def idem_key(request: Request) -> str:
-    key = request.headers.get("Idempotency-Key", "")
+    key = str(request.headers.get("Idempotency-Key", "") or "")
     if not 8 <= len(key) <= 128:
         raise IdempotencyKeyRequired("send an Idempotency-Key header (8-128 characters)")
     return key

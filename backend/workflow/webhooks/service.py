@@ -60,7 +60,7 @@ def verify_signature(secret: str, body: bytes, header: str, now: int, tolerance:
 
 
 def backoff(attempts: int) -> dt.timedelta:
-    return min(BASE_DELAY * (2 ** max(attempts - 1, 0)), MAX_DELAY)
+    return min(BASE_DELAY * (1 << max(attempts - 1, 0)), MAX_DELAY)
 
 
 def matches(event_type: str, patterns: list[str]) -> bool:
@@ -143,9 +143,10 @@ class WebhookService:
         from workflow.models import WebhookDelivery, WebhookSubscription
 
         envelope = to_jsonable(dict(envelope))
-        subs = WebhookSubscription.objects.filter(
-            tenant_id=envelope["tenant_id"], company_id=envelope.get("company_id"), active=True
-        )
+        company_id = envelope.get("company_id")
+        if company_id is None:  # subscriptions are per company: a tenant-wide event has no subscriber
+            return 0
+        subs = WebhookSubscription.objects.filter(tenant_id=envelope["tenant_id"], company_id=company_id, active=True)
         created = 0
         for sub in subs:
             if not matches(str(envelope["event_type"]), list(sub.event_types)):

@@ -50,7 +50,8 @@ def policy() -> Iterator[Any]:
     from kernel.testing.fakes import FakePolicyService
 
     fake = FakePolicyService()
-    with services.override(PolicyService, fake):
+    as_policy: PolicyService = fake
+    with services.override(PolicyService, as_policy):
         yield fake
 
 

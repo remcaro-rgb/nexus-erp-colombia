@@ -16,4 +16,5 @@ class IamConfig(AppConfig):
         from kernel import services
         from kernel.interfaces import PolicyService
 
-        services.register(PolicyService, engine.get_engine(), replace=True)
+        policy: PolicyService = engine.get_engine()  # structural check of the engine against the protocol
+        services.register(PolicyService, policy, replace=True)

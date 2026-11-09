@@ -63,7 +63,7 @@ def authorize(ctx: TenantContext, permission: str, resource: Any = None) -> None
 
 
 def idempotency_key(request: Request) -> str:
-    key = request.headers.get("Idempotency-Key", "")
+    key = str(request.headers.get("Idempotency-Key", "") or "")
     if not key:
         raise IdempotencyKeyRequired("Idempotency-Key header required")
     if not 8 <= len(key) <= 128:
@@ -165,11 +165,14 @@ def get_or_404(queryset: QuerySet[Any], pk: uuid.UUID) -> Any:
 
 
 def audit(obj: Model, ctx: TenantContext | None = None) -> dict[str, Any]:
+    """Audit stamp of ``obj`` (``kernel.models.AuditedModel`` fields; absent fields → ``None``)."""
+    created_at, updated_at = getattr(obj, "created_at", None), getattr(obj, "updated_at", None)
+    created_by, updated_by = getattr(obj, "created_by", None), getattr(obj, "updated_by", None)
     return {
-        "created_at": obj.created_at.isoformat() if getattr(obj, "created_at", None) else None,
-        "created_by": str(obj.created_by) if getattr(obj, "created_by", None) else None,
-        "updated_at": obj.updated_at.isoformat() if getattr(obj, "updated_at", None) else None,
-        "updated_by": str(obj.updated_by) if getattr(obj, "updated_by", None) else None,
+        "created_at": created_at.isoformat() if created_at else None,
+        "created_by": str(created_by) if created_by else None,
+        "updated_at": updated_at.isoformat() if updated_at else None,
+        "updated_by": str(updated_by) if updated_by else None,
     }
 
 

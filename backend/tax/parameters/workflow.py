@@ -88,7 +88,7 @@ def _validate(data: ProposalInput) -> tuple[str, dict[str, Any]]:
         raise ValidationFailed("valid_to before valid_from", field="valid_to")
     if status is ParameterStatus.UNKNOWN:
         return "unknown", {}
-    if not data.synthetic and status is not ParameterStatus.UNKNOWN and not data.document_ref:
+    if not data.synthetic and not data.document_ref:  # UNKNOWN returned above
         raise ParameterSourceRequired(
             "an official value needs the uploaded source document (document_ref)", field="document_ref"
         )

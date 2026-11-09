@@ -322,14 +322,14 @@ class FormulaGraph:
 
         ``inputs`` is one shared mapping, or ``{code: {...}}`` with ``per_formula_inputs``.
         """
-        tables = tables or NoTables()
+        resolver: TableResolver = tables if tables is not None else NoTables()
         codes = self.closure(targets) if targets is not None else list(self.order)
         results: dict[str, EvaluationResult] = {}
         for code in codes:
             d, a = self.definitions[code], self.analyzed[code]
             raw_inputs: Mapping[str, Any]
             if per_formula_inputs:
-                raw_inputs = inputs.get(code, {})  # type: ignore[assignment]
+                raw_inputs = inputs.get(code, {})
             else:
                 raw_inputs = {k: v for k, v in inputs.items() if k in d.schema.fields}
             bound = d.schema.bind(raw_inputs, used=frozenset(a.info.inputs))
@@ -337,10 +337,10 @@ class FormulaGraph:
             for dep in d.depends_on:
                 env[dep] = results[dep].value
             budget = Budget(self.limits) if clock is None else Budget(self.limits, clock=clock)
-            accessed_before = len(tables.accessed)
-            ev = Evaluator(a.source, env, budget, tables, explain=explain)
+            accessed_before = len(resolver.accessed)
+            ev = Evaluator(a.source, env, budget, resolver, explain=explain)
             raw = ev.run(a.root)
-            accessed = list(tables.accessed[accessed_before:])
+            accessed = list(resolver.accessed[accessed_before:])
             results[code] = EvaluationResult(
                 code=code,
                 value=d.finish(raw),

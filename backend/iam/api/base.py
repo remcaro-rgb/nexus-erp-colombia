@@ -49,14 +49,14 @@ DEFAULT_LIMIT = 50
 FILTER_OPS = ("eq", "ne", "lt", "lte", "gt", "gte", "in", "contains", "between", "isnull")
 
 
-class HasContext(BasePermission):
+class HasContext(BasePermission):  # type: ignore[misc]  # DRF ships no type stubs (Any base)
     def has_permission(self, request: Request, view: Any) -> bool:
         if getattr(request, "erp_context", None) is None:
             raise Unauthenticated("authentication required")
         return True
 
 
-class PrincipalThrottle(SimpleRateThrottle):
+class PrincipalThrottle(SimpleRateThrottle):  # type: ignore[misc]  # DRF ships no type stubs (Any base)
     """Per-principal rate limit (API4); tenant-wide limit below."""
 
     rate = "600/min"
@@ -93,7 +93,7 @@ def to_json(value: Any) -> Any:
     return value
 
 
-class SecuredView(APIView):
+class SecuredView(APIView):  # type: ignore[misc]  # DRF ships no type stubs (Any base)
     authentication_classes: ClassVar[list[Any]] = [InternalAuthentication]
     permission_classes: ClassVar[list[Any]] = [HasContext]
     throttle_classes: ClassVar[list[Any]] = [PrincipalThrottle, TenantThrottle]
@@ -308,7 +308,7 @@ class SecuredView(APIView):
         return response
 
 
-class HasTenantContext(BasePermission):
+class HasTenantContext(HasContext):
     """The request carries a tenant context: from the IAM authentication or the kernel tenancy middleware."""
 
     def has_permission(self, request: Request, view: Any) -> bool:

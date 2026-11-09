@@ -169,6 +169,8 @@ class PolicyEngine:
             return Effective("none")
         delegated = ctx.principal_type in (PrincipalType.AI_AGENT, PrincipalType.MCP_CLIENT)
         user_id = ctx.on_behalf_of if delegated else ctx.principal_id
+        if user_id is None:  # a delegated principal without the user it acts for: nothing (deny by default)
+            return Effective("none")
         with tenancy.scope(ctx):
             user = User.objects.filter(tenant_id=ctx.tenant_id, id=user_id).first()
             if user is None or user.status != User.Status.ACTIVE:

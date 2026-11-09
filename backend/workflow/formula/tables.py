@@ -64,8 +64,12 @@ class VersionedTable:
 
 @runtime_checkable
 class TableResolver(Protocol):
-    company_id: uuid.UUID
-    accessed: list[tuple[str, int]]
+    # read-only members: the resolvers are frozen dataclasses
+    @property
+    def company_id(self) -> uuid.UUID: ...
+
+    @property
+    def accessed(self) -> list[tuple[str, int]]: ...
 
     def get(self, name: str) -> VersionedTable:
         """The table effective for the bound company/date; ``FormulaUnknownIdentifier`` otherwise."""

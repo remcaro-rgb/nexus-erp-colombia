@@ -289,7 +289,7 @@ class NitValidate(base.TaxAPIView):
         if "nit" not in params:
             raise ValidationFailed("parameters.nit is required", field="nit")
         result = nit.validate(str(params["nit"]), params.get("dv"))
-        body = {"status": "VALID" if result.valid else "INVALID", "data": result.to_json()}
+        body: dict[str, Any] = {"status": "VALID" if result.valid else "INVALID", "data": result.to_json()}
         if not result.valid:
             body["warnings"] = [{"code": "nit_invalid", "detail": "el dígito de verificación no corresponde"}]
         return Response(body)

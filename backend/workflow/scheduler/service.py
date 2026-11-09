@@ -16,6 +16,7 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import uuid
+from functools import partial
 from typing import Any
 
 from kernel import clock, tenancy
@@ -210,6 +211,8 @@ class DbSchedulerService:
             created = 0
             for job in due:
                 scheduled_for = job.next_run_at
+                if scheduled_for is None:  # filtered by next_run_at <= now: never NULL here
+                    continue
                 run, was_created = JobRun.objects.using(using).get_or_create(
                     idempotency_key=idempotency_key(job.id, scheduled_for),
                     defaults={"tenant_id": job.tenant_id, "job": job, "scheduled_for": scheduled_for},
@@ -224,8 +227,7 @@ class DbSchedulerService:
                     job.state = "DONE"
                 job.save(update_fields=["next_run_at", "state"])
                 if was_created:
-                    run_id = run.id
-                    transaction.on_commit(lambda rid=run_id: enqueue(rid), using=using)
+                    transaction.on_commit(partial(enqueue, run.id), using=using)
             return created
 
     # ------------------------------------------------------------------ execution
