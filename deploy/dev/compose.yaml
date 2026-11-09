@@ -20,9 +20,13 @@ x-app-env: &app-env
   ERP_SYNTHETIC_DATA: "true"
   ERP_PUBLIC_ORIGIN: ${ERP_PUBLIC_ORIGIN:-http://localhost:8080}
   ERP_VERSION: ${ERP_GIT_SHA:-unknown}
-  DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-erp.settings}
+  # erp.settings is a package without settings; the runtime profile is erp.settings.dev (FIX-D-W01-1)
+  DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-erp.settings.dev}
   ERP_SECRET_KEY: ${ERP_SECRET_KEY:?run deploy/dev/gen-secrets.sh}
+  DJANGO_SECRET_KEY: ${ERP_SECRET_KEY:?run deploy/dev/gen-secrets.sh}
+  # from deploy/dev/secrets/field-encryption.key (scripts/ci/lib.sh dc()); settings validate it at start-up
   ERP_FIELD_ENCRYPTION_KEY: ${ERP_FIELD_ENCRYPTION_KEY:?run deploy/dev/gen-secrets.sh}
+  # the settings build DATABASES from ERP_DB_* when DATABASE_URL is unset (kernel.envconfig, FIX-D-W01-1)
   ERP_DB_HOST: db
   ERP_DB_PORT: "5432"
   ERP_DB_NAME: erp
@@ -206,7 +210,8 @@ services:
       <<: *app-env
       ERP_SERVICE: api
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request,sys;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health/live',timeout=3).status==200 else 1)"]
+      # the server listens on the container address (entrypoint), not on 127.0.0.1 (FIX-D-W01-1)
+      test: ["CMD", "python", "/opt/nexus/healthcheck.py", "self", "8000", "/api/health/live"]
       interval: 10s
       timeout: 5s
       retries: 12

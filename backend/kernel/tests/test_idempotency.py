@@ -6,6 +6,7 @@ import pytest
 from kernel import idempotency, uow
 from kernel.errors import IdempotencyKeyInvalid, IdempotencyKeyReused
 from kernel.models import IdempotencyRecord, OutboxMessage
+from kernel.testing.tenancy import bound
 
 from .conftest import run_threads
 
@@ -29,8 +30,9 @@ def test_T_P01_05_same_key_same_body_replays(ctx):
     assert first == {"created": 1}
     assert second.body == {"created": 1} and second.status_code == 201
     assert len(executions) == 1
-    assert OutboxMessage.objects.count() == 1
-    assert IdempotencyRecord.objects.count() == 1
+    with bound(ctx):
+        assert OutboxMessage.objects.count() == 1
+        assert IdempotencyRecord.objects.count() == 1
 
 
 @pytest.mark.django_db(transaction=True)

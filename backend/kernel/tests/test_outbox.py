@@ -4,6 +4,7 @@ import pytest
 
 from kernel import clock, outbox, tasks, uow
 from kernel.models import DeadLetter, InboxRecord, OutboxMessage
+from kernel.testing.tenancy import bound
 
 
 class RecordingPublisher:
@@ -33,7 +34,8 @@ def test_T_P01_04_relay_publishes_in_order_with_routing(ctx, company, settings):
     result = outbox.relay_batch(pub, batch_size=10)
     assert result.published == 4 and result.failed == 0
     assert [q for q, _ in pub.sent] == ["einvoice", "default", "default", "default"]
-    assert OutboxMessage.objects.filter(status="PUBLISHED").count() == 4
+    with bound(ctx):
+        assert OutboxMessage.objects.filter(status="PUBLISHED").count() == 4
     assert outbox.relay_batch(pub).published == 0  # nothing pending
     m = outbox.metrics()
     assert m["pending"] == 0 and m["published"] >= 4
@@ -45,18 +47,21 @@ def test_T_P01_04_relay_backoff_then_dead_letter(ctx, company, settings):
     _emit(ctx, company, "kernel.test.created.v1")
     failing = RecordingPublisher(fail=True)
     assert outbox.relay_batch(failing).failed == 1
-    msg = OutboxMessage.objects.get()
+    with bound(ctx):
+        msg = OutboxMessage.objects.get()
     assert msg.attempts == 1 and msg.available_at > clock.now() and "broker down" in msg.last_error
     assert outbox.relay_batch(failing).failed == 0  # not yet available
     with clock.frozen(clock.now() + dt.timedelta(hours=2)):
         assert outbox.relay_batch(failing).dead == 1
-    msg.refresh_from_db()
+    with bound(ctx):
+        msg.refresh_from_db()
+        dl = DeadLetter.objects.get()
     assert msg.status == "DEAD"
-    dl = DeadLetter.objects.get()
     assert dl.stage == "RELAY" and dl.event_id == msg.id
     pub = RecordingPublisher()
     outbox.replay_dead_letter(dl.id, pub)
-    dl.refresh_from_db()
+    with bound(ctx):
+        dl.refresh_from_db()
     assert dl.replayed_at is not None and pub.sent[0][1] == str(msg.id)
 
 
@@ -85,13 +90,15 @@ def test_T_P01_04_consumer_dedupe_and_dead_letters(ctx, company):
     outbox.register_consumer("test.broken", "kernel.test.created.v1", broken)
     try:
         _emit(ctx, company, "kernel.test.created.v1")
-        env = OutboxMessage.objects.get().envelope
+        with bound(ctx):
+            env = OutboxMessage.objects.get().envelope
         assert tasks.dispatch_event(env) == {"test.ok": "processed", "test.broken": "dead"}
         assert outbox.dispatch(env)["test.ok"] == "duplicate"
         assert len(seen) == 1
         assert InboxRecord.objects.filter(consumer="test.ok").count() == 1
         assert InboxRecord.objects.filter(consumer="test.broken").count() == 0  # rolled back with the handler
-        assert DeadLetter.objects.filter(stage="CONSUMER", consumer="test.broken").count() == 2
+        with bound(ctx):
+            assert DeadLetter.objects.filter(stage="CONSUMER", consumer="test.broken").count() == 2
         with pytest.raises(ValueError):
             outbox.register_consumer("test.ok", "x.*", lambda env: None)
         outbox.register_consumer("test.ok", "kernel.test.*", outbox._consumers["test.ok"].handler)

@@ -55,7 +55,7 @@ def test_T_P01_01_allocation_rejects_bad_weights(bad):
 
 def test_T_P01_01_money_rejects_floats_and_mixed_currency():
     with pytest.raises(MoneyError):
-        Money(0.1, "COP")  # type: ignore[arg-type]  # erp: allow-float(test of rejection)
+        Money(0.1, "COP")  # type: ignore[arg-type]  # a binary float is rejected
     with pytest.raises(MoneyError):
         Money.of(1, "COP") + Money.of(1, "USD")
     with pytest.raises(MoneyError):

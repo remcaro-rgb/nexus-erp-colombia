@@ -32,10 +32,11 @@ def health_live(request: HttpRequest) -> JsonResponse:
 
 
 def _check_db() -> bool:
+    # ORM-level probe (no raw SQL, ADR-004): open the connection if needed, then ask the backend
+    # whether it answers (Django's is_usable() issues the backend's own liveness query).
     try:
-        with connection.cursor() as cur:
-            cur.execute("SELECT 1")
-            return bool(cur.fetchone() == (1,))
+        connection.ensure_connection()
+        return bool(connection.is_usable())
     except Exception:  # noqa: BLE001 - readiness reports, never raises
         return False
 

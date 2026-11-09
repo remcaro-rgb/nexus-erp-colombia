@@ -120,7 +120,7 @@ def main() -> int:
 
     secrets_dir = Path(os.environ.get("NEXUS_SECRETS_DIR", REPO / "deploy" / "dev" / "secrets"))
     modes = []
-    for name in ("dev.env", "dev-credentials.env"):
+    for name in ("dev.env", "dev-credentials.env", "field-encryption.key"):
         f = secrets_dir / name
         if not f.exists() or stat.S_IMODE(f.stat().st_mode) != 0o600:
             modes.append(name)

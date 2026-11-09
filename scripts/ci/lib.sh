@@ -51,6 +51,13 @@ load_runtime_env() {
 # Run docker compose for the dev project. Secrets are passed as interpolation variables only
 # (never echoed); the env files are read by compose itself.
 dc() {
+  # ERP_FIELD_ENCRYPTION_KEY: read from its 0600 file into compose's environment only (never echoed). The app
+  # containers are read_only and run as uid 10001, so a bind-mounted 0600 secret file owned by the host user is
+  # unreadable there and compose refuses environment-sourced secrets for read_only services (FIX-D-W01-1).
+  if [[ -z "${ERP_FIELD_ENCRYPTION_KEY:-}" && -s "$ERP_SECRETS_DIR/field-encryption.key" ]]; then
+    ERP_FIELD_ENCRYPTION_KEY="$(head -n 1 "$ERP_SECRETS_DIR/field-encryption.key")"
+    export ERP_FIELD_ENCRYPTION_KEY
+  fi
   local args=(-p "$NEXUS_PROJECT" -f "$NEXUS_COMPOSE_FILE")
   [[ -f "$NEXUS_RUNTIME_ENV" ]] && args+=(--env-file "$NEXUS_RUNTIME_ENV")
   [[ -f "$ERP_SECRETS_DIR/dev.env" ]] && args+=(--env-file "$ERP_SECRETS_DIR/dev.env")

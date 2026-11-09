@@ -45,6 +45,29 @@ class GenSecretsTest(unittest.TestCase):
             self.assertEqual(parse(dev) | parse(cred), values, "existing values must never be overwritten")
             self.assertNotIn("created", second.stdout)
 
+    def test_FIX_D_W01_1_field_encryption_key_file_0600_never_overwritten(self):
+        import base64
+
+        with tempfile.TemporaryDirectory() as tmp:
+            sdir = Path(tmp) / "secrets"
+            env = dict(os.environ, ERP_SECRETS_DIR=str(sdir))
+            first = subprocess.run(["bash", str(GEN)], capture_output=True, text=True, env=env, check=True)
+            key_file = sdir / "field-encryption.key"
+            self.assertEqual(stat.S_IMODE(key_file.stat().st_mode), 0o600)
+            key = key_file.read_text(encoding="utf-8").strip()
+            self.assertEqual(len(base64.urlsafe_b64decode(key)), 32)
+            self.assertNotIn(key, first.stdout + first.stderr)
+            subprocess.run(["bash", str(GEN)], capture_output=True, text=True, env=env, check=True)
+            self.assertEqual(key_file.read_text(encoding="utf-8").strip(), key, "the key must never be overwritten")
+        with tempfile.TemporaryDirectory() as tmp:  # a key from an older dev.env is kept (data stays readable)
+            sdir = Path(tmp) / "secrets"
+            sdir.mkdir(mode=0o700)
+            legacy = base64.urlsafe_b64encode(os.urandom(32)).decode()
+            (sdir / "dev.env").write_text("ERP_FIELD_ENCRYPTION_" + "KEY=" + legacy + "\n", encoding="utf-8")
+            env = dict(os.environ, ERP_SECRETS_DIR=str(sdir))
+            subprocess.run(["bash", str(GEN)], capture_output=True, text=True, env=env, check=True)
+            self.assertEqual((sdir / "field-encryption.key").read_text(encoding="utf-8").strip(), legacy)
+
     def test_T_P03_SEC_secrets_dir_is_gitignored(self):
         proc = subprocess.run(["git", "-C", str(REPO), "check-ignore", "-q", "deploy/dev/secrets/dev.env"])
         self.assertEqual(proc.returncode, 0)

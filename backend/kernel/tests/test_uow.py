@@ -7,7 +7,7 @@ from django.db import DatabaseError, connection
 from kernel import outbox, uow
 from kernel.errors import RetryExhausted, UnitOfWorkRequired, ValidationFailed
 from kernel.models import OutboxMessage, Sequence
-from kernel.testing.tenancy import make_context
+from kernel.testing.tenancy import bound, make_context
 
 from .conftest import run_threads
 
@@ -23,8 +23,9 @@ def test_T_P01_04_exception_after_outbox_write_leaves_no_rows(ctx, company):
         outbox.write(list(u.events))  # explicit outbox write before the failure
         assert OutboxMessage.objects.count() == 1
         raise Boom()
-    assert OutboxMessage.objects.count() == 0
-    assert Sequence.objects.count() == 0
+    with bound(ctx):  # read as the tenant: RLS would hide the rows from an unbound session anyway
+        assert OutboxMessage.objects.count() == 0
+        assert Sequence.objects.count() == 0
 
 
 @pytest.mark.django_db(transaction=True)
@@ -35,7 +36,8 @@ def test_T_P01_04_commit_writes_events_with_envelope(ctx, company):
         with uow.unit_of_work(ctx) as inner:  # nested joins the outer
             assert inner is u
     assert uow.current_uow() is None
-    msg = OutboxMessage.objects.get()
+    with bound(ctx):
+        msg = OutboxMessage.objects.get()
     assert msg.id == event.event_id
     env = msg.envelope
     assert env["payload"] == {"amount": "1.50"}
@@ -75,8 +77,9 @@ _barrier = threading.Barrier(2)
 
 @pytest.mark.django_db(transaction=True)
 def test_T_P01_07_deadlock_is_retried(ctx, company, monkeypatch):
-    for code in ("A", "B"):
-        Sequence.objects.create(tenant_id=ctx.tenant_id, company_id=company, sequence_code=code)
+    with bound(ctx):
+        for code in ("A", "B"):
+            Sequence.objects.create(tenant_id=ctx.tenant_id, company_id=company, sequence_code=code)
     retries = []
     real_backoff = uow._backoff
 
@@ -168,4 +171,5 @@ def test_T_P01_04_transactional_decorator(ctx, company):
     assert replay == "D2"
     again = create(ctx, "D2", idempotency_key="decorator-key-1", request={"code": "D2"})
     assert again.body == {"code": "D2"} and again.status_code == 201
-    assert Sequence.objects.filter(sequence_code="D2").count() == 1
+    with bound(ctx):
+        assert Sequence.objects.filter(sequence_code="D2").count() == 1

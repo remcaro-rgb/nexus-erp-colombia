@@ -8,7 +8,7 @@ import pytest
 from django.db import connection, connections
 
 from kernel.models import Sequence
-from kernel.testing.tenancy import first_company, make_context
+from kernel.testing.tenancy import bound, first_company, make_context
 
 
 @pytest.fixture
@@ -25,7 +25,8 @@ def company(ctx):
 def make_sequence(ctx, company):
     def _make(**kw: Any) -> Sequence:
         kw.setdefault("sequence_code", "FV")
-        return Sequence.objects.create(tenant_id=ctx.tenant_id, company_id=company, **kw)
+        with bound(ctx):  # kernel_sequence has forced RLS (kernel migration 0002)
+            return Sequence.objects.create(tenant_id=ctx.tenant_id, company_id=company, **kw)
 
     return _make
 

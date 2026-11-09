@@ -1,4 +1,6 @@
+import base64
 import datetime as dt
+import os
 import uuid
 from decimal import Decimal
 
@@ -11,7 +13,7 @@ from kernel.interfaces import PostingService
 from kernel.models import FeatureFlagOverride
 from kernel.parameters import ParameterStatus, ParameterValue
 from kernel.testing.fakes import FakePostingService
-from kernel.testing.tenancy import first_company, make_context
+from kernel.testing.tenancy import bound, first_company, make_context
 
 
 def test_clock_frozen_and_business_date():
@@ -81,12 +83,13 @@ def test_date_helper_filters_rows(ctx, company, make_sequence):
     make_sequence(sequence_code="CUR", valid_from=dt.date(2026, 1, 1))
     make_sequence(sequence_code="ANY")
     on = dt.date(2026, 5, 1)
-    assert sorted(Sequence.objects.filter(dates.effective_q(on)).values_list("sequence_code", flat=True)) == [
-        "ANY",
-        "CUR",
-    ]
     rng = dates.DateRange(dt.date(2025, 12, 1), dt.date(2026, 1, 15))
-    assert Sequence.objects.filter(dates.overlapping_q(rng)).count() == 3
+    with bound(ctx):
+        assert sorted(Sequence.objects.filter(dates.effective_q(on)).values_list("sequence_code", flat=True)) == [
+            "ANY",
+            "CUR",
+        ]
+        assert Sequence.objects.filter(dates.overlapping_q(rng)).count() == 3
 
 
 def test_cache_keys_isolate_company_role_tenant_and_invalidate():
@@ -113,12 +116,13 @@ def test_cache_keys_isolate_company_role_tenant_and_invalidate():
 def test_feature_flags_resolution(ctx, company):
     code = flags.POS_OFFLINE_FISCAL_SELLING
     assert flags.definition(code).kind == "A" and not flags.is_enabled(code, ctx.tenant_id, company)
-    FeatureFlagOverride.objects.create(tenant_id=ctx.tenant_id, company_id=None, code=code, enabled=True)
-    assert flags.is_enabled(code, ctx.tenant_id, company)
-    assert flags.is_enabled(code, ctx.tenant_id)
-    FeatureFlagOverride.objects.create(tenant_id=ctx.tenant_id, company_id=company, code=code, enabled=False)
-    assert not flags.is_enabled(code, ctx.tenant_id, company)
-    assert not flags.is_enabled(code, uuid.uuid4(), company)
+    with bound(ctx):  # kernel_feature_flag has forced RLS (kernel migration 0002)
+        FeatureFlagOverride.objects.create(tenant_id=ctx.tenant_id, company_id=None, code=code, enabled=True)
+        assert flags.is_enabled(code, ctx.tenant_id, company)
+        assert flags.is_enabled(code, ctx.tenant_id)
+        FeatureFlagOverride.objects.create(tenant_id=ctx.tenant_id, company_id=company, code=code, enabled=False)
+        assert not flags.is_enabled(code, ctx.tenant_id, company)
+        assert not flags.is_enabled(code, uuid.uuid4(), company)
     with pytest.raises(ValueError):
         flags.register("bad_a_flag", default=True, kind="A")
     flags.register("core_thing", default=True, kind="P")
@@ -177,6 +181,8 @@ def test_settings_refuse_unsupported_environment(monkeypatch):
         assert base.REST_FRAMEWORK["DEFAULT_PERMISSION_CLASSES"] == ["rest_framework.permissions.IsAuthenticated"]
         sys.modules.pop("erp.settings.dev", None)
         monkeypatch.delenv("DJANGO_SECRET_KEY", raising=False)
+        # the dev profile requires the field-encryption key (FIX-D-W01-1); an ephemeral one for this import
+        monkeypatch.setenv("ERP_FIELD_ENCRYPTION_KEY", base64.urlsafe_b64encode(os.urandom(32)).decode())
         dev = importlib.import_module("erp.settings.dev")
         assert len(dev.SECRET_KEY) >= 50 and dev.ERP_ENVIRONMENT == "dev"
     finally:
@@ -212,7 +218,7 @@ def test_event_envelope_rules():
     with pytest.raises(ValidationFailed):
         events.validate_event_type("Sales.Invoice.posted")
     with pytest.raises(ValidationFailed):
-        events.DomainEvent.build(ctx, "sales.invoice.posted.v1", {"x": 0.5})  # erp: allow-float(rejection test)
+        events.DomainEvent.build(ctx, "sales.invoice.posted.v1", {"x": 0.5})  # a float payload is rejected
     with pytest.raises(ValidationFailed):
         events.DomainEvent.build(ctx, "sales.invoice.posted.v1", {}, company_id=uuid.uuid4())
     from kernel.money import Money
