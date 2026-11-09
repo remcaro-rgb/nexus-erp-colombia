@@ -207,10 +207,10 @@ def _request_schema(doc: dict[str, Any], op: dict[str, Any]) -> Any:
 def classify_channel(method: str, path: str, action: str | None, permission: str) -> Channel:
     if path.startswith("/api/portal/"):
         return Channel.PORTAL if method == "get" else Channel.WRITE
+    if method != "get":
+        return Channel.WRITE  # incl. POST /dataio/exports (job creation); its file download is the read
     if action == "export" or "/exports" in path or permission.endswith(".export"):
         return Channel.EXPORT
-    if method != "get":
-        return Channel.WRITE
     if path.startswith("/api/v1/ai/"):
         return Channel.AI
     if path.startswith("/api/v1/mcp") or "/mcp/" in path:
@@ -297,7 +297,23 @@ def build_index(doc: dict[str, Any]) -> tuple[Operation, ...]:
                     portal=bool(op.get("x-portal", False)) or path.startswith("/api/portal/"),
                 )
             )
-    return tuple(out)
+    return tuple(_borrow_export_fields(out))
+
+
+def _borrow_export_fields(ops: list[Operation]) -> list[Operation]:
+    """File/CSV exports declare no JSON schema: their rows carry the resource's read-model fields."""
+    import dataclasses
+
+    read_fields: dict[str, tuple[tuple[str, str], ...]] = {}
+    for op in ops:
+        if op.method == "get" and op.channel in (Channel.DETAIL, Channel.LIST) and op.response_fields:
+            read_fields.setdefault(op.resource, op.response_fields)
+    return [
+        dataclasses.replace(op, response_fields=read_fields.get(op.resource, ()))
+        if op.channel is Channel.EXPORT and not op.response_fields
+        else op
+        for op in ops
+    ]
 
 
 @dataclass(frozen=True, slots=True)

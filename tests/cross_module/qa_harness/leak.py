@@ -250,7 +250,7 @@ def _check_error_body(resp: Response, dataset: Dataset, case: LeakCase) -> list[
     """Error bodies must not echo data of the protected object (existence/data oracle)."""
     if case.target is None or not case.target.fields:
         return []
-    text = resp.body if isinstance(resp.body, str) else json.dumps(resp.body, default=str)
+    text = resp.body if isinstance(resp.body, str) else json.dumps(resp.body, default=str, ensure_ascii=False)
     leaked = [k for k, v in case.target.fields.items() if isinstance(v, str) and len(v) >= 6 and v in text]
     return [f"error body echoes protected field(s) {sorted(leaked)}"] if leaked else []
 
