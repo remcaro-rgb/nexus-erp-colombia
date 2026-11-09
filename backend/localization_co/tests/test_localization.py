@@ -116,11 +116,13 @@ def test_T_P06_08_admin_override_and_business_days() -> None:
 
 @pytest.mark.django_db
 def test_T_P06_08_override_stored_per_company(p06_ctx: Any, company: Any) -> None:
+    from kernel.testing.tenancy import bound
     from localization_co.models import HolidayOverride
 
-    HolidayOverride.objects.create(tenant_id=p06_ctx.tenant_id, company_id=company, date=dt.date(2027, 3, 1),
-                                   add=True, name="Ajuste", reason="decreto local (sintético)")  # fmt: skip
-    rows = [hol.Override(o.date, o.add, o.name) for o in HolidayOverride.objects.filter(company_id=company)]
+    with bound(p06_ctx):  # localization_co_holiday_override has forced RLS
+        HolidayOverride.objects.create(tenant_id=p06_ctx.tenant_id, company_id=company, date=dt.date(2027, 3, 1),
+                                       add=True, name="Ajuste", reason="decreto local (sintético)")  # fmt: skip
+        rows = [hol.Override(o.date, o.add, o.name) for o in HolidayOverride.objects.filter(company_id=company)]
     assert dt.date(2027, 3, 1) in {h.date for h in hol.holidays_for_year(2027, rows)}
 
 

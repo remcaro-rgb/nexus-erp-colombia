@@ -22,7 +22,9 @@ import uuid
 from collections.abc import Mapping
 from typing import Any, Protocol
 
-from kernel import clock, ids
+from django.db import transaction
+
+from kernel import clock, ids, tenancy
 from kernel.errors import NotFound, ValidationFailed
 from kernel.events import to_jsonable
 from kernel.tenancy import Channel, PrincipalType, TenantContext
@@ -36,6 +38,8 @@ BASE_DELAY = dt.timedelta(seconds=30)
 MAX_DELAY = dt.timedelta(hours=6)
 SIGNATURE_HEADER = "X-Nexus-Signature"
 TOLERANCE_SECONDS = 300
+#: ``kernel.tenancy.bind_platform`` job of the webhook deliverer (cross-tenant, ADR-003).
+PLATFORM_JOB = "workflow_webhooks"
 ALWAYS_KEPT = {"id", "event_id", "event_type", "company_id", "status", "state"}
 
 
@@ -162,7 +166,9 @@ class WebhookService:
         from workflow.models import WebhookDelivery
 
         now = now or clock.now()
-        d = WebhookDelivery.objects.select_related("subscription").filter(id=delivery_id).first()
+        with transaction.atomic():  # the deliverer works across tenants (CCR P07-2 §5)
+            tenancy.bind_platform(PLATFORM_JOB)
+            d = WebhookDelivery.objects.select_related("subscription").filter(id=delivery_id).first()
         if d is None:
             raise NotFound("delivery not found")
         if d.state in (WebhookDelivery.DELIVERED, WebhookDelivery.DEAD):
@@ -191,7 +197,9 @@ class WebhookService:
             d.state, d.next_attempt_at = WebhookDelivery.DEAD, None
         else:
             d.state, d.next_attempt_at = WebhookDelivery.RETRYING, now + backoff(d.attempts)
-        d.save(update_fields=["attempts", "last_status", "last_error", "state", "delivered_at", "next_attempt_at"])
+        with transaction.atomic():
+            tenancy.bind_platform(PLATFORM_JOB)
+            d.save(update_fields=["attempts", "last_status", "last_error", "state", "delivered_at", "next_attempt_at"])
         if d.state == WebhookDelivery.DEAD:
             ctx = service_account_context(sub)
 
@@ -218,10 +226,16 @@ class WebhookService:
         from workflow.models import WebhookDelivery
 
         now = now or clock.now()
-        due = WebhookDelivery.objects.filter(
-            state__in=[WebhookDelivery.PENDING, WebhookDelivery.RETRYING], next_attempt_at__lte=now
-        ).order_by("next_attempt_at")[:limit]
-        return sum(1 for d in list(due) if self.attempt(d.id, now=now).state == WebhookDelivery.DELIVERED)
+        with transaction.atomic():
+            tenancy.bind_platform(PLATFORM_JOB)
+            due = list(
+                WebhookDelivery.objects.filter(
+                    state__in=[WebhookDelivery.PENDING, WebhookDelivery.RETRYING], next_attempt_at__lte=now
+                )
+                .order_by("next_attempt_at")
+                .values_list("id", flat=True)[:limit]
+            )
+        return sum(1 for did in due if self.attempt(did, now=now).state == WebhookDelivery.DELIVERED)
 
     def replay(self, ctx: TenantContext, delivery_id: uuid.UUID) -> Any:
         from workflow.models import WebhookDelivery

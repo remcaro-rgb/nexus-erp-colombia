@@ -177,7 +177,11 @@ def bind(ctx: TenantContext, using: str = "default") -> None:
 
 #: Cross-tenant platform jobs that have their own RLS policy (``kernel.db.platform_rls_policy_sql``).
 #: ``outbox``: the outbox relay and the dead-letter worker, on kernel_outbox / kernel_dead_letter only.
-PLATFORM_JOBS = frozenset({"outbox"})
+#: ``workflow_scheduler``: the scheduler leader (workflow_scheduled_job, workflow_job_run);
+#: ``workflow_webhooks``: the webhook deliverer (workflow_webhook_subscription, workflow_webhook_delivery);
+#: ``workflow_audit``: the audit-chain verifier/anchoring (workflow_audit_event, workflow_audit_anchor)
+#: — CCR P07-2 §5, policies installed by ``workflow/migrations/0003_rls.py`` (FIX-CI-W02).
+PLATFORM_JOBS = frozenset({"outbox", "workflow_scheduler", "workflow_webhooks", "workflow_audit"})
 
 
 def bind_platform(job: str, using: str = "default") -> None:

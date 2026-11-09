@@ -16,6 +16,7 @@ from urllib.parse import urlsplit
 import environ
 from django.core.exceptions import ImproperlyConfigured
 
+from erp.discovery import discover_apps
 from kernel.envconfig import ConfigError, database_url, read_secret
 from kernel.integrations import validate_integration_modes
 
@@ -51,12 +52,15 @@ if _origin.scheme == "https":
 # CORS: same origin only. No CORS middleware is installed, so no cross-origin
 # response headers are ever emitted (never "*").
 
+# First-party apps: every backend/<app>/ with apps.py, kernel first, then iam, then sorted (erp.discovery;
+# FIX-CI-W02 applies CCRs P04-1, P06-1, P07-1 and wires later modules without a settings edit).
+ERP_LOCAL_APPS = discover_apps(BASE_DIR)
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.auth",
     "rest_framework",
     "drf_spectacular",
-    "kernel",
+    *ERP_LOCAL_APPS,
 ]
 
 MIDDLEWARE = [
@@ -150,7 +154,8 @@ ERP_GIT_SHA = env.str("ERP_GIT_SHA", default="")
 
 # --- DRF: deny by default ----------------------------------------------------------
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": [],
+    # CCR P04-1: IAM bearer tokens (OIDC) for every view that does not declare its own classes.
+    "DEFAULT_AUTHENTICATION_CLASSES": ["iam.authn.InternalAuthentication"],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "UNAUTHENTICATED_USER": None,
     "EXCEPTION_HANDLER": "kernel.errors.drf_exception_handler",

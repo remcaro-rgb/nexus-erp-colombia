@@ -39,6 +39,10 @@ def to_dto(job: Any) -> ScheduledJobDTO:
     )
 
 
+#: ``kernel.tenancy.bind_platform`` job of the scheduler leader / run loader (cross-tenant, ADR-003).
+PLATFORM_JOB = "workflow_scheduler"
+
+
 def owner_context(job: Any) -> TenantContext:
     if job.created_by_agent:
         return TenantContext(
@@ -196,6 +200,7 @@ class DbSchedulerService:
         with transaction.atomic(using=using):
             if not tenancy.try_advisory_xact_lock(using, LEADER_LOCK):
                 return None
+            tenancy.bind_platform(PLATFORM_JOB, using)  # the leader reads every tenant's due jobs (CCR P07-2 §5)
             due = list(
                 ScheduledJob.objects.using(using)
                 .select_for_update(skip_locked=True)
@@ -226,9 +231,13 @@ class DbSchedulerService:
     # ------------------------------------------------------------------ execution
     def execute(self, run_id: uuid.UUID) -> Any:
         """Celery task body. Idempotent: a SUCCEEDED/FAILED run is returned unchanged."""
+        from django.db import transaction
+
         from workflow.models import JobRun
 
-        run = JobRun.objects.select_related("job").filter(id=run_id).first()
+        with transaction.atomic():  # the run's tenant is not known yet: platform read of this one run
+            tenancy.bind_platform(PLATFORM_JOB)
+            run = JobRun.objects.select_related("job").filter(id=run_id).first()
         if run is None:
             raise NotFound("job run not found")
         if run.state in ("SUCCEEDED", "FAILED"):

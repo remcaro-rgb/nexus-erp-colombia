@@ -10,6 +10,7 @@ import pytest
 from kernel import clock, ids, services
 from kernel.errors import Conflict, PermissionDenied
 from kernel.interfaces.common import DocumentRef
+from kernel.testing.tenancy import bound
 from kernel.uow import run_in_unit_of_work
 from workflow.approvals.directory import ApproverDirectory, StaticDirectory
 from workflow.approvals.service import DbWorkflowService, validate_steps
@@ -37,10 +38,11 @@ def org(user_factory, company):  # type: ignore[no-untyped-def]
 
 
 def _policy(ctx, company, code, steps, **kw):  # type: ignore[no-untyped-def]
-    return ApprovalPolicy.objects.create(
-        tenant_id=ctx.tenant_id, company_id=company, code=code, name=code, document_type="purchasing.purchase_order",
-        steps=validate_steps(steps), **kw,
-    )  # fmt: skip
+    with bound(ctx):  # workflow_approval_policy has forced RLS
+        return ApprovalPolicy.objects.create(
+            tenant_id=ctx.tenant_id, company_id=company, code=code, name=code,
+            document_type="purchasing.purchase_order", steps=validate_steps(steps), **kw,
+        )  # fmt: skip
 
 
 @pytest.fixture

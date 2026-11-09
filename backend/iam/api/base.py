@@ -337,6 +337,13 @@ class ModuleSecuredView(SecuredView):
 
     permission_classes: ClassVar[list[Any]] = [HasTenantContext]
 
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
+        super().initial(request, *args, **kwargs)
+        # Forced RLS (ADR-003): the handler's reads run in one transaction bound to the request's context;
+        # units of work nest inside it (savepoints). Closed by finalize_response like the activation.
+        if self._ctx_stack is not None:
+            self._ctx_stack.enter_context(tenancy.scope(self.ctx))
+
     def check_access(self, request: Request) -> None:
         if request_context(request) is None:
             raise Unauthenticated("authentication required")

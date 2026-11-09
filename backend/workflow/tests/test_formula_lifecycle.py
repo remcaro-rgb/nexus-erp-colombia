@@ -9,7 +9,7 @@ import pytest
 from kernel import clock, ids
 from kernel.errors import Conflict, ImmutableRecord, PermissionDenied
 from kernel.tenancy import PrincipalType
-from kernel.testing.tenancy import make_context
+from kernel.testing.tenancy import bound, make_context
 from kernel.uow import run_in_unit_of_work
 from workflow.formula.errors import FormulaNotApproved, FormulaTestCaseFailed, FormulaUnknownIdentifier
 from workflow.formula.lifecycle import FormulaService
@@ -43,13 +43,14 @@ def people(user_factory):  # type: ignore[no-untyped-def]
 @pytest.fixture
 def margins(people, company):  # type: ignore[no-untyped-def]
     author, _ = people
-    return FormulaTable.objects.create(
-        tenant_id=author.tenant_id,
-        company_id=company,
-        name="margenes",
-        value_type="percent",
-        rows={"A": "30", "B": "25"},
-    )
+    with bound(author):  # workflow_formula_table has forced RLS
+        return FormulaTable.objects.create(
+            tenant_id=author.tenant_id,
+            company_id=company,
+            name="margenes",
+            value_type="percent",
+            rows={"A": "30", "B": "25"},
+        )
 
 
 def _active(people, company, data=PRICE):  # type: ignore[no-untyped-def]
@@ -165,13 +166,23 @@ def test_unapproved_formula_cannot_be_used(people, company, margins) -> None:  #
 def test_T_FORMULA_ENGINE_05_db_tables_of_other_companies_are_invisible(people, company, grants) -> None:  # type: ignore[no-untyped-def]
     author, _ = people
     other_company = ids.new_id()
-    FormulaTable.objects.create(
-        tenant_id=author.tenant_id, company_id=other_company, name="margenes", value_type="percent", rows={"A": "90"}
-    )
+    with bound(make_context(tenant_id=author.tenant_id, company_ids=[other_company])):
+        FormulaTable.objects.create(
+            tenant_id=author.tenant_id,
+            company_id=other_company,
+            name="margenes",
+            value_type="percent",
+            rows={"A": "90"},
+        )
     other_tenant = make_context(company_ids=[company])
-    FormulaTable.objects.create(
-        tenant_id=other_tenant.tenant_id, company_id=company, name="margenes", value_type="percent", rows={"A": "80"}
-    )
+    with bound(other_tenant):
+        FormulaTable.objects.create(
+            tenant_id=other_tenant.tenant_id,
+            company_id=company,
+            name="margenes",
+            value_type="percent",
+            rows={"A": "80"},
+        )
     report = FormulaService().validate(author, company, PRICE, domain="pricing")
     assert not report.ok  # the only "margenes" tables belong to another company / tenant
     with pytest.raises(FormulaUnknownIdentifier):

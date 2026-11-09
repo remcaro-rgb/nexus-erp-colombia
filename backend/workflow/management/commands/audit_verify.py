@@ -16,13 +16,8 @@ class Command(BaseCommand):
 
     def handle(self, *args: Any, **options: Any) -> None:
         from workflow.audit.service import DbAuditService
-        from workflow.models import AuditEvent
 
-        tenants = (
-            [options["tenant"]]
-            if options["tenant"]
-            else list(AuditEvent.objects.values_list("tenant_id", flat=True).distinct())
-        )
+        tenants = [options["tenant"]] if options["tenant"] else DbAuditService().tenants()
         failed = []
         for tenant in tenants:
             report = DbAuditService().verify(tenant)
