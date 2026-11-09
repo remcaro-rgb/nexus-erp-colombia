@@ -40,6 +40,7 @@ dev: db-setup
 
 lint:
 	$(RUFF) check backend
+	$(RUFF) format --check backend
 	cd backend && $(UV) run --frozen python -m kernel.lint.no_float .
 
 typecheck:
