@@ -15,3 +15,6 @@
   tests of later waves will fail until one side adopts the other's variables (e.g. settings build
   DATABASES from `ERP_DB_*` when `DATABASE_URL` is unset, or compose sets `DATABASE_URL`).
 * Decision: operator. Suggested owner: P01 (settings) via change request, or P03 (compose).
+
+### D-W01-1 — RESOLVED (with CI-1…CI-4)
+Resolved by FIX-D-W01-1 v2 (branch claude/new-session-7cbu2u, merge 2c16425). Integrator re-ran `make ci`, `scripts/ci/ci-parity.sh` (policy, p03-tests, make-ci, compose-startup: 4/4) and `make dev-up && make dev-seed && make dev-health` (migrations included): PASSED at 2026-11-09T21:06Z UTC. Fixed: D-W01-1 settings x compose; CI-1 forbidden-pattern scan; CI-2 P03 tests dev deps; CI-3 make ci with network PostgreSQL; CI-4 compose start-up incl. ERP_FIELD_ENCRYPTION_KEY.
