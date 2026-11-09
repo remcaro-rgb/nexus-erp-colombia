@@ -41,6 +41,8 @@ export interface UiContext {
   locale?: string;
   timezone?: string;
   currency?: string;
+  session_idle_minutes?: number;
+  logout_url?: string;
 }
 
 /** GET /api/v1/iam/me (OpenAPI schema Me) */
@@ -89,10 +91,12 @@ export interface RegistryKpi {
 export interface RegistryPanel {
   id: string;
   title: string;
-  type: string;
-  series?: Array<{ id: string; label: string; style?: string }>;
+  type: "line" | "bar" | "feed" | "list" | "table" | string;
+  series?: Array<{ id: string; label?: string; style?: string; formula?: string }>;
+  range_selector?: string[];
   permission?: string;
   provider_task?: string;
+  drill?: string;
 }
 
 export interface RegistryModule {
@@ -104,7 +108,8 @@ export interface RegistryModule {
   permission: string;
   owner_task?: string;
   submenus: RegistrySubmenu[];
-  quick_action?: { label: string; route: string; permission: string } | null;
+  /** action = "route:/m/…" (a real route/form; shown only with its permission). */
+  quick_action?: { id: string; label: string; permission: string; action: string } | null;
   export?: { exportable: boolean; entity?: string } | null;
   ai_suggestions?: string[];
   dashboard?: { route: string; kpis: RegistryKpi[]; panels?: RegistryPanel[]; empty_state?: string };

@@ -9,7 +9,7 @@ export interface DecimalInputProps extends Omit<InputHTMLAttributes<HTMLInputEle
   /** Canonical decimal string or "" for empty. */
   value: string;
   onValueChange: (canonical: string) => void;
-  onInvalid?: (message: string | null) => void;
+  onValidity?: (message: string | null) => void;
   kind?: PrecisionKind;
   /** Minimum decimals shown when not editing (COP: 0, quantities: 0). */
   displayDecimals?: number;
@@ -17,7 +17,7 @@ export interface DecimalInputProps extends Omit<InputHTMLAttributes<HTMLInputEle
 }
 
 export const DecimalInput = forwardRef<HTMLInputElement, DecimalInputProps>(function DecimalInput(
-  { value, onValueChange, onInvalid, kind = "amount", displayDecimals = 0, prefix, className, onBlur, onFocus, ...rest },
+  { value, onValueChange, onValidity, kind = "amount", displayDecimals = 0, prefix, className, onBlur, onFocus, ...rest },
   ref,
 ) {
   const scale = PRECISION[kind].scale;
@@ -32,16 +32,16 @@ export const DecimalInput = forwardRef<HTMLInputElement, DecimalInputProps>(func
 
   function commit(raw: string) {
     if (raw.trim() === "") {
-      onInvalid?.(null);
+      onValidity?.(null);
       onValueChange("");
       return;
     }
     try {
       const canonical = parseEsCoDecimal(raw, kind);
-      onInvalid?.(null);
+      onValidity?.(null);
       onValueChange(canonical);
     } catch (e) {
-      onInvalid?.(e instanceof DecimalInputError ? e.message : String(e));
+      onValidity?.(e instanceof DecimalInputError ? e.message : String(e));
     }
   }
 

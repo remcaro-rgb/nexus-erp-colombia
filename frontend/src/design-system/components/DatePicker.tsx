@@ -8,13 +8,13 @@ import { inputClass } from "./Field";
 export interface DatePickerProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "type"> {
   value: string;
   onValueChange: (iso: string) => void;
-  onInvalid?: (invalid: boolean) => void;
+  onValidity?: (invalid: boolean) => void;
   calendarLabel: string;
   placeholderText: string;
 }
 
 export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(function DatePicker(
-  { value, onValueChange, onInvalid, calendarLabel, placeholderText, className, ...rest },
+  { value, onValueChange, onValidity, calendarLabel, placeholderText, className, ...rest },
   ref,
 ) {
   const [text, setText] = useState(toDmy(value));
@@ -31,12 +31,12 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(function
         onChange={(e) => {
           setText(e.target.value);
           if (e.target.value.trim() === "") {
-            onInvalid?.(false);
+            onValidity?.(false);
             onValueChange("");
             return;
           }
           const iso = parseDmy(e.target.value);
-          onInvalid?.(iso === null);
+          onValidity?.(iso === null);
           if (iso) onValueChange(iso);
         }}
         {...rest}
@@ -47,7 +47,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(function
         className={cn(inputClass, "w-12 cursor-pointer px-1")}
         value={value}
         onChange={(e) => {
-          onInvalid?.(false);
+          onValidity?.(false);
           onValueChange(e.target.value);
         }}
       />
