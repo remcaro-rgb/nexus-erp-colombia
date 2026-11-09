@@ -26,7 +26,7 @@
       "@lib/*": ["src/lib/*"],
       "@i18n/*": ["src/i18n/*"],
       "@features/*": ["src/features/*"],
-      "@spec/*": ["../docs/spec/*"]
+      "@spec/*": ["src/lib/spec/*"]
     }
   },
   "include": ["src", "vite.config.ts"]

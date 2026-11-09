@@ -10,7 +10,8 @@ import { tokensToCss, type UiTokens } from "./src/design-system/tokens/css";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "..");
-const tokensPath = resolve(repoRoot, "docs/spec/ui/tokens.json");
+// Byte-identical snapshot of docs/spec/ui/tokens.json (drift test in src/lib/spec/__tests__); the Docker build context has no docs/.
+const tokensPath = resolve(here, "src/lib/spec/ui/tokens.json");
 
 /** `virtual:nexus-tokens.css` — CSS custom properties generated from docs/spec/ui/tokens.json (single source of truth). */
 function nexusTokens(): Plugin {
@@ -43,7 +44,7 @@ export default defineConfig({
       "@lib": resolve(here, "src/lib"),
       "@i18n": resolve(here, "src/i18n"),
       "@features": resolve(here, "src/features"),
-      "@spec": resolve(repoRoot, "docs/spec"),
+      "@spec": resolve(here, "src/lib/spec"),
     },
   },
   server: {
