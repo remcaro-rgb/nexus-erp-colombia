@@ -1,0 +1,223 @@
+"""Tenancy context and transaction-local binding (ADR-003).
+
+``bind(ctx)`` runs ``set_config(name, value, true)`` (= ``SET LOCAL``) for
+``app.tenant_id``, ``app.company_ids``, ``app.principal_id``,
+``app.principal_type``, ``app.on_behalf_of`` and ``app.channel``. Values die at
+COMMIT/ROLLBACK, so a pooled connection never leaks a binding to the next
+transaction. RLS policies (P04) read them with
+``current_setting('app.tenant_id', true)``; an unbound query returns no rows.
+"""
+
+from __future__ import annotations
+
+import contextlib
+import contextvars
+import enum
+import uuid
+from collections.abc import Callable, Iterator
+from dataclasses import dataclass, field
+from typing import Any
+
+from django.db import connections, transaction
+
+from kernel.errors import TenancyNotBound, ValidationFailed
+
+
+class PrincipalType(enum.StrEnum):
+    USER = "user"
+    SERVICE = "service"
+    AI_AGENT = "ai_agent"
+    MCP_CLIENT = "mcp_client"
+
+
+class Channel(enum.StrEnum):
+    UI = "ui"
+    API = "api"
+    AI = "ai"
+    MCP = "mcp"
+    IMPORT = "import"
+    JOB = "job"
+
+
+SETTING_NAMES = (
+    "app.tenant_id",
+    "app.company_ids",
+    "app.principal_id",
+    "app.principal_type",
+    "app.on_behalf_of",
+    "app.channel",
+)
+
+
+def _as_uuid(value: Any, name: str) -> uuid.UUID:
+    if isinstance(value, uuid.UUID):
+        return value
+    try:
+        return uuid.UUID(str(value))
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise ValidationFailed(f"{name} must be a UUID") from exc
+
+
+@dataclass(frozen=True, slots=True)
+class TenantContext:
+    """Who acts, for which tenant and companies, through which channel."""
+
+    tenant_id: uuid.UUID
+    company_ids: frozenset[uuid.UUID]
+    principal_id: uuid.UUID
+    principal_type: PrincipalType = PrincipalType.USER
+    on_behalf_of: uuid.UUID | None = None
+    channel: Channel = Channel.API
+    correlation_id: uuid.UUID | None = field(default=None, compare=False)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "tenant_id", _as_uuid(self.tenant_id, "tenant_id"))
+        object.__setattr__(self, "principal_id", _as_uuid(self.principal_id, "principal_id"))
+        object.__setattr__(
+            self,
+            "company_ids",
+            frozenset(_as_uuid(c, "company_ids") for c in self.company_ids),
+        )
+        object.__setattr__(self, "principal_type", PrincipalType(self.principal_type))
+        object.__setattr__(self, "channel", Channel(self.channel))
+        if self.on_behalf_of is not None:
+            object.__setattr__(self, "on_behalf_of", _as_uuid(self.on_behalf_of, "on_behalf_of"))
+        if self.principal_type in (PrincipalType.AI_AGENT, PrincipalType.MCP_CLIENT) and (self.on_behalf_of is None):
+            raise ValidationFailed("AI agent and MCP principals must act on behalf of a user")
+        if self.correlation_id is not None:
+            object.__setattr__(self, "correlation_id", _as_uuid(self.correlation_id, "correlation_id"))
+
+    def can_access_company(self, company_id: uuid.UUID) -> bool:
+        return company_id in self.company_ids
+
+    def require_company(self, company_id: uuid.UUID) -> uuid.UUID:
+        cid = _as_uuid(company_id, "company_id")
+        if cid not in self.company_ids:
+            # Same message for missing and foreign companies: no existence oracle.
+            raise ValidationFailed("company not available in the current context")
+        return cid
+
+    def settings_values(self) -> dict[str, str]:
+        return {
+            "app.tenant_id": str(self.tenant_id),
+            "app.company_ids": "{" + ",".join(sorted(str(c) for c in self.company_ids)) + "}",
+            "app.principal_id": str(self.principal_id),
+            "app.principal_type": self.principal_type.value,
+            "app.on_behalf_of": str(self.on_behalf_of) if self.on_behalf_of else "",
+            "app.channel": self.channel.value,
+        }
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "tenant_id": str(self.tenant_id),
+            "company_ids": sorted(str(c) for c in self.company_ids),
+            "principal_id": str(self.principal_id),
+            "principal_type": self.principal_type.value,
+            "on_behalf_of": str(self.on_behalf_of) if self.on_behalf_of else None,
+            "channel": self.channel.value,
+            "correlation_id": str(self.correlation_id) if self.correlation_id else None,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> TenantContext:
+        return cls(
+            tenant_id=data["tenant_id"],
+            company_ids=frozenset(data.get("company_ids") or ()),
+            principal_id=data["principal_id"],
+            principal_type=PrincipalType(data.get("principal_type", "user")),
+            on_behalf_of=data.get("on_behalf_of"),
+            channel=Channel(data.get("channel", "api")),
+            correlation_id=data.get("correlation_id"),
+        )
+
+
+_current: contextvars.ContextVar[TenantContext | None] = contextvars.ContextVar("erp_tenant_context", default=None)
+
+
+def current() -> TenantContext | None:
+    return _current.get()
+
+
+def require_current() -> TenantContext:
+    ctx = _current.get()
+    if ctx is None:
+        raise TenancyNotBound("no tenant context for this request/task")
+    return ctx
+
+
+@contextlib.contextmanager
+def activate(ctx: TenantContext | None) -> Iterator[TenantContext | None]:
+    """Make ``ctx`` the current context (contextvar) for the enclosed block."""
+    token = _current.set(ctx)
+    try:
+        yield ctx
+    finally:
+        _current.reset(token)
+
+
+def bind(ctx: TenantContext, using: str = "default") -> None:
+    """``SET LOCAL`` the context on the current transaction of ``using``.
+
+    Must be called inside ``transaction.atomic`` (values are transaction-local).
+    """
+    conn = connections[using]
+    if not conn.in_atomic_block:
+        raise TenancyNotBound("bind() must run inside a transaction (SET LOCAL semantics)")
+    values = ctx.settings_values()
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT " + ", ".join("set_config(%s, %s, true)" for _ in values),
+            [x for pair in values.items() for x in pair],
+        )
+
+
+def bound_settings(using: str = "default") -> dict[str, str]:
+    """Current values of the ``app.*`` settings (empty string when unbound)."""
+    with connections[using].cursor() as cur:
+        cur.execute(
+            "SELECT " + ", ".join("coalesce(current_setting(%s, true), '')" for _ in SETTING_NAMES),
+            list(SETTING_NAMES),
+        )
+        row = cur.fetchone()
+    return dict(zip(SETTING_NAMES, row or ("",) * len(SETTING_NAMES), strict=True))
+
+
+@contextlib.contextmanager
+def scope(ctx: TenantContext | None = None, using: str = "default") -> Iterator[TenantContext]:
+    """Read scope: open a transaction (or join the current one) and bind ``ctx``."""
+    effective = ctx or require_current()
+    with activate(effective), transaction.atomic(using=using):
+        bind(effective, using)
+        yield effective
+
+
+ContextResolver = Callable[[Any], TenantContext | None]
+
+
+def _resolver() -> ContextResolver | None:
+    from django.conf import settings
+    from django.utils.module_loading import import_string
+
+    path = getattr(settings, "ERP_TENANT_CONTEXT_RESOLVER", None)
+    return import_string(path) if path else None
+
+
+class TenancyMiddleware:
+    """Activates the request's :class:`TenantContext` for the request lifetime.
+
+    The context comes from ``request.erp_context`` (set by the IAM
+    authentication layer, P04) or the ``ERP_TENANT_CONTEXT_RESOLVER`` callable.
+    It is never derived from client headers alone. Without a context nothing is
+    bound, so RLS-protected tables return no rows.
+    """
+
+    def __init__(self, get_response: Callable[[Any], Any]) -> None:
+        self.get_response = get_response
+
+    def __call__(self, request: Any) -> Any:
+        ctx = getattr(request, "erp_context", None)
+        if ctx is None:
+            resolver = _resolver()
+            ctx = resolver(request) if resolver else None
+        with activate(ctx):
+            return self.get_response(request)
