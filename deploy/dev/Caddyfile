@@ -1,0 +1,95 @@
+# Nexus ERP DEV reverse proxy (D-P03). Owner: P03.
+# Same-origin routing: /healthz (proxy), /api/ + /ws/ (api), /mcp/ (MCP endpoint), /auth/ (Keycloak),
+# /mailpit/ (local mail capture, dev only, basic auth), / (static frontend).
+# Listens on :8080 inside the container; the host side is published on 127.0.0.1 only (compose).
+{
+	admin off
+	auto_https off
+	persist_config off
+	servers {
+		trusted_proxies static private_ranges
+	}
+	log {
+		output stdout
+		format json
+	}
+}
+
+(security_headers) {
+	header {
+		# Only set when the upstream did not send its own (Keycloak pages ship their own CSP).
+		?Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		?X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		X-Nexus-Environment "dev"
+		-Server
+		-X-Powered-By
+	}
+}
+
+:8080 {
+	import security_headers
+	request_body {
+		max_size 25MB
+	}
+
+	handle /healthz {
+		respond "ok" 200
+	}
+
+	handle /api/* {
+		reverse_proxy {$ERP_API_UPSTREAM:api:8000} {
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
+	handle /ws/* {
+		reverse_proxy {$ERP_API_UPSTREAM:api:8000}
+	}
+
+	handle /mcp/* {
+		reverse_proxy {$ERP_MCP_UPSTREAM:api:8000}
+	}
+
+	handle /auth/* {
+		reverse_proxy keycloak:8080 {
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Forwarded-Host {host}
+		}
+	}
+
+	handle /mailpit/* {
+		reverse_proxy mailpit:8025
+	}
+
+	# optional observability profile (NEXUS_OBSERVABILITY=1)
+	handle /grafana/* {
+		reverse_proxy grafana:3000
+	}
+
+	handle {
+		reverse_proxy {$ERP_WEB_UPSTREAM:web:8080} {
+			# fail fast when the frontend image is not running yet
+			fail_duration 5s
+		}
+	}
+
+	# Upstream not running (e.g. wave 1: no application images yet) -> honest placeholder, never fake data.
+	handle_errors 502 503 504 {
+		import security_headers
+		@api path /api/* /ws/* /mcp/*
+		handle @api {
+			header Content-Type "application/json"
+			respond `{"error":"upstream_unavailable","detail":"The API service is not running in this DEV stack yet."}` 503
+		}
+		handle {
+			root * /srv/fallback
+			rewrite * /index.html
+			file_server
+		}
+	}
+}

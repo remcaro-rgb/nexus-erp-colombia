@@ -1,0 +1,399 @@
+# Nexus ERP — DEV runtime stack (D-P03, ADR-014). Owner: P03. DEV-ONLY, synthetic data.
+#
+# Start/stop ONLY through scripts/ci/dev-up.sh | dev-down.sh (make dev-up | dev-down): they select the port,
+# generate secrets into deploy/dev/secrets/ (mode 0600), build/choose profiles and run migrations explicitly.
+#
+# Rules enforced by scripts/ci/lint_compose.py (CI):
+#   * only `proxy` publishes a port, and only on ${ERP_DEV_BIND_HOST:-127.0.0.1}
+#   * every long-running service: restart unless-stopped + healthcheck; one-shot jobs carry label nexus.oneshot
+#   * third-party images pinned by digest; application images erp-<service>:${ERP_IMAGE_TAG}; no `build:` here
+#   * no literal secrets: every secret is an interpolation from deploy/dev/secrets/dev.env
+#   * the `backend` network is internal: services cannot reach the internet (no live DIAN/PILA/bank/e-mail)
+#
+# Profiles: (none) infrastructure + proxy · app = api/worker/scheduler/outbox-relay · web = frontend
+#           mcp = separate MCP server image · observability = otel-collector/jaeger/prometheus/grafana
+#           tools = one-shot migrate / seed jobs (run explicitly by the scripts)
+name: nexus-erp-dev
+
+x-app-env: &app-env
+  ERP_ENVIRONMENT: dev
+  ERP_SYNTHETIC_DATA: "true"
+  ERP_PUBLIC_ORIGIN: ${ERP_PUBLIC_ORIGIN:-http://localhost:8080}
+  ERP_VERSION: ${ERP_GIT_SHA:-unknown}
+  DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-erp.settings}
+  ERP_SECRET_KEY: ${ERP_SECRET_KEY:?run deploy/dev/gen-secrets.sh}
+  ERP_FIELD_ENCRYPTION_KEY: ${ERP_FIELD_ENCRYPTION_KEY:?run deploy/dev/gen-secrets.sh}
+  ERP_DB_HOST: db
+  ERP_DB_PORT: "5432"
+  ERP_DB_NAME: erp
+  ERP_DB_USER: erp_app
+  ERP_DB_PASSWORD: ${ERP_DB_APP_PASSWORD:?run deploy/dev/gen-secrets.sh}
+  ERP_CACHE_URL: redis://:${ERP_VALKEY_PASSWORD:?run deploy/dev/gen-secrets.sh}@valkey:6379/0
+  ERP_CELERY_BROKER_URL: redis://:${ERP_VALKEY_PASSWORD:?run deploy/dev/gen-secrets.sh}@valkey:6379/1
+  ERP_OIDC_ISSUER: ${ERP_PUBLIC_ORIGIN:-http://localhost:8080}/auth/realms/erp-dev
+  ERP_OIDC_INTERNAL_ISSUER: http://keycloak:8080/auth/realms/erp-dev
+  ERP_OIDC_API_CLIENT_SECRET: ${ERP_API_OIDC_CLIENT_SECRET:?run deploy/dev/gen-secrets.sh}
+  ERP_S3_ENDPOINT: http://minio:9000
+  ERP_S3_ACCESS_KEY: nexus-dev-root
+  ERP_S3_SECRET_KEY: ${ERP_MINIO_ROOT_PASSWORD:?run deploy/dev/gen-secrets.sh}
+  ERP_S3_BUCKET: erp-dev
+  ERP_EMAIL_MODE: LOCAL_CAPTURE
+  ERP_EMAIL_HOST: mailpit
+  ERP_EMAIL_PORT: "1025"
+  ERP_DIAN_MODE: FIXTURE_NOT_CERTIFIED
+  ERP_PILA_MODE: FIXTURE_NOT_CERTIFIED
+  ERP_BANK_MODE: FIXTURE_NOT_CERTIFIED
+  ERP_PAYMENTS_MODE: FIXTURE_NOT_CERTIFIED
+  ERP_LLM_MODE: ${ERP_LLM_MODE:-FIXTURE_NOT_CERTIFIED}
+  OTEL_SERVICE_NAMESPACE: nexus-erp
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+  OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-true}
+  TZ: America/Bogota
+
+x-app-service: &app-service
+  restart: unless-stopped
+  read_only: true
+  tmpfs: [/tmp]
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+  networks: [backend]
+  depends_on:
+    db: {condition: service_healthy}
+    valkey: {condition: service_healthy}
+
+services:
+  proxy:
+    image: docker.io/library/caddy:2.11.9-alpine@sha256:0bbb055bda6793c999bde78b1b5ce3e89f829fb031af2cf50056ea1246559fee
+    restart: unless-stopped
+    user: "10001:10001"
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    environment:
+      XDG_CONFIG_HOME: /tmp/caddy-config
+      XDG_DATA_HOME: /tmp/caddy-data
+      ERP_MCP_UPSTREAM: ${ERP_MCP_UPSTREAM:-api:8000}
+    command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./fallback:/srv/fallback:ro
+    tmpfs: [/tmp]
+    ports:
+      - "${ERP_DEV_BIND_HOST:-127.0.0.1}:${ERP_DEV_PORT:-8080}:8080"
+    networks: [edge, backend]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  db:
+    image: docker.io/library/postgres:18.6-alpine@sha256:123b17998ccaf47e53b502e8c6a1e79afd8f579c6f3eec83c563da026f957395
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${ERP_DB_SUPERUSER_PASSWORD:?run deploy/dev/gen-secrets.sh}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --data-checksums"
+      ERP_DB_NAME: erp
+      ERP_DB_OWNER_PASSWORD: ${ERP_DB_OWNER_PASSWORD:?run deploy/dev/gen-secrets.sh}
+      ERP_DB_APP_PASSWORD: ${ERP_DB_APP_PASSWORD:?run deploy/dev/gen-secrets.sh}
+      ERP_DB_READONLY_PASSWORD: ${ERP_DB_READONLY_PASSWORD:?run deploy/dev/gen-secrets.sh}
+      ERP_DB_PLATFORM_PASSWORD: ${ERP_DB_PLATFORM_PASSWORD:?run deploy/dev/gen-secrets.sh}
+      TZ: UTC
+    volumes:
+      - db-data:/var/lib/postgresql
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    shm_size: 256m
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d erp -h 127.0.0.1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+
+  valkey:
+    image: docker.io/valkey/valkey:8.1.11-alpine@sha256:2602ace2be6569bc2bbb06f873776516ab9089821525be34f4305c67eb9db02a
+    restart: unless-stopped
+    environment:
+      VALKEY_PASSWORD: ${ERP_VALKEY_PASSWORD:?run deploy/dev/gen-secrets.sh}
+    command: ["sh", "-c", "exec valkey-server --appendonly yes --save 60 1 --requirepass \"$$VALKEY_PASSWORD\""]
+    volumes:
+      - valkey-data:/data
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$VALKEY_PASSWORD\" valkey-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  keycloak:
+    image: docker.io/keycloak/keycloak:26.8.2@sha256:3879c623248408de29a5303178b5816c77e8dfef3890c361f8c0bbeaa979ba3b
+    restart: unless-stopped
+    # start-dev: embedded dev-file database on the keycloak-data volume (dev only).
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_HOSTNAME: ${ERP_PUBLIC_ORIGIN:-http://localhost:8080}/auth
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+      KC_BOOTSTRAP_ADMIN_USERNAME: nexus-dev-admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${ERP_KEYCLOAK_ADMIN_PASSWORD:?run deploy/dev/gen-secrets.sh}
+      # values substituted into the realm template (deploy/keycloak/realm-template.json, owned by P04)
+      ERP_PUBLIC_ORIGIN: ${ERP_PUBLIC_ORIGIN:-http://localhost:8080}
+      ERP_SMOKE_CLIENT_SECRET: ${ERP_SMOKE_CLIENT_SECRET:?run deploy/dev/gen-secrets.sh}
+      ERP_MCP_CLIENT_SECRET: ${ERP_MCP_CLIENT_SECRET:?run deploy/dev/gen-secrets.sh}
+      ERP_API_OIDC_CLIENT_SECRET: ${ERP_API_OIDC_CLIENT_SECRET:?run deploy/dev/gen-secrets.sh}
+    volumes:
+      - keycloak-data:/opt/keycloak/data
+      - ../keycloak:/opt/keycloak/data/import:ro
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /auth/health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
+
+  minio:
+    # Upstream MinIO no longer publishes images on Docker Hub; pgsty/minio is a community build of the same
+    # server (see deploy/README.md, decision P03-D3). Dev/staging object storage only.
+    image: docker.io/pgsty/minio:RELEASE.2026-08-04T00-00-00Z@sha256:b6bfe7239bfc83fb90d31612d9704d86039dd714f7904b3f1ad68f211e602372
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: nexus-dev-root
+      MINIO_ROOT_PASSWORD: ${ERP_MINIO_ROOT_PASSWORD:?run deploy/dev/gen-secrets.sh}
+      MINIO_BROWSER: "off"
+    volumes:
+      - minio-data:/data
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/minio/health/live"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  mailpit:
+    image: docker.io/axllent/mailpit:v1.33.1@sha256:aef2aacc11f075ec0fb6874275ee4a421e688e11a96ebb296134d1735c7761ce
+    restart: unless-stopped
+    environment:
+      MP_WEBROOT: mailpit
+      MP_UI_AUTH: "mail:${ERP_MAILPIT_UI_PASSWORD:?run deploy/dev/gen-secrets.sh}"
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+      MP_MAX_MESSAGES: "5000"
+      MP_DATABASE: /data/mailpit.db
+    volumes:
+      - mailpit-data:/data
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  # ---------------- application (profile app; images built by scripts/ci/build-images.sh) ----------------
+  api:
+    <<: *app-service
+    profiles: [app]
+    image: erp-api:${ERP_IMAGE_TAG:-dev}
+    environment:
+      <<: *app-env
+      ERP_SERVICE: api
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health/live',timeout=3).status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  worker:
+    <<: *app-service
+    profiles: [app]
+    image: erp-worker:${ERP_IMAGE_TAG:-dev}
+    environment:
+      <<: *app-env
+      ERP_SERVICE: worker
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A erp inspect ping -d celery@$$HOSTNAME --timeout 5 | grep -q pong"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 30s
+
+  scheduler:
+    <<: *app-service
+    profiles: [app]
+    image: erp-scheduler:${ERP_IMAGE_TAG:-dev}
+    environment:
+      <<: *app-env
+      ERP_SERVICE: scheduler
+    healthcheck:
+      test: ["CMD", "python", "/opt/nexus/healthcheck.py", "process"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  outbox-relay:
+    <<: *app-service
+    profiles: [app]
+    image: erp-outbox-relay:${ERP_IMAGE_TAG:-dev}
+    environment:
+      <<: *app-env
+      ERP_SERVICE: outbox-relay
+    healthcheck:
+      test: ["CMD", "python", "/opt/nexus/healthcheck.py", "process"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  mcp:
+    <<: *app-service
+    profiles: [mcp]
+    image: erp-mcp:${ERP_IMAGE_TAG:-dev}
+    environment:
+      <<: *app-env
+      ERP_SERVICE: mcp
+    healthcheck:
+      test: ["CMD", "python", "/opt/nexus/healthcheck.py", "http", "http://127.0.0.1:8000/mcp/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+
+  web:
+    profiles: [web]
+    image: erp-web:${ERP_IMAGE_TAG:-dev}
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/index.html"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ---------------- one-shot jobs (profile tools; run explicitly, never on container start) ----------------
+  migrate:
+    profiles: [tools]
+    image: erp-api:${ERP_IMAGE_TAG:-dev}
+    restart: "no"
+    labels: {nexus.oneshot: "true"}
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    networks: [backend]
+    environment:
+      <<: *app-env
+      ERP_SERVICE: migrate
+      # migrations run as the owner role; the app itself never does (ADR-003)
+      ERP_DB_USER: erp_owner
+      ERP_DB_PASSWORD: ${ERP_DB_OWNER_PASSWORD:?run deploy/dev/gen-secrets.sh}
+    command: ["python", "manage.py", "migrate", "--noinput"]
+    depends_on:
+      db: {condition: service_healthy}
+
+  seed:
+    profiles: [tools]
+    image: erp-api:${ERP_IMAGE_TAG:-dev}
+    restart: "no"
+    labels: {nexus.oneshot: "true"}
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    networks: [backend]
+    environment:
+      <<: *app-env
+      ERP_SERVICE: seed
+      ERP_DEMO_CREDENTIALS_FILE: /run/nexus/dev-credentials.env
+    volumes:
+      - ${ERP_SECRETS_DIR:-./secrets}/dev-credentials.env:/run/nexus/dev-credentials.env:ro
+    command: ["python", "manage.py", "seed_demo", "--synthetic", "--idempotent"]
+    depends_on:
+      db: {condition: service_healthy}
+
+  # ---------------- observability (profile observability; optional in dev) ----------------
+  otel-collector:
+    profiles: [observability]
+    image: docker.io/otel/opentelemetry-collector-contrib:0.165.0@sha256:e40d61f10c9a617cca1ffd1be4d7e2b3a4b0f0001798ff07e58cabe82e618cea
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ../observability/otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "/otelcol-contrib", "components"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  jaeger:
+    profiles: [observability]
+    image: docker.io/jaegertracing/jaeger:2.23.0@sha256:3823829974ccfc2485d2e48b165579091f32295022ae80ca49704e2f4834116e
+    restart: unless-stopped
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:16686/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  prometheus:
+    profiles: [observability]
+    image: docker.io/prom/prometheus:v3.16.0@sha256:e04987641b57704f408e31f6373ba4138ecf27cb4a165d24aabb6c38fddd0f06
+    restart: unless-stopped
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--web.enable-remote-write-receiver"]
+    volumes:
+      - ../observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9090/-/ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  grafana:
+    profiles: [observability]
+    image: docker.io/grafana/grafana:13.2.5@sha256:9f7aa1e1e3246aade5792d35a738049f7f32f89cd51d1956cf426a4e86268a84
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: nexus-dev-admin
+      GF_SECURITY_ADMIN_PASSWORD: ${ERP_GRAFANA_ADMIN_PASSWORD:?run deploy/dev/gen-secrets.sh}
+      GF_SERVER_ROOT_URL: ${ERP_PUBLIC_ORIGIN:-http://localhost:8080}/grafana/
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ../observability/grafana:/etc/grafana/provisioning:ro
+      - ../observability/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  edge: {}
+  backend:
+    internal: true
+
+volumes:
+  db-data: {}
+  valkey-data: {}
+  keycloak-data: {}
+  minio-data: {}
+  mailpit-data: {}
+  prometheus-data: {}
+  grafana-data: {}

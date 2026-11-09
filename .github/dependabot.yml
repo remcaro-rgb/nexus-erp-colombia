@@ -1,0 +1,20 @@
+# Low-maintenance updates (ADR-014): weekly PRs for pinned digests, actions and lockfiles. Owner: P03.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: {interval: weekly}
+  - package-ecosystem: docker
+    directories: [/deploy/docker]
+    schedule: {interval: weekly}
+  - package-ecosystem: docker-compose
+    directories: [/deploy/dev, /]
+    schedule: {interval: weekly}
+  - package-ecosystem: uv
+    directory: /
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 5
+  - package-ecosystem: npm
+    directory: /
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 5

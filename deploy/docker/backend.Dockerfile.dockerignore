@@ -1,0 +1,13 @@
+**
+!pyproject.toml
+!uv.lock
+!backend/**
+!mcp_server/**
+!deploy/docker/backend-entrypoint.sh
+!deploy/docker/healthcheck.py
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/node_modules
+**/*.env
+**/secrets/**

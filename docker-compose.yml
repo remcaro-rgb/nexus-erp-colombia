@@ -1,0 +1,57 @@
+# Nexus ERP — base compose file (ADR-014). Owner: P03. DEV-ONLY run: see deploy/README.md.
+#
+# Service definitions live once, in deploy/dev/compose.yaml (the DEV runtime used by make dev-up);
+# this file reuses them with `extends` and adds the `build:` sections, so
+#   docker compose build                       builds erp-<service>:${ERP_IMAGE_TAG:-dev}
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up      (hot reload, dev tools)
+#   docker compose -f docker-compose.yml -f docker-compose.test.yml up     (ephemeral, CI)
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml config (reference only; not run in DEV)
+# Prefer `make dev-up` for daily use: it generates secrets, selects the loopback port and runs migrations.
+# Interpolation needs the secrets env:  --env-file deploy/dev/secrets/dev.env  (deploy/dev/gen-secrets.sh).
+name: nexus-erp
+
+x-backend-build: &backend-build
+  context: .
+  dockerfile: deploy/docker/backend.Dockerfile
+
+services:
+  proxy:          {extends: {file: deploy/dev/compose.yaml, service: proxy}}
+  db:             {extends: {file: deploy/dev/compose.yaml, service: db}}
+  valkey:         {extends: {file: deploy/dev/compose.yaml, service: valkey}}
+  keycloak:       {extends: {file: deploy/dev/compose.yaml, service: keycloak}}
+  minio:          {extends: {file: deploy/dev/compose.yaml, service: minio}}
+  mailpit:        {extends: {file: deploy/dev/compose.yaml, service: mailpit}}
+  otel-collector: {extends: {file: deploy/dev/compose.yaml, service: otel-collector}}
+
+  api:
+    extends: {file: deploy/dev/compose.yaml, service: api}
+    build: {<<: *backend-build, target: api}
+  worker:
+    extends: {file: deploy/dev/compose.yaml, service: worker}
+    build: {<<: *backend-build, target: worker}
+  scheduler:
+    extends: {file: deploy/dev/compose.yaml, service: scheduler}
+    build: {<<: *backend-build, target: scheduler}
+  outbox-relay:
+    extends: {file: deploy/dev/compose.yaml, service: outbox-relay}
+    build: {<<: *backend-build, target: outbox-relay}
+  mcp:
+    extends: {file: deploy/dev/compose.yaml, service: mcp}
+    build: {<<: *backend-build, target: mcp}
+  web:
+    extends: {file: deploy/dev/compose.yaml, service: web}
+    build: {context: ., dockerfile: deploy/docker/frontend.Dockerfile, target: web}
+  migrate:
+    extends: {file: deploy/dev/compose.yaml, service: migrate}
+
+networks:
+  edge: {}
+  backend:
+    internal: true
+
+volumes:
+  db-data: {}
+  valkey-data: {}
+  keycloak-data: {}
+  minio-data: {}
+  mailpit-data: {}
