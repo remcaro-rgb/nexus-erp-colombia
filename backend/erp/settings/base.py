@@ -1,0 +1,156 @@
+"""Base settings shared by every profile (dev, test, prod).
+
+Everything comes from the environment (django-environ). Nothing here relaxes
+authentication, authorization, RLS or audit in any profile (DEV-ADDENDUM D-ALL).
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from urllib.parse import urlsplit
+
+import environ
+from django.core.exceptions import ImproperlyConfigured
+
+from kernel.integrations import validate_integration_modes
+
+BASE_DIR = Path(__file__).resolve().parents[2]  # backend/
+REPO_DIR = BASE_DIR.parent
+
+env = environ.Env()
+
+# DEV-only edition: the only runtime profile is "dev"; "test" is used by pytest.
+SUPPORTED_ENVIRONMENTS = ("dev", "test")
+ERP_ENVIRONMENT = env.str("ERP_ENVIRONMENT", default="dev")
+if ERP_ENVIRONMENT not in SUPPORTED_ENVIRONMENTS:
+    raise ImproperlyConfigured(
+        f"ERP_ENVIRONMENT={ERP_ENVIRONMENT!r} is not supported by this DEV-only edition "
+        f"(supported: {', '.join(SUPPORTED_ENVIRONMENTS)})."
+    )
+
+DEBUG = False
+SECRET_KEY = env.str("DJANGO_SECRET_KEY", default="")
+
+# --- origin / hosts (D-P01) -------------------------------------------------
+ERP_PUBLIC_ORIGIN = env.str("ERP_PUBLIC_ORIGIN", default="http://localhost:8080").rstrip("/")
+_origin = urlsplit(ERP_PUBLIC_ORIGIN)
+if _origin.scheme not in ("http", "https") or not _origin.hostname:
+    raise ImproperlyConfigured("ERP_PUBLIC_ORIGIN must be an absolute http(s) origin")
+ALLOWED_HOSTS = sorted({_origin.hostname, "localhost", "127.0.0.1"})
+CSRF_TRUSTED_ORIGINS = [ERP_PUBLIC_ORIGIN]
+USE_X_FORWARDED_HOST = True
+if _origin.scheme == "https":
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+# CORS: same origin only. No CORS middleware is installed, so no cross-origin
+# response headers are ever emitted (never "*").
+
+INSTALLED_APPS = [
+    "django.contrib.contenttypes",
+    "django.contrib.auth",
+    "rest_framework",
+    "drf_spectacular",
+    "kernel",
+]
+
+MIDDLEWARE = [
+    "django.middleware.security.SecurityMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "kernel.tenancy.TenancyMiddleware",
+]
+
+ROOT_URLCONF = "erp.urls"
+WSGI_APPLICATION = "erp.wsgi.application"
+ASGI_APPLICATION = "erp.asgi.application"
+
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {"context_processors": []},
+    }
+]
+
+# --- database -----------------------------------------------------------------
+# Default: local PostgreSQL over the unix socket with the OS user's role
+# (peer auth, no password). Set DATABASE_URL to override.
+DATABASES = {"default": env.db_url("DATABASE_URL", default="postgres:///nexus_erp?host=/var/run/postgresql")}
+DATABASES["default"].setdefault("CONN_MAX_AGE", 60)
+DATABASES["default"].setdefault("ATOMIC_REQUESTS", False)
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# The application role must not be superuser / BYPASSRLS (ADR-003). Checked
+# on every new connection when enabled (kernel.boot).
+ERP_REQUIRE_SAFE_DB_ROLE = env.bool("ERP_REQUIRE_SAFE_DB_ROLE", default=True)
+
+CACHES = {
+    "default": env.cache_url("ERP_CACHE_URL", default="locmemcache://nexus-erp"),
+}
+
+# --- locale / time (D-001, C2-4) ----------------------------------------------
+LANGUAGE_CODE = "es-co"
+LANGUAGES = [("es-co", "Español (Colombia)"), ("en", "English")]
+TIME_ZONE = "America/Bogota"
+USE_I18N = True
+USE_TZ = True  # storage in UTC; business dates in the company timezone
+ERP_DEFAULT_COMPANY_TIMEZONE = "America/Bogota"
+ERP_FUNCTIONAL_CURRENCY = "COP"
+
+# --- brand (UI task matrix P01) -----------------------------------------------
+ERP_BRAND_NAME = env.str("ERP_BRAND_NAME", default="NexusERP")
+ERP_BRAND_LOGO_PATH = env.str("ERP_BRAND_LOGO_PATH", default="")
+
+# --- integrations (D-ALL 2): only simulated / sandbox / local capture modes ----
+ERP_INTEGRATIONS = validate_integration_modes(
+    {
+        "dian": env.str("ERP_INTEGRATION_DIAN", default="FIXTURE_NOT_CERTIFIED"),
+        "pila": env.str("ERP_INTEGRATION_PILA", default="FIXTURE_NOT_CERTIFIED"),
+        "banks": env.str("ERP_INTEGRATION_BANKS", default="FIXTURE_NOT_CERTIFIED"),
+        "payments": env.str("ERP_INTEGRATION_PAYMENTS", default="FIXTURE_NOT_CERTIFIED"),
+        "email": env.str("ERP_INTEGRATION_EMAIL", default="LOCAL_CAPTURE"),
+        "ai": env.str("ERP_INTEGRATION_AI", default="FIXTURE_NOT_CERTIFIED"),
+    }
+)
+ERP_FISCAL_MODE = env.str("ERP_FISCAL_MODE", default="simulated")
+ERP_GIT_SHA = env.str("ERP_GIT_SHA", default="")
+
+# --- DRF: deny by default ----------------------------------------------------------
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [],
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    "UNAUTHENTICATED_USER": None,
+    "EXCEPTION_HANDLER": "kernel.errors.drf_exception_handler",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "COERCE_DECIMAL_TO_STRING": True,
+}
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Nexus ERP API",
+    "VERSION": "0.1.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+}
+
+# --- Celery / outbox ---------------------------------------------------------------
+CELERY_BROKER_URL = env.str("ERP_BROKER_URL", default="redis://127.0.0.1:6379/0")
+CELERY_TASK_ALWAYS_EAGER = False
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_DEFAULT_QUEUE = "default"
+CELERY_TIMEZONE = "UTC"
+ERP_OUTBOX_ROUTES = {
+    "einvoice": "einvoice",
+    "notifications": "notifications",
+    "reporting": "reporting",
+    "ai_agent": "ai",
+}
+ERP_OUTBOX_MAX_ATTEMPTS = 10
+
+# --- logging (structlog, JSON, no secrets) ----------------------------------------
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "root": {"handlers": ["console"], "level": env.str("ERP_LOG_LEVEL", default="INFO")},
+}

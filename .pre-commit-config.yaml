@@ -1,0 +1,28 @@
+# Local hooks only (no network fetch of hook repos); they reuse the pinned uv environment.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff check
+        entry: uv run --frozen ruff check
+        language: system
+        types: [python]
+        files: ^backend/
+      - id: ruff-format
+        name: ruff format --check
+        entry: uv run --frozen ruff format --check
+        language: system
+        types: [python]
+        files: ^backend/
+      - id: no-float
+        name: forbid floats in money paths (kernel.lint.no_float)
+        entry: bash -c 'cd backend && uv run --frozen python -m kernel.lint.no_float .'
+        language: system
+        pass_filenames: false
+        types: [python]
+      - id: mypy-kernel
+        name: mypy (strict kernel)
+        entry: uv run --frozen mypy backend/kernel
+        language: system
+        pass_filenames: false
+        types: [python]

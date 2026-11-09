@@ -1,0 +1,93 @@
+[project]
+name = "nexus-erp"
+version = "0.1.0"
+description = "Nexus ERP Colombia (DEV-only build)"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+  "django==5.2.19",
+  "djangorestframework==3.18.3",
+  "drf-spectacular==0.30.0",
+  "psycopg[binary]==3.3.8",
+  "django-environ==0.14.0",
+  "celery==5.7.0",
+  "redis==8.1.0",
+  "structlog==26.1.0",
+  "opentelemetry-instrumentation-django==0.66b2",
+  "opentelemetry-instrumentation-psycopg==0.66b2",
+  "opentelemetry-instrumentation-celery==0.66b2",
+  "pyyaml==6.0.3",
+]
+
+[dependency-groups]
+dev = [
+  "pytest==9.2.0",
+  "pytest-django==4.14.0",
+  "pytest-cov==7.1.0",
+  "hypothesis==6.170.15",
+  "factory-boy==3.3.3",
+  "mypy==2.4.1",
+  "django-stubs==5.2.5",
+  "ruff==0.17.4",
+  "httpx==0.28.1",
+  "requests==2.34.2",
+  "types-pyyaml==6.0.12.20261103",
+  "types-requests==2.33.0.20261030",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "erp.settings.test"
+pythonpath = ["backend"]
+testpaths = ["backend"]
+addopts = "-p kernel.testing.pytest_plugin --strict-markers -ra"
+norecursedirs = [".*", ".venv", "node_modules", "frontend", "tests/e2e"]
+filterwarnings = ["error::RuntimeWarning"]
+
+[tool.coverage.run]
+branch = true
+data_file = "reports/coverage/.coverage"
+source = ["backend/kernel"]
+omit = ["backend/kernel/tests/*", "backend/kernel/migrations/*", "backend/kernel/testing/pytest_plugin.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_also = ["if TYPE_CHECKING:", "\\.\\.\\.$", "raise NotImplementedError"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+src = ["backend"]
+extend-exclude = ["backend/*/migrations/*", "docs", "tools", "frontend", "node_modules"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "BLE", "T20", "DTZ", "RUF", "PIE", "SIM", "TID"]
+ignore = ["RUF001", "RUF002", "RUF003", "RUF012", "SIM117"]
+
+[tool.ruff.lint.per-file-ignores]
+"backend/**/tests/**" = ["S101", "S105", "S106", "S311", "S608", "DTZ001", "BLE001", "B017"]
+"backend/kernel/testing/**" = ["S101"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"django.db.models.FloatField".msg = "FloatField is forbidden (C2-2); use kernel.fields"
+
+[tool.mypy]
+python_version = "3.13"
+mypy_path = "backend"
+plugins = ["mypy_django_plugin.main"]
+explicit_package_bases = true
+ignore_missing_imports = true
+warn_unused_configs = true
+# Library code is strict; tests are linted by ruff and executed, not type-checked.
+exclude = ["backend/[a-z_]+/tests/"]
+
+[[tool.mypy.overrides]]
+module = ["kernel", "kernel.*"]
+strict = true
+disallow_any_generics = false
+
+
+[tool.django-stubs]
+django_settings_module = "erp.settings.test"
