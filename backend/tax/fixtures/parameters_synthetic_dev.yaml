@@ -1,0 +1,27 @@
+# SYNTHETIC DEV FIXTURE — NOT LEGALLY VERIFIED. Loaded only into the synthetic demo tenant
+# (manage.py load_tax_parameters --synthetic-dev) so that demos can compute the
+# withholding concepts whose official values are UNKNOWN in parameters_2026.yaml.
+# Every row is flagged synthetic=true and uses its own "syn." code, so it never
+# replaces an official row: the engine warns "FIXTURE — NOT LEGALLY VERIFIED" and
+# production rules refuse it.
+version: "SYN-DEV-1"
+synthetic: true
+sources:
+  - {register_id: SYN-DEV, title: "Synthetic development fixture (NOT LEGALLY VERIFIED)", url: "https://fixtures.nexus-erp.invalid/tax/synthetic-dev", accessed_at: "2026-11-09T00:00:00-05:00", method: SYNTHETIC}
+parameters:
+  - {code: syn.retefuente.servicios.tarifa, value_type: percent, value: "4", valid_from: 2026-01-01, valid_to: 2026-12-31, status: VERIFIED-SECONDARY, source: SYN-DEV}
+  - {code: syn.retefuente.compras.base_uvt, value_type: uvt, value: "27", valid_from: 2026-01-01, valid_to: 2026-12-31, status: VERIFIED-SECONDARY, source: SYN-DEV}
+  - {code: syn.retefuente.compras.tarifa, value_type: percent, value: "2.5", valid_from: 2026-01-01, valid_to: 2026-12-31, status: VERIFIED-SECONDARY, source: SYN-DEV}
+  - {code: syn.retefuente.honorarios.tarifa, value_type: percent, value: "10", valid_from: 2026-01-01, valid_to: 2026-12-31, status: VERIFIED-SECONDARY, source: SYN-DEV}
+  - {code: syn.ica.11001.default, value_type: permil, value: "9.66", valid_from: 2026-01-01, valid_to: 2026-12-31, status: VERIFIED-SECONDARY, source: SYN-DEV}
+synthetic_concepts:
+  # demo concepts pointing at the synthetic codes above (names say SINTÉTICO)
+  - {code: SYN-RF-SERVICIOS, name: "SINTÉTICO — retención servicios", tax_type: RETEFUENTE,
+     base_parameter_code: retefuente.servicios.base_uvt, rate_parameter_code: syn.retefuente.servicios.tarifa}
+  - {code: SYN-RF-COMPRAS, name: "SINTÉTICO — retención compras", tax_type: RETEFUENTE,
+     base_parameter_code: syn.retefuente.compras.base_uvt, rate_parameter_code: syn.retefuente.compras.tarifa}
+  - {code: SYN-RF-HONORARIOS, name: "SINTÉTICO — retención honorarios", tax_type: RETEFUENTE,
+     rate_parameter_code: syn.retefuente.honorarios.tarifa}
+synthetic_ica_tariffs:
+  - {code: SYN-ICA-11001, name: "SINTÉTICO — ICA Bogotá actividad demo", municipality_code: "11001", activity_code: "4711",
+     rate_parameter_code: syn.ica.11001.default}

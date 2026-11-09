@@ -1,0 +1,29 @@
+# DANE DIVIPOLA — SAMPLE ONLY (department capitals used by the synthetic demo tenant).
+# The full list is imported from the official DANE DIVIPOLA file with
+#   manage.py import_divipola --file <dane.csv>
+# Codes are DANE codes (2-digit department + 3-digit municipality). This sample is
+# reference master data for development, not a complete or legally verified list.
+source: "DANE DIVIPOLA (sample subset; full file is an import)"
+synthetic_sample: true
+departments:
+  - {code: "05", name: "Antioquia"}
+  - {code: "08", name: "Atlántico"}
+  - {code: "11", name: "Bogotá, D.C."}
+  - {code: "13", name: "Bolívar"}
+  - {code: "17", name: "Caldas"}
+  - {code: "54", name: "Norte de Santander"}
+  - {code: "66", name: "Risaralda"}
+  - {code: "68", name: "Santander"}
+  - {code: "73", name: "Tolima"}
+  - {code: "76", name: "Valle del Cauca"}
+municipalities:
+  - {code: "05001", name: "Medellín", department: "05"}
+  - {code: "08001", name: "Barranquilla", department: "08"}
+  - {code: "11001", name: "Bogotá, D.C.", department: "11"}
+  - {code: "13001", name: "Cartagena de Indias", department: "13"}
+  - {code: "17001", name: "Manizales", department: "17"}
+  - {code: "54001", name: "San José de Cúcuta", department: "54"}
+  - {code: "66001", name: "Pereira", department: "66"}
+  - {code: "68001", name: "Bucaramanga", department: "68"}
+  - {code: "73001", name: "Ibagué", department: "73"}
+  - {code: "76001", name: "Santiago de Cali", department: "76"}

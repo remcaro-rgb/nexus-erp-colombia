@@ -1,0 +1,37 @@
+# DIAN annex code lists — SYNTHETIC PLACEHOLDER, NOT LEGALLY VERIFIED.
+# The real lists come from the pinned DIAN annex files (Anexo Técnico FE v1.9, S-02),
+# which were not opened (blocker B-06). P15/P06 load them with
+#   manage.py load_code_lists --file <annex-derived.yaml> --verified
+# Until then the engine maps internal document types to these placeholder codes,
+# all flagged synthetic=true / verified=false and shown with the label
+# "SINTÉTICO — no verificado contra el anexo DIAN".
+lists:
+  - list_code: dian.document_type
+    version: "SYN-1"
+    annex_version: "pending (B-06)"
+    synthetic: true
+    verified: false
+    source_ref: "S-02 (annex not opened)"
+    valid_from: "2024-05-01"
+    entries:
+      - {internal: CC, code: "SYN-CC", name: "Cédula de ciudadanía"}
+      - {internal: CE, code: "SYN-CE", name: "Cédula de extranjería"}
+      - {internal: NIT, code: "SYN-NIT", name: "NIT"}
+      - {internal: PP, code: "SYN-PP", name: "Pasaporte"}
+      - {internal: TI, code: "SYN-TI", name: "Tarjeta de identidad"}
+      - {internal: PEP, code: "SYN-PEP", name: "Permiso especial de permanencia"}
+      - {internal: PPT, code: "SYN-PPT", name: "Permiso por protección temporal"}
+      - {internal: NIT_EXT, code: "SYN-NITEXT", name: "NIT de otro país"}
+  - list_code: dian.fiscal_responsibility
+    version: "SYN-1"
+    annex_version: "pending (B-06)"
+    synthetic: true
+    verified: false
+    source_ref: "RUT responsibilities named in the P06 prompt; verify against the annex code tables"
+    valid_from: "2024-05-01"
+    entries:
+      - {code: "O-13", name: "Gran contribuyente"}
+      - {code: "O-15", name: "Autorretenedor"}
+      - {code: "O-23", name: "Agente de retención IVA"}
+      - {code: "O-47", name: "Régimen simple de tributación"}
+      - {code: "R-99-PN", name: "No aplica – otros"}
