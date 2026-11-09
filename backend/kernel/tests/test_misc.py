@@ -1,4 +1,6 @@
+import base64
 import datetime as dt
+import os
 import uuid
 from decimal import Decimal
 
@@ -177,6 +179,8 @@ def test_settings_refuse_unsupported_environment(monkeypatch):
         assert base.REST_FRAMEWORK["DEFAULT_PERMISSION_CLASSES"] == ["rest_framework.permissions.IsAuthenticated"]
         sys.modules.pop("erp.settings.dev", None)
         monkeypatch.delenv("DJANGO_SECRET_KEY", raising=False)
+        # the dev profile requires the field-encryption key (FIX-D-W01-1); an ephemeral one for this import
+        monkeypatch.setenv("ERP_FIELD_ENCRYPTION_KEY", base64.urlsafe_b64encode(os.urandom(32)).decode())
         dev = importlib.import_module("erp.settings.dev")
         assert len(dev.SECRET_KEY) >= 50 and dev.ERP_ENVIRONMENT == "dev"
     finally:

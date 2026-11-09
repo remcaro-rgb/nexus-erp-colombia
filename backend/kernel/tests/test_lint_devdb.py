@@ -74,7 +74,8 @@ def test_devdb_bootstrap(monkeypatch, capsys):
                 return Proc(0, value)
         return Proc(0, "")
 
-    monkeypatch.delenv("DATABASE_URL", raising=False)
+    for var in ("DATABASE_URL", "ERP_DB_ADMIN_URL", "ERP_DB_HOST", "ERP_DB_NAME", "ERP_DB_USER"):
+        monkeypatch.delenv(var, raising=False)
     monkeypatch.setattr(devdb, "_run", fake_run)
     assert devdb.main(["ci_user"]) == 0
     sqls = [c[-1] for c in calls if c[0] == "sudo"]
