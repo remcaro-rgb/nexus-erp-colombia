@@ -1,0 +1,51 @@
+# Default tax codes and withholding concepts for a new company (owner P06).
+# Rates are NEVER written here: each code points to a dated parameter (C1-9).
+# Applicability rules are data (engine.matrix); tenants edit them per company.
+tax_codes:
+  - code: IVA19
+    name: "IVA tarifa general"
+    tax_type: IVA
+    rate_parameter_code: iva.general
+    account_role: VAT_PAYABLE
+    applicability:
+      - {when: {seller.regime: [RESPONSABLE_IVA]}, apply: true, reason: "el vendedor es responsable de IVA"}
+      - {apply: false, reason: "el vendedor no es responsable de IVA"}
+  - code: IVA5
+    name: "IVA tarifa reducida"
+    tax_type: IVA
+    rate_parameter_code: iva.reducido
+    account_role: VAT_PAYABLE
+    applicability:
+      - {when: {seller.regime: [RESPONSABLE_IVA]}, apply: true, reason: "el vendedor es responsable de IVA"}
+      - {apply: false, reason: "el vendedor no es responsable de IVA"}
+  - code: RETEIVA
+    name: "Retención de IVA"
+    tax_type: RETEIVA
+    rate_parameter_code: reteiva.general
+    base_rule: TAX_AMOUNT
+    base_tax_type: IVA
+    account_role: WITHHOLDING_VAT
+    applicability:
+      - {when: {buyer.vat_withholding_agent: true, seller.regime: [RESPONSABLE_IVA]}, apply: true,
+         reason: "comprador agente de retención de IVA y vendedor responsable de IVA"}
+      - {apply: false, reason: "ReteIVA solo si el comprador es agente y el vendedor es responsable de IVA"}
+  - code: RETEICA
+    name: "Retención de ICA"
+    tax_type: RETEICA
+    account_role: WITHHOLDING_ICA
+    applicability:
+      - {when: {buyer.withholding_agent: true}, apply: true, reason: "el comprador es agente de retención"}
+      - {apply: false, reason: "el comprador no es agente de retención"}
+withholding_concepts:
+  - {code: RF-SERVICIOS, name: "Retención en la fuente — servicios", tax_type: RETEFUENTE,
+     base_parameter_code: retefuente.servicios.base_uvt, rate_parameter_code: retefuente.servicios.tarifa}
+  - {code: RF-COMPRAS, name: "Retención en la fuente — compras", tax_type: RETEFUENTE,
+     base_parameter_code: retefuente.compras.base_uvt, rate_parameter_code: retefuente.compras.tarifa}
+  - {code: RF-HONORARIOS, name: "Retención en la fuente — honorarios", tax_type: RETEFUENTE,
+     rate_parameter_code: retefuente.honorarios.tarifa}
+  - {code: RF-ARRENDAMIENTOS, name: "Retención en la fuente — arrendamientos", tax_type: RETEFUENTE,
+     rate_parameter_code: retefuente.arrendamientos.tarifa}
+  - {code: RF-AGRICOLA, name: "Retención — productos agrícolas sin procesamiento", tax_type: RETEFUENTE,
+     base_parameter_code: retefuente.agricola.base_uvt, rate_parameter_code: retefuente.agricola.tarifa}
+  - {code: RF-CAFE, name: "Retención — café pergamino o cereza", tax_type: RETEFUENTE,
+     base_parameter_code: retefuente.cafe.base_uvt, rate_parameter_code: retefuente.cafe.tarifa}

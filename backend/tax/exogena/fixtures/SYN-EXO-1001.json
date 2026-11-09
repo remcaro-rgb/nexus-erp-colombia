@@ -1,0 +1,170 @@
+{
+  "pack_code": "SYN-EXO-1001",
+  "format_code": "SYN-1001",
+  "year": 2026,
+  "version": "1",
+  "source": "SYNTHETIC",
+  "legal_status": "NOT_DIAN_VALID",
+  "label": "SINTÉTICO — no válido ante la DIAN",
+  "description": "Synthetic format pack for development and tests only (D-019). It imitates the SHAPE of a payments-to-third-parties format; field names, concept codes and layout are invented for testing and are NOT the DIAN specification. Real yearly packs are an external legal input (blocker B-14).",
+  "fields": [
+    {
+      "name": "concepto",
+      "type": "code",
+      "length": 20,
+      "required": true,
+      "rules": [
+        "R-CONCEPTO"
+      ],
+      "description": "Código de concepto SINTÉTICO",
+      "enum": [
+        "SYN-PAGO-SAL",
+        "SYN-PAGO-HON",
+        "SYN-PAGO-SER",
+        "SYN-PAGO-ARR",
+        "SYN-PAGO-COM"
+      ]
+    },
+    {
+      "name": "tipo_documento",
+      "type": "doc_type",
+      "length": 8,
+      "required": true
+    },
+    {
+      "name": "numero_identificacion",
+      "type": "nit",
+      "length": 20,
+      "required": true,
+      "rules": [
+        "R-NIT-DV"
+      ]
+    },
+    {
+      "name": "dv",
+      "type": "check_digit",
+      "length": 1,
+      "required": false
+    },
+    {
+      "name": "razon_social",
+      "type": "string",
+      "length": 450,
+      "required": true
+    },
+    {
+      "name": "municipio",
+      "type": "code",
+      "length": 5,
+      "required": true,
+      "rules": [
+        "R-MUNICIPIO"
+      ]
+    },
+    {
+      "name": "pago_deducible",
+      "type": "amount",
+      "length": 20,
+      "required": true,
+      "decimals": 0,
+      "rules": [
+        "R-NO-NEG"
+      ]
+    },
+    {
+      "name": "pago_no_deducible",
+      "type": "amount",
+      "length": 20,
+      "required": true,
+      "decimals": 0,
+      "rules": [
+        "R-NO-NEG"
+      ]
+    },
+    {
+      "name": "retencion_practicada",
+      "type": "amount",
+      "length": 20,
+      "required": true,
+      "decimals": 0,
+      "rules": [
+        "R-NO-NEG"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "R-CONCEPTO",
+      "kind": "enum",
+      "severity": "error",
+      "fields": [
+        "concepto"
+      ],
+      "message_es": "Concepto no definido en el paquete sintético"
+    },
+    {
+      "id": "R-NIT-DV",
+      "kind": "nit_check_digit",
+      "severity": "error",
+      "fields": [
+        "numero_identificacion",
+        "dv"
+      ],
+      "message_es": ""
+    },
+    {
+      "id": "R-MUNICIPIO",
+      "kind": "municipality_code",
+      "severity": "error",
+      "fields": [
+        "municipio"
+      ],
+      "message_es": ""
+    },
+    {
+      "id": "R-NO-NEG",
+      "kind": "non_negative",
+      "severity": "error",
+      "fields": [
+        "pago_deducible",
+        "pago_no_deducible",
+        "retencion_practicada"
+      ],
+      "message_es": "Los valores reportados no pueden ser negativos"
+    }
+  ],
+  "concepts": [
+    {
+      "code": "SYN-PAGO-SAL",
+      "name": "SINTÉTICO — pagos laborales"
+    },
+    {
+      "code": "SYN-PAGO-HON",
+      "name": "SINTÉTICO — honorarios"
+    },
+    {
+      "code": "SYN-PAGO-SER",
+      "name": "SINTÉTICO — servicios"
+    },
+    {
+      "code": "SYN-PAGO-ARR",
+      "name": "SINTÉTICO — arrendamientos"
+    },
+    {
+      "code": "SYN-PAGO-COM",
+      "name": "SINTÉTICO — compras"
+    }
+  ],
+  "file_spec": {
+    "format": "XML",
+    "encoding": "ISO-8859-1",
+    "root_element": "sintetico_exogena",
+    "row_element": "registro",
+    "header": {
+      "formato": "SYN-1001",
+      "version": "1",
+      "leyenda": "SINTÉTICO — no válido ante la DIAN"
+    },
+    "file_name_pattern": "SINTETICO_NO_VALIDO_DIAN_{format_code}_{year}_{sequence}.xml"
+  }
+}

@@ -1,0 +1,144 @@
+# Regulatory parameter seed 2026 (owner P06, C1-9). Engineering input, NOT legal advice.
+# Statuses follow docs/prompt-pack/shared/04 as re-verified on 2026-11-09 (see
+# docs/compliance/parameter-verification.md). NO row carries a legal-review stamp:
+# every value still needs the EG-7 sign-off, so production rules refuse them.
+# Annual values end 2026-12-31: 2027 has NO rows and fails closed (R-TX-02, R-LB-03).
+# Percent values are written in percent units ("19" = 19 %), as strings (no floats).
+# UNKNOWN rows record that a value exists in law but was not transcribed from an opened
+# source: they fail closed until a tenant loads the official value (two-person approval).
+version: "2026.1"
+sources:
+  - {register_id: S-08, title: "DIAN Res. 000238/2025 (UVT 2026)", url: "https://normograma.dian.gov.co/dian/compilacion/docs/resolucion_dian_0238_2025.htm", accessed_at: "2026-11-09T16:05:00-05:00", method: OPENED, document_sha256: cbf41f002d8a404646f6d1d0476d881f7fbbc1c5d7ba95498d95c9ab361447c7}
+  - {register_id: S-09, title: "Decreto 572/2025 (bases y tarifas de retención)", url: "https://normograma.dian.gov.co/dian/compilacion/docs/decreto_0572_2025.htm", accessed_at: "2026-11-09T16:10:00-05:00", method: OPENED, document_sha256: 870a3893e0a73e584ec7a85ea5dafd15460c81dca35394d4af7c39042764bfd3}
+  - {register_id: S-10, title: "Estatuto Tributario compilado (arts. 114-1, 336, 383, 437-1, 468, 468-1)", url: "https://normograma.dian.gov.co/dian/compilacion/docs/estatuto_tributario.htm", accessed_at: "2026-11-09T16:08:00-05:00", method: OPENED, document_sha256: dfa3a40092232da046c5ae80d88575e665ddec91b97c3f5b7a0a688aa8fdccf5}
+  - {register_id: S-15, title: "Decretos 1469/2025 (SMMLV) y 1470/2025 (auxilio de transporte)", url: "https://www.cancilleria.gov.co/normograma/compilacion/docs/decreto_1469_2025.htm", accessed_at: "2026-11-09T16:12:00-05:00", method: SEARCH}
+  - {register_id: S-18, title: "Código Sustantivo del Trabajo (no abierto)", url: "http://www.secretariasenado.gov.co/senado/basedoc/codigo_sustantivo_trabajo.html", accessed_at: "2026-11-08T12:00:00-05:00", method: NOT_OPENED}
+  - {register_id: S-32, title: "DIAN Concepto 15414/2026 (aplicación Decreto 572 desde 2026-07-01)", url: "https://normograma.dian.gov.co/dian/compilacion/docs/decreto_0572_2025.htm", accessed_at: "2026-11-08T12:00:00-05:00", method: SECONDARY}
+  - {register_id: S-33, title: "Consejo de Estado: suspensión/revocatoria SMMLV (fuentes secundarias)", url: "https://www.cancilleria.gov.co/normograma/compilacion/docs/decreto_1469_2025.htm", accessed_at: "2026-11-08T12:00:00-05:00", method: SECONDARY}
+  - {register_id: S-36, title: "Ley 100/1993 compilada (arts. 18, 20, 204)", url: "https://normograma.dian.gov.co/dian/compilacion/docs/ley_0100_1993.htm", accessed_at: "2026-11-09T16:20:00-05:00", method: OPENED, document_sha256: 61c93571daa27db4df61ee67c5cb4bff6fbb1a6688158f25bbb9850e705179af}
+  - {register_id: S-37, title: "Ley 1393/2010 art. 30", url: "https://normograma.dian.gov.co/dian/compilacion/docs/ley_1393_2010.htm", accessed_at: "2026-11-08T12:00:00-05:00", method: OPENED}
+  - {register_id: S-38, title: "Ley 21/1982 art. 12 (CCF 4 %, SENA 2 %)", url: "https://sidn.ramajudicial.gov.co/SIDN/NORMATIVA/TEXTOS_COMPLETOS/7_LEYES/LEYES%201982/LEY%2021%20DE%201982.PDF", accessed_at: "2026-11-08T12:00:00-05:00", method: OPENED}
+  - {register_id: S-39, title: "Ley 89/1988 art. 1 (ICBF 3 %)", url: "https://sidn.ramajudicial.gov.co/SIDN/NORMATIVA/TEXTOS_COMPLETOS/7_LEYES/LEYES%201988/LEY%2089%20DE%201988.PDF", accessed_at: "2026-11-08T12:00:00-05:00", method: OPENED}
+  - {register_id: B-05, title: "Decreto 1772/1994 tabla ARL (fuente oficial no abierta; valores de fuentes secundarias)", url: "https://normograma.dian.gov.co/dian/compilacion/docs/decreto_1772_1994.htm", accessed_at: "2026-11-09T16:22:00-05:00", method: SECONDARY}
+parameters:
+  # --------------------------------------------------------------- UVT / labour minimums
+  - {code: uvt, value_type: decimal, value: "52374", valid_from: 2026-01-01, valid_to: 2026-12-31, status: VERIFIED-PRIMARY, source: S-08,
+     notes: "R-TX-01. Re-opened 2026-11-09: art. 1.2.1 'Fijar en cincuenta y dos mil trescientos setenta y cuatro pesos ($52.374)'."}
+  - code: smmlv
+    value_type: decimal
+    value: "1750905"
+    valid_from: 2026-01-01
+    valid_to: 2026-12-31
+    status: DISPUTED
+    source: S-15
+    notes: "R-LB-01. Value seen only as an official search extract (direct fetch 403 on 2026-11-09). Litigation facts are secondary (S-33)."
+    legal_history:
+      - {event: suspended, date: 2026-02-12, source: S-33, note: "provisional suspension (secondary)"}
+      - {event: transitional_decree, date: 2026-02-12, source: S-33, note: "Decreto 159/2026 with the same value (secondary)"}
+      - {event: suspension_revoked, date: 2026-07-09, source: S-33, note: "auto revoking the suspension (secondary); nulidad pending"}
+  - {code: aux_transporte, value_type: decimal, value: "249095", valid_from: 2026-01-01, valid_to: 2026-12-31, status: VERIFIED-SECONDARY, source: S-15,
+     notes: "R-LB-02. Decreto 1470/2025 text not opened."}
+  # --------------------------------------------------------------- VAT / ReteIVA (statutory, open-ended; store starts 2026-01-01)
+  - {code: iva.general, value_type: percent, value: "19", valid_from: 2026-01-01, status: VERIFIED-PRIMARY, source: S-10,
+     notes: "R-TX-04. ET 468 (Ley 1819/2016 art. 184): 'del diecinueve por ciento (19%)'."}
+  - {code: iva.reducido, value_type: percent, value: "5", valid_from: 2026-01-01, status: VERIFIED-PRIMARY, source: S-10,
+     notes: "R-TX-04. ET 468-1. Classification of specific goods is LEGAL-REVIEW (tenant item setup)."}
+  - {code: reteiva.general, value_type: percent, value: "15", valid_from: 2026-01-01, status: VERIFIED-PRIMARY, source: S-10,
+     notes: "R-TX-04. ET 437-1 (Ley 2010/2019 art. 5): 15 % where no special decree rate exists (up to 50 %)."}
+  # --------------------------------------------------------------- Withholding (Decreto 572/2025, R-TX-03, DISPUTED)
+  # 572 set: in force until the suspension (2026-05-07), again from 2026-07-01 (DIAN Concepto 15414, secondary).
+  # Pre-572 set during the suspension window: the previous texts were not opened -> UNKNOWN (fails closed).
+  - code: retefuente.servicios.base_uvt
+    value_type: uvt
+    value: "2"
+    valid_from: 2026-01-01
+    valid_to: 2026-05-06
+    status: DISPUTED
+    source: S-09
+    notes: "DUR 1625 art. 1.2.4.4.1 as substituted by Decreto 572/2025 art. 2: no retention on services below 2 UVT."
+    legal_history: &d572
+      - {event: published, date: 2025-05-28, source: S-09, note: "applies from the first day of the following month (art. 9)"}
+      - {event: suspended, date: 2026-05-07, source: S-32, note: "provisional suspension (secondary)"}
+      - {event: suspension_revoked, date: 2026-06-02, source: S-32, note: "suspension revoked (secondary)"}
+      - {event: applies_again, date: 2026-07-01, source: S-32, note: "DIAN Concepto 15414/2026 (secondary); nulidad pending"}
+  - {code: retefuente.servicios.base_uvt, value_type: unknown, value: {}, valid_from: 2026-05-07, valid_to: 2026-06-30, status: UNKNOWN, source: S-09,
+     notes: "Pre-572 base during the suspension window; previous text not opened. Load the official value to compute."}
+  - {code: retefuente.servicios.base_uvt, value_type: uvt, value: "2", valid_from: 2026-07-01, valid_to: 2026-12-31, status: DISPUTED, source: S-09,
+     legal_history: *d572, notes: "Decreto 572/2025 art. 2, applying again from 2026-07-01."}
+  - {code: retefuente.otros_ingresos.base_uvt, value_type: uvt, value: "10", valid_from: 2026-07-01, valid_to: 2026-12-31, status: DISPUTED, source: S-09,
+     legal_history: *d572, notes: "DUR 1625 art. 1.2.4.9.1 literal i) (Decreto 572 art. 6): no retention below 10 UVT."}
+  - {code: retefuente.agricola.base_uvt, value_type: uvt, value: "70", valid_from: 2026-07-01, valid_to: 2026-12-31, status: DISPUTED, source: S-09,
+     legal_history: *d572, notes: "DUR 1625 art. 1.2.4.6.7 (Decreto 572 art. 3)."}
+  - {code: retefuente.agricola.tarifa, value_type: percent, value: "1.5", valid_from: 2026-07-01, valid_to: 2026-12-31, status: DISPUTED, source: S-09,
+     legal_history: *d572, notes: "DUR 1625 art. 1.2.4.6.7 (Decreto 572 art. 3)."}
+  - {code: retefuente.cafe.base_uvt, value_type: uvt, value: "70", valid_from: 2026-07-01, valid_to: 2026-12-31, status: DISPUTED, source: S-09,
+     legal_history: *d572, notes: "DUR 1625 art. 1.2.4.6.8 (Decreto 572 art. 4)."}
+  - {code: retefuente.cafe.tarifa, value_type: percent, value: "0.5", valid_from: 2026-07-01, valid_to: 2026-12-31, status: DISPUTED, source: S-09,
+     legal_history: *d572, notes: "DUR 1625 art. 1.2.4.6.8 (Decreto 572 art. 4)."}
+  - {code: retefuente.servicios.tarifa, value_type: unknown, value: {}, valid_from: 2026-01-01, valid_to: 2026-12-31, status: UNKNOWN, source: S-09,
+     notes: "General services rate is not in the opened texts; fails closed until loaded."}
+  - {code: retefuente.compras.base_uvt, value_type: unknown, value: {}, valid_from: 2026-01-01, valid_to: 2026-12-31, status: UNKNOWN, source: S-09,
+     notes: "General purchases base not in the opened texts; fails closed until loaded."}
+  - {code: retefuente.compras.tarifa, value_type: unknown, value: {}, valid_from: 2026-01-01, valid_to: 2026-12-31, status: UNKNOWN, source: S-09}
+  - {code: retefuente.honorarios.tarifa, value_type: unknown, value: {}, valid_from: 2026-01-01, valid_to: 2026-12-31, status: UNKNOWN, source: S-09}
+  - {code: retefuente.arrendamientos.tarifa, value_type: unknown, value: {}, valid_from: 2026-01-01, valid_to: 2026-12-31, status: UNKNOWN, source: S-09}
+  # --------------------------------------------------------------- Labour withholding (ET 383, ET 336)
+  - code: ret_lab.art383.tabla
+    value_type: table
+    valid_from: 2026-01-01
+    status: VERIFIED-PRIMARY
+    source: S-10
+    notes: "ET 383 table (Ley 2010/2019 art. 42) transcribed on 2026-11-09 from the official image graficas/estatuto_tributario_obj_37.gif (sha256 b9c11a99…e355). Ranges in UVT: tax = (income_uvt - from_uvt) * rate + plus_uvt."
+    value:
+      rows:
+        - {from_uvt: "0", to_uvt: "95", rate_pct: "0", plus_uvt: "0"}
+        - {from_uvt: "95", to_uvt: "150", rate_pct: "19", plus_uvt: "0"}
+        - {from_uvt: "150", to_uvt: "360", rate_pct: "28", plus_uvt: "10"}
+        - {from_uvt: "360", to_uvt: "640", rate_pct: "33", plus_uvt: "69"}
+        - {from_uvt: "640", to_uvt: "945", rate_pct: "35", plus_uvt: "162"}
+        - {from_uvt: "945", to_uvt: "2300", rate_pct: "37", plus_uvt: "268"}
+        - {from_uvt: "2300", to_uvt: null, rate_pct: "39", plus_uvt: "770"}
+  - {code: ret_lab.depuracion.tope_pct, value_type: percent, value: "40", valid_from: 2026-01-01, status: VERIFIED-PRIMARY, source: S-10,
+     notes: "ET 336 num. 3: exempt income + special deductions <= 40 %."}
+  - {code: ret_lab.depuracion.tope_uvt, value_type: uvt, value: "1340", valid_from: 2026-01-01, status: VERIFIED-PRIMARY, source: S-10,
+     notes: "ET 336 num. 3: 'no puede exceder de mil trescientas cuarenta (1.340) UVT anuales'."}
+  # --------------------------------------------------------------- Social security contributions (R-LB-08)
+  - {code: ss.salud.empleador, value_type: percent, value: "8.5", valid_from: 2026-01-01, status: VERIFIED-PRIMARY, source: S-36}
+  - {code: ss.salud.empleado, value_type: percent, value: "4", valid_from: 2026-01-01, status: VERIFIED-PRIMARY, source: S-36}
+  - {code: ss.pension.empleador, value_type: percent, value: "12", valid_from: 2026-01-01, status: VERIFIED-PRIMARY, source: S-36}
+  - {code: ss.pension.empleado, value_type: percent, value: "4", valid_from: 2026-01-01, status: VERIFIED-PRIMARY, source: S-36}
+  - {code: ss.fsp.tarifa, value_type: percent, value: "1", valid_from: 2026-01-01, status: VERIFIED-PRIMARY, source: S-36}
+  - {code: ss.fsp.umbral_smmlv, value_type: decimal, value: "4", valid_from: 2026-01-01, status: VERIFIED-PRIMARY, source: S-36}
+  - code: ss.fsp.escala
+    value_type: table
+    valid_from: 2026-01-01
+    status: VERIFIED-PRIMARY
+    source: S-36
+    notes: "Ley 100 art. 27 num. 2 lit. a (as compiled): additional subsistence contribution; re-opened 2026-11-09 (was SECONDARY)."
+    value:
+      rows:
+        - {from_smmlv: "16", to_smmlv: "17", extra_pct: "0.2"}
+        - {from_smmlv: "17", to_smmlv: "18", extra_pct: "0.4"}
+        - {from_smmlv: "18", to_smmlv: "19", extra_pct: "0.6"}
+        - {from_smmlv: "19", to_smmlv: "20", extra_pct: "0.8"}
+        - {from_smmlv: "20", to_smmlv: null, extra_pct: "1"}
+  - {code: ss.ibc.tope_smmlv, value_type: decimal, value: "25", valid_from: 2026-01-01, status: VERIFIED-PRIMARY, source: S-36}
+  - {code: ss.ibc.no_salarial_pct, value_type: percent, value: "40", valid_from: 2026-01-01, status: VERIFIED-PRIMARY, source: S-37}
+  - {code: parafiscal.ccf, value_type: percent, value: "4", valid_from: 2026-01-01, status: VERIFIED-PRIMARY, source: S-38}
+  - {code: parafiscal.sena, value_type: percent, value: "2", valid_from: 2026-01-01, status: VERIFIED-PRIMARY, source: S-38}
+  - {code: parafiscal.icbf, value_type: percent, value: "3", valid_from: 2026-01-01, status: VERIFIED-PRIMARY, source: S-39}
+  - {code: exoneracion.umbral_smmlv, value_type: decimal, value: "10", valid_from: 2026-01-01, status: VERIFIED-PRIMARY, source: S-10,
+     notes: "ET 114-1: exoneration of SENA, ICBF and employer health for workers earning < 10 SMMLV."}
+  - code: arl.tarifas
+    value_type: table
+    valid_from: 2026-01-01
+    status: VERIFIED-SECONDARY
+    source: B-05
+    notes: "Decreto 1772/1994 not opened (normograma 404 on 2026-11-09). Values from secondary sources; B-05 stays open."
+    value:
+      rows:
+        - {risk_class: "I", rate_pct: "0.522"}
+        - {risk_class: "II", rate_pct: "1.044"}
+        - {risk_class: "III", rate_pct: "2.436"}
+        - {risk_class: "IV", rate_pct: "4.350"}
+        - {risk_class: "V", rate_pct: "6.960"}
