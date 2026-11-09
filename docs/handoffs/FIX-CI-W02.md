@@ -144,4 +144,7 @@ Merged cleanly (detached, union for catalog/traceability): P08 `origin/claude/ne
   it needs to move onto the secured base (P01/P04).
 
 ## GitHub Actions
-Not observed: this session has no `gh run` access to workflow runs (GitHub CLI GraphQL blocked; recorded `observed: false`).
+Observed through the GitHub REST API: run 42717014974 (workflow `ci`, push, sha `1571e30`, the last code commit;
+only this handoff text follows it) — `policy` success, `P03 tests` success, `make ci (lint, unit, contract)` success,
+`T-P03-01 docker compose up healthy from a clean clone` success. Earlier runs of the branch were cancelled by the
+workflow's concurrency group when newer commits were pushed.
