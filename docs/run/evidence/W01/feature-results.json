@@ -1,0 +1,11 @@
+{
+  "schema": "erp-features/results/v1",
+  "registry_sha256": "a62fa1d937c13533ddc08f22b87a65d9bce24d662e6df7e8996f3aa7ee939ab4",
+  "commit": "52563a142b8f2201805f4cb5ee12755235daf823",
+  "tests": {
+    "T-X-QA-06": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_X_QA_06_frozen_openapi_contains_every_registry_endpoint_event_and_error"
+    }
+  }
+}

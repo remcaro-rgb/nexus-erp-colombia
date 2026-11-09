@@ -1,6 +1,6 @@
 # STATUS — Nexus ERP (edition 3.0.0-claude-cloud)
 
-Updated: 2026-11-09T00:00:00Z (UTC). Repository: https://github.com/remcaro-rgb/nexus-erp-colombia.
+Updated: 2026-11-09T14:43:58Z (UTC). Repository: https://github.com/remcaro-rgb/nexus-erp-colombia.
 
 Written only by the integrator (`python3 tools/cloudctl.py status`). A task counts as working only when it is ACCEPTED with
 integrator-run test evidence under `docs/run/evidence/`.
@@ -8,21 +8,17 @@ integrator-run test evidence under `docs/run/evidence/`.
 ## What to paste next
 
 ```
-NEXT: wave 01 — open 3 NEW Claude Code cloud session(s) on remcaro-rgb/nexus-erp-colombia (at most 5 at the same time; start the next one when one finishes) and paste exactly one file into each:
-  prompts/W01-S1-P01-foundation-kernel.md
-  prompts/W01-S2-P02-contract-freeze.md
-  prompts/W01-S3-P03-devops-ci.md
-THEN: when every one of those sessions has ended (DONE or BLOCKED), paste prompts/INTEGRATOR-after-W01.md into 1 NEW session.
+NEXT: no worker prompt is due; paste prompts/INTEGRATOR-after-W01.md into 1 NEW session.
 ```
 
 ## Tasks
 
 | Wave | Task | Kind | Status | Attempt | Accepted at | Last note |
 |---|---|---|---|---|---|---|
-| 01 | P01 | worker | READY | 1 |  |  |
-| 01 | P02 | worker | READY | 1 |  |  |
-| 01 | P03 | worker | READY | 1 |  |  |
-| 01 | G0 | gate | PENDING | 1 |  |  |
+| 01 | P01 | worker | ACCEPTED | 1 | 2026-11-09T14:43:58Z |  |
+| 01 | P02 | worker | ACCEPTED | 1 | 2026-11-09T14:43:58Z |  |
+| 01 | P03 | worker | ACCEPTED | 1 | 2026-11-09T14:43:58Z |  |
+| 01 | G0 | gate | READY | 1 |  |  |
 | 02 | P04 | worker | PENDING | 1 |  |  |
 | 02 | P05 | worker | PENDING | 1 |  |  |
 | 02 | P07 | worker | PENDING | 1 |  |  |
