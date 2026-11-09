@@ -96,8 +96,8 @@ def test_FIX_D_W01_1_encryption_key_clear_error_never_prints_value(tmp_path):
 def _load_dev_settings(env):
     # Expected values travel in FIXTEST_* variables so that no tracebacks can echo them.
     code = (
-        "import json, os; from erp.settings import dev; d = dev.DATABASES['default'];"
-        "print(json.dumps({'host': d['HOST'], 'user': d['USER'], 'name': d['NAME'],"
+        "import json, os, sys; from erp.settings import dev; d = dev.DATABASES['default'];"
+        "sys.stdout.write(json.dumps({'host': d['HOST'], 'user': d['USER'], 'name': d['NAME'],"
         " 'pw_ok': d['PASSWORD'] == os.environ['FIXTEST_PW'],"
         " 'key_ok': dev.ERP_FIELD_ENCRYPTION_KEY == os.environ['FIXTEST_KEY']}))"
     )

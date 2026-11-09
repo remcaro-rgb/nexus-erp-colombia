@@ -1,6 +1,8 @@
 # Nexus ERP CI (P03 deliverable 3). Owner: P03. DEV-only project: no deploy job, no secrets needed.
 # Required checks for the merge queue: ci, policy, devops-tests, compose-up. Actions pinned by commit SHA.
 # Jobs adapt to the wave: steps whose sources do not exist yet (frontend, Makefile targets) say so and pass.
+# Single source of truth (FIX-D-W01-1): every check step of the four jobs runs
+# `bash scripts/ci/ci-parity.sh <job> --step <name>`; `bash scripts/ci/ci-parity.sh` runs the same locally.
 name: ci
 
 on:
@@ -31,7 +33,8 @@ jobs:
       postgres:
         image: docker.io/library/postgres:18.6-alpine@sha256:123b17998ccaf47e53b502e8c6a1e79afd8f579c6f3eec83c563da026f957395
         env:
-          POSTGRES_PASSWORD: example-ci-ephemeral
+          # throwaway container that lives only for this job, reachable on the runner loopback only
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports: ["127.0.0.1:5432:5432"]
         options: >-
           --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 3s --health-retries 20
@@ -39,9 +42,10 @@ jobs:
         image: docker.io/valkey/valkey:8.1.11-alpine@sha256:2602ace2be6569bc2bbb06f873776516ab9089821525be34f4305c67eb9db02a
         ports: ["127.0.0.1:6379:6379"]
     env:
-      PGHOST: 127.0.0.1
-      PGUSER: postgres
-      PGPASSWORD: example-ci-ephemeral
+      # TCP to the service container (no unix socket on the runner). make db-setup creates the safe role
+      # nexus_ci (LOGIN CREATEDB, NOSUPERUSER, NOBYPASSRLS) through the admin URL; tests run as nexus_ci.
+      DATABASE_URL: postgres://nexus_ci@127.0.0.1:5432/nexus_erp
+      ERP_DB_ADMIN_URL: postgres://postgres@127.0.0.1:5432/postgres
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
@@ -56,20 +60,21 @@ jobs:
       - name: Install JS deps (pnpm-lock.yaml, frozen)
         if: hashFiles('pnpm-lock.yaml') != ''
         run: pnpm install --frozen-lockfile
-      - name: make ci
+      - name: Ephemeral field-encryption key (masked, never committed)
         run: |
-          if [ -f Makefile ] && grep -q '^ci:' Makefile; then make ci; else
-            echo "Makefile target 'ci' not present yet (owned by P01)"; fi
+          K=$(python3 -c 'import base64,secrets;print(base64.urlsafe_b64encode(secrets.token_bytes(32)).decode())')
+          echo "::add-mask::$K"
+          echo "ERP_FIELD_ENCRYPTION_KEY=$K" >> "$GITHUB_ENV"
+      - name: make ci
+        run: bash scripts/ci/ci-parity.sh make-ci --step make-ci
       - name: makemigrations --check
         if: hashFiles('backend/manage.py') != ''
-        run: uv run python backend/manage.py makemigrations --check --dry-run
+        run: bash scripts/ci/ci-parity.sh make-ci --step makemigrations
       - name: Type check (mypy / tsc)
-        run: |
-          if [ -f uv.lock ] && grep -q '^name = "mypy"' uv.lock; then uv run mypy backend; else echo "mypy not locked yet"; fi
-          if [ -f frontend/tsconfig.json ]; then pnpm --dir frontend exec tsc --noEmit; else echo "frontend not present yet"; fi
+        run: bash scripts/ci/ci-parity.sh make-ci --step typecheck
       - name: Frontend build + vitest
         if: hashFiles('frontend/package.json') != ''
-        run: pnpm --dir frontend run build && pnpm --dir frontend exec vitest run
+        run: bash scripts/ci/ci-parity.sh make-ci --step frontend
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         if: always()
         with: {name: junit-ci, path: reports/, if-no-files-found: ignore}
@@ -83,39 +88,28 @@ jobs:
         with: {fetch-depth: 0}
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
       - name: Forbidden patterns (C2-8)
-        run: python3 scripts/ci/forbidden_patterns.py
+        run: bash scripts/ci/ci-parity.sh policy --step forbidden-patterns
       - name: ADR-004 static checks (secured views, raw SQL, HTTP clients)
-        run: python3 scripts/ci/static_checks.py
+        run: bash scripts/ci/ci-parity.sh policy --step static-checks
       - name: Compose policy lint (D-P03)
-        run: |
-          docker compose -f deploy/dev/compose.yaml --env-file deploy/dev/dev.env.example --profile '*' config -q
-          python3 scripts/ci/lint_compose.py
+        run: bash scripts/ci/ci-parity.sh policy --step compose-lint
       - name: Shell lint (shellcheck)
-        run: uvx --from shellcheck-py==0.11.0.1 shellcheck -x -S warning scripts/ci/*.sh deploy/dev/*.sh deploy/dev/db/init/*.sh deploy/docker/*.sh
+        run: bash scripts/ci/ci-parity.sh policy --step shellcheck
       - name: OTel scrub config in sync with pii-patterns.json
-        run: python3 scripts/ci/render_otel_scrub.py --check
+        run: bash scripts/ci/ci-parity.sh policy --step otel-scrub
       - name: Secret scan (repo files)
-        run: python3 scripts/ci/secret_scan.py
+        run: bash scripts/ci/ci-parity.sh policy --step secret-scan
       - name: Secret scan (gitleaks, full history)
-        run: >-
-          docker run --rm -v "$PWD:/repo" -w /repo
-          docker.io/zricethezav/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
-          git --redact --no-banner /repo
+        run: bash scripts/ci/ci-parity.sh policy --step gitleaks
       - name: SAST (semgrep, Django + Python rules)
         if: hashFiles('backend/**/*.py') != ''
-        run: >-
-          uvx --from semgrep==1.142.0 semgrep scan --error --metrics=off
-          --config p/django --config p/python --config p/secrets backend
+        run: bash scripts/ci/ci-parity.sh policy --step semgrep
       - name: Dependency audit (pip-audit / pnpm audit)
-        run: |
-          if [ -f uv.lock ]; then uv export --frozen --no-hashes --format requirements-txt > /tmp/req.txt \
-            && uvx --from pip-audit==2.9.0 pip-audit --strict -r /tmp/req.txt; else echo "uv.lock not present yet"; fi
-          if [ -f pnpm-lock.yaml ]; then corepack enable && pnpm audit --audit-level critical; else echo "pnpm-lock.yaml not present yet"; fi
+        if: hashFiles('uv.lock') != ''
+        run: bash scripts/ci/ci-parity.sh policy --step dependency-audit
       - name: License check (no AGPL/GPL in the application dependencies)
         if: hashFiles('uv.lock') != ''
-        run: |
-          uv sync --frozen --no-dev
-          uvx --from pip-licenses==5.0.0 pip-licenses --python .venv/bin/python --fail-on 'GNU Affero General Public License v3 (AGPLv3);GNU General Public License v3 (GPLv3)'
+        run: bash scripts/ci/ci-parity.sh policy --step licenses
 
   devops-tests:
     name: P03 tests (T-P03-01..06)
@@ -124,7 +118,10 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
-      - run: scripts/ci/run-tests.sh
+      - name: Install Python deps incl. the dev group (uv.lock, frozen) — pytest-django, hypothesis
+        run: uv sync --frozen
+      - name: P03 tests (pytest with the kernel plugin, locked dev environment)
+        run: bash scripts/ci/ci-parity.sh p03-tests
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         if: always()
         with: {name: junit-p03, path: reports/junit/, if-no-files-found: ignore}
@@ -135,27 +132,22 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-      - name: dev-up (builds images when sources exist, migrates, waits healthy)
-        run: scripts/ci/dev-up.sh
+      - name: dev-up (builds images when sources exist, generates fresh dev secrets, migrates, waits healthy)
+        run: bash scripts/ci/ci-parity.sh compose-startup --step dev-up
       - name: dev-seed
-        run: scripts/ci/dev-seed.sh
+        run: bash scripts/ci/ci-parity.sh compose-startup --step dev-seed
       - name: dev-health
-        run: scripts/ci/dev-health.sh | tee reports-health.json
+        run: bash scripts/ci/ci-parity.sh compose-startup --step dev-health
       - name: DR drill (T-P03-03) against the running stack
-        run: python3 scripts/ci/dr_drill.py
+        run: bash scripts/ci/ci-parity.sh compose-startup --step dr-drill
       - name: Image SBOM (syft, CycloneDX) + vulnerability scan (grype, fail on critical)
-        run: |
-          scripts/ci/build-images.sh --sbom
-          for img in $(docker image ls --format '{{.Repository}}:{{.Tag}}' | grep '^erp-'); do
-            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock ghcr.io/anchore/grype:v0.121.2@sha256:6a36234da13f9faa327306ac0b3dab3405cfa2b4eb20c8f904125a8707863913 \
-              "docker:$img" --fail-on critical --only-fixed
-          done
+        run: bash scripts/ci/ci-parity.sh compose-startup --step image-scan
       - name: Logs on failure (no secrets are logged by the services)
         if: failure()
-        run: docker compose -p nexus-erp-dev -f deploy/dev/compose.yaml ps -a
+        run: bash scripts/ci/ci-parity.sh compose-startup --step logs
       - name: dev-down (keeps volumes)
         if: always()
-        run: scripts/ci/dev-down.sh
+        run: bash scripts/ci/ci-parity.sh compose-startup --step dev-down
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         if: always()
         with: {name: compose-up, path: "reports/\nreports-health.json", if-no-files-found: ignore}
