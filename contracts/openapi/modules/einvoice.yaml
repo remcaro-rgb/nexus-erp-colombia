@@ -369,6 +369,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -781,6 +783,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -948,6 +952,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1303,6 +1309,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1697,11 +1705,6 @@ components:
           type: string
           format: date
           x-classification: internal
-        technical_key_ref:
-          type: string
-          maxLength: 255
-          x-classification: secret
-          writeOnly: true
         version:
           type: integer
           x-classification: internal
@@ -1902,19 +1905,6 @@ components:
       required:
       - document
       - event_code
-    RadianEventPatch:
-      type: object
-      description: Partial update body of RadianEvent (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        document:
-          $ref: ../root.yaml#/components/schemas/DocumentRef
-          x-classification: internal
-        event_code:
-          type: string
-          maxLength: 255
-          x-classification: internal
-      minProperties: 1
     RadianEventPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page
@@ -1981,16 +1971,6 @@ components:
           x-classification: internal
       required:
       - test_set_id
-    HabilitationTestSetPatch:
-      type: object
-      description: Partial update body of HabilitationTestSet (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        test_set_id:
-          type: string
-          maxLength: 255
-          x-classification: internal
-      minProperties: 1
     HabilitationTestSetPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page
@@ -2106,11 +2086,6 @@ components:
           - 'null'
           maxLength: 255
           x-classification: confidential
-        software_pin_ref:
-          type: string
-          maxLength: 255
-          x-classification: secret
-          writeOnly: true
         version:
           type: integer
           x-classification: internal
@@ -2161,42 +2136,6 @@ components:
       required:
       - mode
       - adapter
-    EinvoiceSettingsPatch:
-      type: object
-      description: Partial update body of EinvoiceSettings (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        mode:
-          type: string
-          enum:
-          - SANDBOX_SIMULATOR
-          - PROVIDER_SANDBOX
-          x-classification: internal
-        adapter:
-          type: string
-          enum:
-          - simulator
-          - provider
-          - direct
-          x-classification: internal
-        provider_id:
-          type:
-          - string
-          - 'null'
-          format: uuid
-          x-classification: internal
-        software_id:
-          type:
-          - string
-          - 'null'
-          maxLength: 255
-          x-classification: confidential
-        software_pin_ref:
-          type: string
-          maxLength: 255
-          x-classification: secret
-          writeOnly: true
-      minProperties: 1
     TechnologyProvider:
       type: object
       description: Einvoice providers
@@ -2248,11 +2187,6 @@ components:
           enum:
           - SANDBOX
           x-classification: internal
-        credentials_ref:
-          type: string
-          maxLength: 255
-          x-classification: secret
-          writeOnly: true
         contract_version:
           type: string
           maxLength: 255

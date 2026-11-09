@@ -148,3 +148,23 @@ def test_T_P02_03_catalog_keeps_codes_appended_by_later_tasks(tmp_path, monkeypa
     b.build()
     out = yaml.safe_load(b.outputs["permissions/catalog.yaml"])
     assert any(c["code"] == "inventory.zz_future.read" and c["source"] == "P09" for c in out["codes"])
+
+
+def test_T_P02_04_secrets_are_never_in_read_models(bundle):
+    """Secret references and uploads are write-only: they appear only in request bodies (…Input/…Patch), never in a response schema."""
+    sc = bundle["components"]["schemas"]
+    request_bodies = set()
+    for path, item in bundle["paths"].items():
+        for m, o in item.items():
+            rb = o.get("requestBody", {}).get("content", {})
+            for ct in rb.values():
+                ref = ct.get("schema", {}).get("$ref", "")
+                if ref:
+                    request_bodies.add(ref.rsplit("/", 1)[1])
+    found = []
+    for name, s in sc.items():
+        for k, v in (s.get("properties") or {}).items():
+            if v.get("x-classification") == "secret" or v.get("writeOnly"):
+                found.append(name)
+                assert name in request_bodies, (name, k)
+    assert found, "expected write-only secret references in request bodies (providers, webhooks, numbering ranges, settings)"

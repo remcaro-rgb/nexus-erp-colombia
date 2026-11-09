@@ -32,6 +32,8 @@ resources:
     kind: master
     ops: list get update
     label: sucursales
+    tenant_level: true
+    fields: *branch
     actions: [archive, unarchive]
     errors: [branch_code_duplicate, branch_cross_company, branch_in_use, branch_head_office_required]
     features: [F-ACC-BRANCH]

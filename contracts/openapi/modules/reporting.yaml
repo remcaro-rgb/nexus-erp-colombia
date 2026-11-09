@@ -214,6 +214,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1820,6 +1822,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -2391,20 +2395,6 @@ components:
       required:
       - pack_id
       - mappings
-    ExogenaMappingPatch:
-      type: object
-      description: Partial update body of ExogenaMapping (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        pack_id:
-          type: string
-          format: uuid
-          x-classification: internal
-        mappings:
-          type: object
-          additionalProperties: true
-          x-classification: internal
-      minProperties: 1
     ExogenaRun:
       type: object
       description: Reporting exogena/runs
@@ -2482,19 +2472,6 @@ components:
       required:
       - pack_id
       - year
-    ExogenaRunPatch:
-      type: object
-      description: Partial update body of ExogenaRun (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        pack_id:
-          type: string
-          format: uuid
-          x-classification: internal
-        year:
-          type: integer
-          x-classification: internal
-      minProperties: 1
     ExogenaRunPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page

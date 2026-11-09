@@ -85,6 +85,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -433,6 +435,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -681,6 +685,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -994,6 +1000,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1500,6 +1508,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1949,6 +1959,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -2272,6 +2284,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -2734,6 +2748,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -3090,6 +3106,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -3443,6 +3461,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -3938,6 +3958,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -4287,6 +4309,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -4705,6 +4729,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: restricted-pii
         address:
           type:
@@ -4804,6 +4830,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: restricted-pii
         address:
           type:
@@ -4894,6 +4922,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: restricted-pii
         address:
           type:

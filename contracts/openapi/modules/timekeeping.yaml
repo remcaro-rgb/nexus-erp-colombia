@@ -79,6 +79,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -296,6 +298,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -530,6 +534,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -883,6 +889,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1297,6 +1305,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1736,34 +1746,6 @@ components:
       required:
       - employee_id
       - event_type
-    ClockEventPatch:
-      type: object
-      description: Partial update body of ClockEvent (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        employee_id:
-          type: string
-          format: uuid
-          x-classification: restricted-pii
-        event_type:
-          type: string
-          enum:
-          - IN
-          - OUT
-          x-classification: internal
-        device:
-          type:
-          - string
-          - 'null'
-          maxLength: 255
-          x-classification: internal
-        geo:
-          type:
-          - string
-          - 'null'
-          maxLength: 255
-          x-classification: sensitive-pii
-      minProperties: 1
     ClockEventPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page

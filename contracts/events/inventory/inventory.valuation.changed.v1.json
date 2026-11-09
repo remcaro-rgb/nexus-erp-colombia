@@ -96,6 +96,9 @@
           "type": "string",
           "description": "Unit cost NUMERIC(24,8) as string",
           "pattern": "^-?\\d{1,16}(\\.\\d{1,8})?$",
+          "examples": [
+            "1000.00000000"
+          ],
           "x-classification": "confidential"
         },
         "method": {

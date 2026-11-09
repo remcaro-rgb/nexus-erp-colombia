@@ -80,6 +80,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -616,6 +618,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1384,6 +1388,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -2098,6 +2104,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -2558,6 +2566,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -3122,6 +3132,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -3505,6 +3517,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -3937,6 +3951,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -4290,6 +4306,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -4700,6 +4718,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -5480,6 +5500,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -5837,6 +5859,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -6193,6 +6217,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':

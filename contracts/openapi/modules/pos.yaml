@@ -79,6 +79,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -313,6 +315,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -610,6 +614,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -845,6 +851,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1190,6 +1198,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1539,6 +1549,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -2021,22 +2033,6 @@ components:
           x-classification: confidential
       required:
       - terminal_id
-    PosSessionPatch:
-      type: object
-      description: Partial update body of PosSession (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        terminal_id:
-          type: string
-          format: uuid
-          x-classification: internal
-        opening_cash:
-          $ref: ../root.yaml#/components/schemas/Money
-          x-classification: confidential
-        counted_cash:
-          $ref: ../root.yaml#/components/schemas/Money
-          x-classification: confidential
-      minProperties: 1
     PosSessionPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page
@@ -2579,29 +2575,6 @@ components:
       - movement_type
       - amount
       - reason
-    CashMovementPatch:
-      type: object
-      description: Partial update body of CashMovement (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        session_id:
-          type: string
-          format: uuid
-          x-classification: internal
-        movement_type:
-          type: string
-          enum:
-          - IN
-          - OUT
-          x-classification: internal
-        amount:
-          $ref: ../root.yaml#/components/schemas/Money
-          x-classification: confidential
-        reason:
-          type: string
-          maxLength: 255
-          x-classification: internal
-      minProperties: 1
     CashMovementPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page

@@ -332,6 +332,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -459,6 +461,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -698,6 +702,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -932,6 +938,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1166,6 +1174,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1446,6 +1456,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1885,6 +1897,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -2187,33 +2201,6 @@ components:
       - url
       - title
       - accessed_at
-    SourcePatch:
-      type: object
-      description: Partial update body of Source (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        url:
-          type: string
-          format: uri
-          maxLength: 2000
-          x-classification: internal
-        title:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        accessed_at:
-          type: string
-          format: date-time
-          x-classification: internal
-        method:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        excerpt_hash:
-          type: string
-          maxLength: 255
-          x-classification: internal
-      minProperties: 1
     SourcePage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page
@@ -3106,24 +3093,6 @@ components:
       - code
       - year
       - pack
-    ExogenaFormatPackPatch:
-      type: object
-      description: Partial update body of ExogenaFormatPack (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        code:
-          type: string
-          minLength: 1
-          maxLength: 40
-          x-classification: internal
-        year:
-          type: integer
-          x-classification: internal
-        pack:
-          type: object
-          additionalProperties: true
-          x-classification: internal
-      minProperties: 1
     ExogenaFormatPackPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page

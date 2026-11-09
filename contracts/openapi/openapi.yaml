@@ -227,6 +227,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -695,6 +697,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1113,6 +1117,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1350,6 +1356,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1643,6 +1651,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1813,6 +1823,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -2051,6 +2063,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -2514,6 +2528,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -2752,6 +2768,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -3108,6 +3126,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -3457,6 +3477,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -3806,6 +3828,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -4324,6 +4348,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -4558,6 +4584,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -5048,6 +5076,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -5384,6 +5414,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -5618,6 +5650,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -5967,6 +6001,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -6090,6 +6126,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -6524,6 +6562,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -7156,6 +7196,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -7380,6 +7422,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -7614,6 +7658,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -8283,6 +8329,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -8695,6 +8743,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -8862,6 +8912,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -9217,6 +9269,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -9559,6 +9613,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -9848,6 +9904,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -10209,6 +10267,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -10443,6 +10503,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -10821,6 +10883,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -10944,6 +11008,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -11206,6 +11272,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -11659,6 +11727,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -12008,6 +12078,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -12242,6 +12314,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -12414,6 +12488,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -12692,6 +12768,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -12928,6 +13006,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -13165,6 +13245,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -13519,6 +13601,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -13907,6 +13991,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -14134,6 +14220,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -14573,6 +14661,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -14869,6 +14959,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -15178,6 +15270,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -15590,6 +15684,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -15824,6 +15920,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -16088,6 +16186,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -16562,6 +16662,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -16906,6 +17008,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -17140,6 +17244,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -17732,6 +17838,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -18322,6 +18430,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -18744,6 +18854,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -19104,6 +19216,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -19406,6 +19520,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -19929,6 +20045,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -20171,6 +20289,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -20436,6 +20556,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -21263,6 +21385,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -21507,6 +21631,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -21726,6 +21852,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -22252,6 +22380,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -22967,6 +23097,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -23290,6 +23422,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -23691,6 +23825,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -23925,6 +24061,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -24159,6 +24297,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -24393,6 +24533,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -24653,6 +24795,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -25193,6 +25337,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -25623,6 +25769,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -25750,6 +25898,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -26164,6 +26314,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -26398,6 +26550,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -26808,6 +26962,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -27298,6 +27454,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -27641,6 +27799,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -27810,6 +27970,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -28528,6 +28690,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -29246,6 +29410,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -29964,6 +30130,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -30818,6 +30986,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -31274,6 +31444,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -31736,6 +31908,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -31986,6 +32160,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -32294,6 +32470,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -32480,6 +32658,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -33183,6 +33363,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -33597,6 +33779,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -33815,6 +33999,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -34366,6 +34552,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -34624,6 +34812,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -34928,6 +35118,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -35069,6 +35261,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -35898,6 +36092,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -36045,6 +36241,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -36497,6 +36695,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -36643,6 +36843,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -36811,6 +37013,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -37045,6 +37249,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -37342,6 +37548,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -37577,6 +37785,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -37922,6 +38132,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -38271,6 +38483,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -38494,6 +38708,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -39030,6 +39246,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -39798,6 +40016,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -40512,6 +40732,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -40972,6 +41194,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -41536,6 +41760,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -41919,6 +42145,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -42351,6 +42579,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -42704,6 +42934,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -43114,6 +43346,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -43894,6 +44128,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -44251,6 +44487,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -44607,6 +44845,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -45138,6 +45378,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -46744,6 +46986,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -47191,6 +47435,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -47539,6 +47785,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -47787,6 +48035,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -48100,6 +48350,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -48606,6 +48858,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -49055,6 +49309,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -49378,6 +49634,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -49840,6 +50098,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -50196,6 +50456,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -50549,6 +50811,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -51044,6 +51308,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -51393,6 +51659,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -52059,6 +52327,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -52186,6 +52456,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -52425,6 +52697,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -52659,6 +52933,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -52893,6 +53169,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -53173,6 +53451,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -53612,6 +53892,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -53792,6 +54074,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -54009,6 +54293,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -54243,6 +54529,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -54596,6 +54884,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -55010,6 +55300,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -55424,6 +55716,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -55658,6 +55952,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -55898,6 +56194,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -56187,6 +56485,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -56482,6 +56782,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -57321,6 +57623,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -58110,6 +58414,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -58464,6 +58770,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -58893,6 +59201,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -59133,6 +59443,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -59780,6 +60092,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -60430,6 +60744,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -60970,6 +61286,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -61186,6 +61504,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -61590,6 +61910,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -62086,6 +62408,8 @@ paths:
               $ref: '#/components/headers/ETag'
             Location:
               $ref: '#/components/headers/Location'
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -62915,6 +63239,8 @@ components:
           description: NUMERIC(20,4) as string
           type: string
           pattern: ^-?\d{1,16}(\.\d{1,4})?$
+          examples:
+          - '1190000.0000'
           x-classification: internal
         currency:
           $ref: '#/components/schemas/CurrencyCode'
@@ -62930,6 +63256,8 @@ components:
           description: NUMERIC(20,6) as string
           type: string
           pattern: ^-?\d{1,14}(\.\d{1,6})?$
+          examples:
+          - '12.000000'
           x-classification: internal
         uom:
           description: Unit of measure code
@@ -62948,6 +63276,8 @@ components:
         value:
           type: string
           pattern: ^\d{1,14}(\.\d{1,10})?$
+          examples:
+          - '4000.0000000000'
           x-classification: internal
         from_currency:
           $ref: '#/components/schemas/CurrencyCode'
@@ -62963,10 +63293,14 @@ components:
       type: string
       description: Percentage NUMERIC(9,6) as string (19 means 19 %)
       pattern: ^-?\d{1,3}(\.\d{1,6})?$
+      examples:
+      - '19'
     UnitCost:
       type: string
       description: Unit cost NUMERIC(24,8) as string
       pattern: ^-?\d{1,16}(\.\d{1,8})?$
+      examples:
+      - '1000.00000000'
     DateRange:
       type: object
       required:
@@ -62999,12 +63333,16 @@ components:
         number:
           type: string
           pattern: ^[0-9A-Za-z-]{3,20}$
+          examples:
+          - '900000001'
           x-classification: confidential
         check_digit:
           type:
           - string
           - 'null'
           pattern: ^[0-9]$
+          examples:
+          - '0'
           x-classification: confidential
     PartyRef:
       type: object
@@ -63247,6 +63585,8 @@ components:
           type: string
           description: Decimal 0–100 as string
           pattern: ^\d{1,3}(\.\d{1,2})?$
+          examples:
+          - '100'
           x-classification: internal
         started_at:
           type:
@@ -63511,6 +63851,19 @@ components:
       required:
       - id
       - children
+      examples:
+      - id: 0190f000-0000-7000-8000-000000000010
+        code: CC-01
+        label: Administración (SINTÉTICO)
+        node_type: AGRUPADOR
+        path: CC-01
+        children:
+        - id: 0190f000-0000-7000-8000-000000000011
+          code: CC-01-01
+          label: Contabilidad
+          node_type: DETALLE
+          path: CC-01/CC-01-01
+          children: []
       properties:
         id:
           type: string
@@ -63580,6 +63933,8 @@ components:
         event_type:
           type: string
           pattern: ^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*\.v[0-9]+$
+          examples:
+          - ledger.entry.posted.v1
           x-classification: internal
         occurred_at:
           type: string
@@ -63825,16 +64180,6 @@ components:
           type: string
           maxLength: 255
           x-classification: internal
-    ConversationPatch:
-      type: object
-      description: Partial update body of Conversation (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        title:
-          type: string
-          maxLength: 255
-          x-classification: internal
-      minProperties: 1
     ConversationPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -64129,11 +64474,6 @@ components:
           format: uri
           maxLength: 2000
           x-classification: internal
-        credentials_ref:
-          type: string
-          maxLength: 255
-          x-classification: secret
-          writeOnly: true
         data_retention:
           type: string
           maxLength: 10000
@@ -64398,24 +64738,6 @@ components:
           x-classification: confidential
       required:
       - title
-    KbDocumentPatch:
-      type: object
-      description: Partial update body of KbDocument (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        title:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        source:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        content_ref:
-          type: string
-          maxLength: 255
-          x-classification: confidential
-      minProperties: 1
     KbDocumentPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -66047,6 +66369,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: restricted-pii
         source:
           type: string
@@ -66100,6 +66424,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: restricted-pii
         source:
           type: string
@@ -66135,6 +66461,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: restricted-pii
         source:
           type: string
@@ -66201,6 +66529,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: restricted-pii
         party:
           $ref: '#/components/schemas/PartyRef'
@@ -66244,6 +66574,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: restricted-pii
         party:
           $ref: '#/components/schemas/PartyRef'
@@ -66278,6 +66610,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: restricted-pii
         party:
           $ref: '#/components/schemas/PartyRef'
@@ -66537,38 +66871,6 @@ components:
       required:
       - activity_type
       - subject
-    ActivityPatch:
-      type: object
-      description: Partial update body of Activity (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        activity_type:
-          type: string
-          enum:
-          - CALL
-          - MEETING
-          - EMAIL
-          - TASK
-          - NOTE
-          x-classification: internal
-        subject:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        due_at:
-          type:
-          - string
-          - 'null'
-          format: date-time
-          x-classification: internal
-        related:
-          $ref: '#/components/schemas/DocumentRef'
-          x-classification: internal
-        body:
-          type: string
-          maxLength: 10000
-          x-classification: confidential
-      minProperties: 1
     ActivityPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -66827,16 +67129,6 @@ components:
           x-classification: internal
       required:
       - entity
-    ImportJobPatch:
-      type: object
-      description: Partial update body of ImportJob (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        entity:
-          type: string
-          maxLength: 255
-          x-classification: internal
-      minProperties: 1
     ImportJobPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -66923,23 +67215,6 @@ components:
       required:
       - source
       - format
-    ExportJobPatch:
-      type: object
-      description: Partial update body of ExportJob (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        source:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        format:
-          type: string
-          enum:
-          - csv
-          - xlsx
-          - jsonl
-          x-classification: internal
-      minProperties: 1
     ExportJobPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -67329,11 +67604,6 @@ components:
           type: string
           format: date
           x-classification: internal
-        technical_key_ref:
-          type: string
-          maxLength: 255
-          x-classification: secret
-          writeOnly: true
         version:
           type: integer
           x-classification: internal
@@ -67534,19 +67804,6 @@ components:
       required:
       - document
       - event_code
-    RadianEventPatch:
-      type: object
-      description: Partial update body of RadianEvent (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        document:
-          $ref: '#/components/schemas/DocumentRef'
-          x-classification: internal
-        event_code:
-          type: string
-          maxLength: 255
-          x-classification: internal
-      minProperties: 1
     RadianEventPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -67613,16 +67870,6 @@ components:
           x-classification: internal
       required:
       - test_set_id
-    HabilitationTestSetPatch:
-      type: object
-      description: Partial update body of HabilitationTestSet (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        test_set_id:
-          type: string
-          maxLength: 255
-          x-classification: internal
-      minProperties: 1
     HabilitationTestSetPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -67738,11 +67985,6 @@ components:
           - 'null'
           maxLength: 255
           x-classification: confidential
-        software_pin_ref:
-          type: string
-          maxLength: 255
-          x-classification: secret
-          writeOnly: true
         version:
           type: integer
           x-classification: internal
@@ -67793,42 +68035,6 @@ components:
       required:
       - mode
       - adapter
-    EinvoiceSettingsPatch:
-      type: object
-      description: Partial update body of EinvoiceSettings (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        mode:
-          type: string
-          enum:
-          - SANDBOX_SIMULATOR
-          - PROVIDER_SANDBOX
-          x-classification: internal
-        adapter:
-          type: string
-          enum:
-          - simulator
-          - provider
-          - direct
-          x-classification: internal
-        provider_id:
-          type:
-          - string
-          - 'null'
-          format: uuid
-          x-classification: internal
-        software_id:
-          type:
-          - string
-          - 'null'
-          maxLength: 255
-          x-classification: confidential
-        software_pin_ref:
-          type: string
-          maxLength: 255
-          x-classification: secret
-          writeOnly: true
-      minProperties: 1
     TechnologyProvider:
       type: object
       description: Einvoice providers
@@ -67880,11 +68086,6 @@ components:
           enum:
           - SANDBOX
           x-classification: internal
-        credentials_ref:
-          type: string
-          maxLength: 255
-          x-classification: secret
-          writeOnly: true
         contract_version:
           type: string
           maxLength: 255
@@ -68049,6 +68250,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: restricted-pii
         address:
           type:
@@ -68135,6 +68338,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: restricted-pii
         address:
           type:
@@ -68212,6 +68417,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: restricted-pii
         address:
           type:
@@ -68922,20 +69129,6 @@ components:
           x-classification: restricted-pii
       required:
       - request_type
-    SelfServiceRequestPatch:
-      type: object
-      description: Partial update body of SelfServiceRequest (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        request_type:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        payload:
-          type: object
-          additionalProperties: true
-          x-classification: restricted-pii
-      minProperties: 1
     SelfServiceRequestPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -69175,6 +69368,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: internal
         default_business_unit_id:
           type:
@@ -69243,6 +69438,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: internal
         default_business_unit_id:
           type:
@@ -69269,6 +69466,16 @@ components:
       required:
       - code
       - name
+    BranchPage:
+      allOf:
+      - $ref: '#/components/schemas/Page'
+      - type: object
+        properties:
+          items:
+            type: array
+            items:
+              $ref: '#/components/schemas/Branch'
+            x-classification: internal
     BranchPatch:
       type: object
       description: Partial update body of Branch (state never changes through PATCH; use action endpoints)
@@ -69302,6 +69509,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: internal
         default_business_unit_id:
           type:
@@ -69326,16 +69535,6 @@ components:
           format: date
           x-classification: internal
       minProperties: 1
-    BranchPage:
-      allOf:
-      - $ref: '#/components/schemas/Page'
-      - type: object
-        properties:
-          items:
-            type: array
-            items:
-              $ref: '#/components/schemas/Branch'
-            x-classification: internal
     CostCenterScope:
       type: object
       description: 'Superseded master (F-ACC-DIM): read-only projection of ledger cost-center ids usable in role scopes.'
@@ -69795,37 +69994,6 @@ components:
       required:
       - user_id
       - role_id
-    RoleAssignmentPatch:
-      type: object
-      description: Partial update body of RoleAssignment (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        active:
-          type: boolean
-          x-classification: internal
-        user_id:
-          type: string
-          format: uuid
-          x-classification: internal
-        role_id:
-          type: string
-          format: uuid
-          x-classification: internal
-        scope:
-          type: object
-          additionalProperties: true
-          x-classification: internal
-        valid_from:
-          type: string
-          format: date
-          x-classification: internal
-        valid_to:
-          type:
-          - string
-          - 'null'
-          format: date
-          x-classification: internal
-      minProperties: 1
     RoleAssignmentPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -70587,26 +70755,6 @@ components:
       - subject
       - purpose
       - granted
-    ConsentPatch:
-      type: object
-      description: Partial update body of Consent (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        subject:
-          $ref: '#/components/schemas/PartyRef'
-          x-classification: restricted-pii
-        purpose:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        granted:
-          type: boolean
-          x-classification: internal
-        evidence:
-          type: string
-          maxLength: 255
-          x-classification: internal
-      minProperties: 1
     ConsentPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -70779,33 +70927,6 @@ components:
       - email
       - portal_kind
       - party
-    ExternalAccountPatch:
-      type: object
-      description: Partial update body of ExternalAccount (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        email:
-          type: string
-          format: email
-          maxLength: 254
-          x-classification: restricted-pii
-        portal_kind:
-          type: string
-          enum:
-          - supplier
-          - customer
-          - employee
-          x-classification: internal
-        party:
-          $ref: '#/components/schemas/PartyRef'
-          x-classification: confidential
-        employee_id:
-          type:
-          - string
-          - 'null'
-          format: uuid
-          x-classification: restricted-pii
-      minProperties: 1
     ExternalAccountPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -74072,23 +74193,6 @@ components:
       required:
       - template_id
       - targets
-    LabelPrintJobPatch:
-      type: object
-      description: Partial update body of LabelPrintJob (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        template_id:
-          type: string
-          format: uuid
-          x-classification: internal
-        targets:
-          type: object
-          additionalProperties: true
-          x-classification: internal
-        copies:
-          type: integer
-          x-classification: internal
-      minProperties: 1
     LabelPrintJobPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -75988,19 +76092,6 @@ components:
           x-classification: internal
       required:
       - rate
-    ExchangeRatePatch:
-      type: object
-      description: Partial update body of ExchangeRate (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        rate:
-          $ref: '#/components/schemas/Rate'
-          x-classification: internal
-        source:
-          type: string
-          maxLength: 255
-          x-classification: internal
-      minProperties: 1
     ExchangeRatePage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -76921,28 +77012,6 @@ components:
           x-classification: internal
       required:
       - account_id
-    TaxDifferencePatch:
-      type: object
-      description: Partial update body of TaxDifference (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        account_id:
-          type: string
-          format: uuid
-          x-classification: internal
-        fiscal_amount:
-          $ref: '#/components/schemas/Money'
-          x-classification: internal
-        book_amount:
-          $ref: '#/components/schemas/Money'
-          x-classification: internal
-        difference_type:
-          type: string
-          enum:
-          - TEMPORARY
-          - PERMANENT
-          x-classification: internal
-      minProperties: 1
     TaxDifferencePage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -77825,17 +77894,6 @@ components:
           x-classification: internal
       required:
       - rules
-    DimensionRuleSetPatch:
-      type: object
-      description: Partial update body of DimensionRuleSet (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        rules:
-          type: array
-          items:
-            $ref: '#/components/schemas/DimensionRule'
-          x-classification: internal
-      minProperties: 1
     DimensionSetting:
       type: object
       description: Ledger dimension-settings
@@ -77898,23 +77956,6 @@ components:
       required:
       - max_depth
       - dimension
-    DimensionSettingPatch:
-      type: object
-      description: Partial update body of DimensionSetting (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        max_depth:
-          type: integer
-          x-classification: internal
-        dimension:
-          type: string
-          enum:
-          - cost_center
-          - business_unit
-          - aux_abierto
-          - item_contable
-          x-classification: internal
-      minProperties: 1
     DimensionRule:
       type: object
       description: DimensionRule
@@ -78010,16 +78051,6 @@ components:
           type: object
           additionalProperties: true
           x-classification: confidential
-    OnboardingSessionPatch:
-      type: object
-      description: Partial update body of OnboardingSession (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        answers:
-          type: object
-          additionalProperties: true
-          x-classification: confidential
-      minProperties: 1
     OnboardingSessionPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -78702,30 +78733,6 @@ components:
       - employee_id
       - concept_id
       - period_id
-    NoveltyPatch:
-      type: object
-      description: Partial update body of Novelty (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        employee_id:
-          type: string
-          format: uuid
-          x-classification: restricted-pii
-        concept_id:
-          type: string
-          format: uuid
-          x-classification: internal
-        quantity:
-          $ref: '#/components/schemas/Decimal'
-          x-classification: internal
-        amount:
-          $ref: '#/components/schemas/Money'
-          x-classification: confidential
-        period_id:
-          type: string
-          format: uuid
-          x-classification: internal
-      minProperties: 1
     NoveltyPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -79294,16 +79301,6 @@ components:
           x-classification: internal
       required:
       - period_id
-    PilaFilePatch:
-      type: object
-      description: Partial update body of PilaFile (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        period_id:
-          type: string
-          format: uuid
-          x-classification: internal
-      minProperties: 1
     PilaFilePage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -79372,16 +79369,6 @@ components:
           x-classification: internal
       required:
       - period_id
-    ElectronicPayrollPatch:
-      type: object
-      description: Partial update body of ElectronicPayroll (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        period_id:
-          type: string
-          format: uuid
-          x-classification: internal
-      minProperties: 1
     ElectronicPayrollPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -79607,26 +79594,6 @@ components:
       required:
       - document_type
       - file_name
-    SupplierDocumentPatch:
-      type: object
-      description: Partial update body of SupplierDocument (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        document_type:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        file_name:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        expires_on:
-          type:
-          - string
-          - 'null'
-          format: date
-          x-classification: internal
-      minProperties: 1
     SupplierDocumentPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -79760,26 +79727,6 @@ components:
       required:
       - lines
       - currency
-    SupplierQuoteSubmissionPatch:
-      type: object
-      description: Partial update body of SupplierQuoteSubmission (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        lines:
-          type: object
-          additionalProperties: true
-          x-classification: internal
-        currency:
-          $ref: '#/components/schemas/CurrencyCode'
-          x-classification: public
-        valid_until:
-          type: string
-          format: date
-          x-classification: internal
-        lead_time_days:
-          type: integer
-          x-classification: internal
-      minProperties: 1
     SupplierQuoteSubmissionPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -79912,24 +79859,6 @@ components:
       - purchase_order_id
       - expected_date
       - lines
-    SupplierShipmentPatch:
-      type: object
-      description: Partial update body of SupplierShipment (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        purchase_order_id:
-          type: string
-          format: uuid
-          x-classification: internal
-        expected_date:
-          type: string
-          format: date
-          x-classification: internal
-        lines:
-          type: object
-          additionalProperties: true
-          x-classification: internal
-      minProperties: 1
     SupplierShipmentPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -79964,11 +79893,6 @@ components:
           type: string
           maxLength: 255
           x-classification: internal
-        xml_file:
-          type: string
-          contentMediaType: application/octet-stream
-          x-classification: confidential
-          writeOnly: true
         processing_status:
           type: string
           maxLength: 255
@@ -80001,21 +79925,6 @@ components:
           writeOnly: true
       required:
       - number
-    SupplierInvoicePatch:
-      type: object
-      description: Partial update body of SupplierInvoice (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        number:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        xml_file:
-          type: string
-          contentMediaType: application/octet-stream
-          x-classification: confidential
-          writeOnly: true
-      minProperties: 1
     SupplierInvoicePage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -80448,21 +80357,6 @@ components:
       required:
       - documents
       - amount
-    CustomerPaymentIntentPatch:
-      type: object
-      description: Partial update body of CustomerPaymentIntent (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        documents:
-          type: array
-          items:
-            type: string
-            format: uuid
-          x-classification: internal
-        amount:
-          $ref: '#/components/schemas/Money'
-          x-classification: confidential
-      minProperties: 1
     CustomerPaymentIntentPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -80534,20 +80428,6 @@ components:
       required:
       - request_type
       - message
-    CustomerRequestPatch:
-      type: object
-      description: Partial update body of CustomerRequest (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        request_type:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        message:
-          type: string
-          maxLength: 10000
-          x-classification: confidential
-      minProperties: 1
     CustomerRequestPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -80764,20 +80644,6 @@ components:
       required:
       - start_date
       - end_date
-    EmployeeVacationRequestPatch:
-      type: object
-      description: Partial update body of EmployeeVacationRequest (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        start_date:
-          type: string
-          format: date
-          x-classification: internal
-        end_date:
-          type: string
-          format: date
-          x-classification: internal
-      minProperties: 1
     EmployeeVacationRequestPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -80839,16 +80705,6 @@ components:
           x-classification: restricted-pii
       required:
       - changes
-    EmployeeDataUpdatePatch:
-      type: object
-      description: Partial update body of EmployeeDataUpdate (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        changes:
-          type: object
-          additionalProperties: true
-          x-classification: restricted-pii
-      minProperties: 1
     EmployeeDataUpdatePage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -81229,22 +81085,6 @@ components:
           x-classification: confidential
       required:
       - terminal_id
-    PosSessionPatch:
-      type: object
-      description: Partial update body of PosSession (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        terminal_id:
-          type: string
-          format: uuid
-          x-classification: internal
-        opening_cash:
-          $ref: '#/components/schemas/Money'
-          x-classification: confidential
-        counted_cash:
-          $ref: '#/components/schemas/Money'
-          x-classification: confidential
-      minProperties: 1
     PosSessionPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -81787,29 +81627,6 @@ components:
       - movement_type
       - amount
       - reason
-    CashMovementPatch:
-      type: object
-      description: Partial update body of CashMovement (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        session_id:
-          type: string
-          format: uuid
-          x-classification: internal
-        movement_type:
-          type: string
-          enum:
-          - IN
-          - OUT
-          x-classification: internal
-        amount:
-          $ref: '#/components/schemas/Money'
-          x-classification: confidential
-        reason:
-          type: string
-          maxLength: 255
-          x-classification: internal
-      minProperties: 1
     CashMovementPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -85083,20 +84900,6 @@ components:
       required:
       - pack_id
       - mappings
-    ExogenaMappingPatch:
-      type: object
-      description: Partial update body of ExogenaMapping (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        pack_id:
-          type: string
-          format: uuid
-          x-classification: internal
-        mappings:
-          type: object
-          additionalProperties: true
-          x-classification: internal
-      minProperties: 1
     ExogenaRun:
       type: object
       description: Reporting exogena/runs
@@ -85174,19 +84977,6 @@ components:
       required:
       - pack_id
       - year
-    ExogenaRunPatch:
-      type: object
-      description: Partial update body of ExogenaRun (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        pack_id:
-          type: string
-          format: uuid
-          x-classification: internal
-        year:
-          type: integer
-          x-classification: internal
-      minProperties: 1
     ExogenaRunPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -85271,6 +85061,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: restricted-pii
         address:
           type:
@@ -85370,6 +85162,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: restricted-pii
         address:
           type:
@@ -85460,6 +85254,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: restricted-pii
         address:
           type:
@@ -88039,33 +87835,6 @@ components:
       - url
       - title
       - accessed_at
-    SourcePatch:
-      type: object
-      description: Partial update body of Source (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        url:
-          type: string
-          format: uri
-          maxLength: 2000
-          x-classification: internal
-        title:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        accessed_at:
-          type: string
-          format: date-time
-          x-classification: internal
-        method:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        excerpt_hash:
-          type: string
-          maxLength: 255
-          x-classification: internal
-      minProperties: 1
     SourcePage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -88958,24 +88727,6 @@ components:
       - code
       - year
       - pack
-    ExogenaFormatPackPatch:
-      type: object
-      description: Partial update body of ExogenaFormatPack (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        code:
-          type: string
-          minLength: 1
-          maxLength: 40
-          x-classification: internal
-        year:
-          type: integer
-          x-classification: internal
-        pack:
-          type: object
-          additionalProperties: true
-          x-classification: internal
-      minProperties: 1
     ExogenaFormatPackPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -89080,34 +88831,6 @@ components:
       required:
       - employee_id
       - event_type
-    ClockEventPatch:
-      type: object
-      description: Partial update body of ClockEvent (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        employee_id:
-          type: string
-          format: uuid
-          x-classification: restricted-pii
-        event_type:
-          type: string
-          enum:
-          - IN
-          - OUT
-          x-classification: internal
-        device:
-          type:
-          - string
-          - 'null'
-          maxLength: 255
-          x-classification: internal
-        geo:
-          type:
-          - string
-          - 'null'
-          maxLength: 255
-          x-classification: sensitive-pii
-      minProperties: 1
     ClockEventPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -91399,19 +91122,6 @@ components:
       required:
       - bank_account_id
       - period
-    BankStatementPatch:
-      type: object
-      description: Partial update body of BankStatement (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        bank_account_id:
-          type: string
-          format: uuid
-          x-classification: internal
-        period:
-          $ref: '#/components/schemas/DateRange'
-          x-classification: internal
-      minProperties: 1
     BankStatementPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -92373,23 +92083,6 @@ components:
       - resource
       - filename
       - content_type
-    AttachmentPatch:
-      type: object
-      description: Partial update body of Attachment (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        resource:
-          $ref: '#/components/schemas/DocumentRef'
-          x-classification: internal
-        filename:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        content_type:
-          type: string
-          maxLength: 255
-          x-classification: internal
-      minProperties: 1
     AttachmentPage:
       allOf:
       - $ref: '#/components/schemas/Page'
@@ -92439,11 +92132,6 @@ components:
             type: string
             maxLength: 255
           x-classification: internal
-        signing_secret_ref:
-          type: string
-          maxLength: 255
-          x-classification: secret
-          writeOnly: true
         version:
           type: integer
           x-classification: internal

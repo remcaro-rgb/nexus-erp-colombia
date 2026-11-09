@@ -83,7 +83,7 @@ TYPE_BASE = {
     "uuid": {"type": "string", "format": "uuid"},
     "ref": {"type": "string", "format": "uuid"},
     "email": {"type": "string", "format": "email", "maxLength": 254},
-    "phone": {"type": "string", "pattern": r"^[0-9+() -]{5,25}$"},
+    "phone": {"type": "string", "pattern": r"^[0-9+() -]{5,25}$", "examples": ["+57 601 0000000"]},
     "url": {"type": "string", "format": "uri", "maxLength": 2000},
     "json": {"type": "object", "additionalProperties": True},
     "money": {"$ref": "ROOT:Money"},
@@ -197,8 +197,7 @@ class Builder:
     # ------------------------------------------------------------------ OpenAPI building
     def schema_for_resource(self, mod, res, comps):
         name = res.get("schema") or camel(singular(res["path"].split("/")[-1].replace("{", "").replace("}", "")))
-        if name in comps:
-            return name
+        exists = name in comps
         kind = res.get("kind", "master")
         fields = OrderedDict()
         fields["id"] = "uuid public ro"
@@ -217,19 +216,27 @@ class Builder:
             lf = OrderedDict(LINE_DEFAULT)
             for k, v in (res.get("lines") or {}).items():
                 lf[k] = v
-            comps[line_name] = self.object_schema(lf, f"Line of {name}")
+            comps.setdefault(line_name, self.object_schema(lf, f"Line of {name}"))
             fields["lines"] = f"array(@{line_name}) internal"
         fields["version"] = "int internal ro"
         fields["audit"] = "audit internal ro"
-        comps[name] = self.object_schema(fields, res.get("description") or f"{camel(mod['module'])} {res['path']}")
+        if exists:
+            # a second resource sharing the schema (e.g. /companies/{company_id}/branches and /branches): it must declare the same fields
+            if list(comps[name]["properties"]) != [k for k, v in fields.items() if "wo" not in str(v).split()]:
+                raise SystemExit(f"{mod['_file']}: schema {name} shared by resources with different fields")
+        else:
+            # read model: write-only fields (secret references, uploads) are never part of a response
+            readable = OrderedDict((k, v) for k, v in fields.items() if "wo" not in str(v).split())
+            comps[name] = self.object_schema(readable, res.get("description") or f"{camel(mod['module'])} {res['path']}")
         if res.get("ops_set") & {"create", "update", "put"}:
             writable = OrderedDict((k, v) for k, v in fields.items() if " ro" not in f" {v} " and k not in ("status",))
             inp = self.object_schema(writable, f"Create/replace body of {name}", required_from=True)
-            comps[name + "Input"] = inp
-            patch = self.object_schema(writable, f"Partial update body of {name} (state never changes through PATCH; use action endpoints)")
-            patch.pop("required", None)
-            patch["minProperties"] = 1
-            comps[name + "Patch"] = patch
+            comps.setdefault(name + "Input", inp)
+            if "update" in res["ops_set"] and name + "Patch" not in comps:
+                patch = self.object_schema(writable, f"Partial update body of {name} (state never changes through PATCH; use action endpoints)")
+                patch.pop("required", None)
+                patch["minProperties"] = 1
+                comps[name + "Patch"] = patch
         return name
 
     def object_schema(self, fields, description, required_from=False):
@@ -407,7 +414,8 @@ class Builder:
                                     list_params=True, params=res.get("params")))
             if "create" in ops:
                 put(P, self.make_op(mod, res, P, "post", "create", "create", f"Crear {label}", body=self.body({"$ref": f"#/components/schemas/{sname}Input"}),
-                                    ok=self.json_ok(201, ref, "Created", {**etag, "Location": {"$ref": "ROOT_HDR:Location"}}), idem=True))
+                                    ok=self.json_ok(201, ref, "Created", {**etag, "Location": {"$ref": "ROOT_HDR:Location"},
+                                                                                                       "Idempotent-Replayed": {"$ref": "ROOT_HDR:IdempotentReplayed"}}), idem=True))
             if "getone" in ops:
                 put(P, self.make_op(mod, res, P, "get", "get", "read", f"Consultar {label}", ok=self.json_ok(200, ref, headers=etag)))
             if "put" in ops:

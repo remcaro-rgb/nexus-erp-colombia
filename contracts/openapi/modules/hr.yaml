@@ -83,6 +83,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -372,6 +374,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -733,6 +737,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -967,6 +973,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1345,6 +1353,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1451,6 +1461,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: restricted-pii
         address:
           type:
@@ -1537,6 +1549,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: restricted-pii
         address:
           type:
@@ -1614,6 +1628,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: restricted-pii
         address:
           type:
@@ -2324,20 +2340,6 @@ components:
           x-classification: restricted-pii
       required:
       - request_type
-    SelfServiceRequestPatch:
-      type: object
-      description: Partial update body of SelfServiceRequest (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        request_type:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        payload:
-          type: object
-          additionalProperties: true
-          x-classification: restricted-pii
-      minProperties: 1
     SelfServiceRequestPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page

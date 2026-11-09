@@ -79,6 +79,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -535,6 +537,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -981,16 +985,6 @@ components:
           type: object
           additionalProperties: true
           x-classification: confidential
-    OnboardingSessionPatch:
-      type: object
-      description: Partial update body of OnboardingSession (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        answers:
-          type: object
-          additionalProperties: true
-          x-classification: confidential
-      minProperties: 1
     OnboardingSessionPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page

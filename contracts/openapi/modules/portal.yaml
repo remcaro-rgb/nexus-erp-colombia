@@ -256,6 +256,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -514,6 +516,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -818,6 +822,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -959,6 +965,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1788,6 +1796,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1935,6 +1945,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -2387,6 +2399,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -2533,6 +2547,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -2847,26 +2863,6 @@ components:
       required:
       - document_type
       - file_name
-    SupplierDocumentPatch:
-      type: object
-      description: Partial update body of SupplierDocument (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        document_type:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        file_name:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        expires_on:
-          type:
-          - string
-          - 'null'
-          format: date
-          x-classification: internal
-      minProperties: 1
     SupplierDocumentPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page
@@ -3000,26 +2996,6 @@ components:
       required:
       - lines
       - currency
-    SupplierQuoteSubmissionPatch:
-      type: object
-      description: Partial update body of SupplierQuoteSubmission (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        lines:
-          type: object
-          additionalProperties: true
-          x-classification: internal
-        currency:
-          $ref: ../root.yaml#/components/schemas/CurrencyCode
-          x-classification: public
-        valid_until:
-          type: string
-          format: date
-          x-classification: internal
-        lead_time_days:
-          type: integer
-          x-classification: internal
-      minProperties: 1
     SupplierQuoteSubmissionPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page
@@ -3152,24 +3128,6 @@ components:
       - purchase_order_id
       - expected_date
       - lines
-    SupplierShipmentPatch:
-      type: object
-      description: Partial update body of SupplierShipment (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        purchase_order_id:
-          type: string
-          format: uuid
-          x-classification: internal
-        expected_date:
-          type: string
-          format: date
-          x-classification: internal
-        lines:
-          type: object
-          additionalProperties: true
-          x-classification: internal
-      minProperties: 1
     SupplierShipmentPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page
@@ -3204,11 +3162,6 @@ components:
           type: string
           maxLength: 255
           x-classification: internal
-        xml_file:
-          type: string
-          contentMediaType: application/octet-stream
-          x-classification: confidential
-          writeOnly: true
         processing_status:
           type: string
           maxLength: 255
@@ -3241,21 +3194,6 @@ components:
           writeOnly: true
       required:
       - number
-    SupplierInvoicePatch:
-      type: object
-      description: Partial update body of SupplierInvoice (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        number:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        xml_file:
-          type: string
-          contentMediaType: application/octet-stream
-          x-classification: confidential
-          writeOnly: true
-      minProperties: 1
     SupplierInvoicePage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page
@@ -3688,21 +3626,6 @@ components:
       required:
       - documents
       - amount
-    CustomerPaymentIntentPatch:
-      type: object
-      description: Partial update body of CustomerPaymentIntent (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        documents:
-          type: array
-          items:
-            type: string
-            format: uuid
-          x-classification: internal
-        amount:
-          $ref: ../root.yaml#/components/schemas/Money
-          x-classification: confidential
-      minProperties: 1
     CustomerPaymentIntentPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page
@@ -3774,20 +3697,6 @@ components:
       required:
       - request_type
       - message
-    CustomerRequestPatch:
-      type: object
-      description: Partial update body of CustomerRequest (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        request_type:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        message:
-          type: string
-          maxLength: 10000
-          x-classification: confidential
-      minProperties: 1
     CustomerRequestPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page
@@ -4004,20 +3913,6 @@ components:
       required:
       - start_date
       - end_date
-    EmployeeVacationRequestPatch:
-      type: object
-      description: Partial update body of EmployeeVacationRequest (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        start_date:
-          type: string
-          format: date
-          x-classification: internal
-        end_date:
-          type: string
-          format: date
-          x-classification: internal
-      minProperties: 1
     EmployeeVacationRequestPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page
@@ -4079,16 +3974,6 @@ components:
           x-classification: restricted-pii
       required:
       - changes
-    EmployeeDataUpdatePatch:
-      type: object
-      description: Partial update body of EmployeeDataUpdate (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        changes:
-          type: object
-          additionalProperties: true
-          x-classification: restricted-pii
-      minProperties: 1
     EmployeeDataUpdatePage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page

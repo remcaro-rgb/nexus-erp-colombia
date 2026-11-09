@@ -1,5 +1,6 @@
 # Spectral ruleset for the Nexus ERP contract (P02 deliverable 8). Run against the bundle:
 #   npx @stoplight/spectral-cli@6.17.1 lint contracts/openapi/openapi.yaml --ruleset contracts/.spectral.yaml
+# Spectral evaluates the $ref-resolved document, so parameter rules match the resolved parameter objects.
 # The same rules are executed without Node by tests/contract/test_conventions.py (T-P02-01), which is the CI gate.
 extends: [["spectral:oas", "recommended"]]
 rules:
@@ -53,8 +54,10 @@ rules:
           contains:
             type: object
             properties:
-              $ref: {const: "#/components/parameters/IdempotencyKey"}
-            required: [$ref]
+              name: {const: Idempotency-Key}
+              in: {const: header}
+              required: {const: true}
+            required: [name, in, required]
   nexus-update-if-match:
     description: PATCH/PUT require If-Match (optimistic locking).
     severity: error
@@ -67,12 +70,14 @@ rules:
           contains:
             type: object
             properties:
-              $ref: {const: "#/components/parameters/IfMatch"}
-            required: [$ref]
+              name: {const: If-Match}
+              in: {const: header}
+              required: {const: true}
+            required: [name, in, required]
   nexus-no-json-number:
     description: Money, quantities, rates and percentages are decimal strings; JSON `number` is forbidden (D-001).
     severity: error
-    given: $..[?(@.type == 'number')]
+    given: "$..[?(@ && @.type == 'number')]"
     then:
       function: falsy
   nexus-property-classification:

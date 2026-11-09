@@ -83,6 +83,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -484,6 +486,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -718,6 +722,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -952,6 +958,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1186,6 +1194,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1446,6 +1456,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1986,6 +1998,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -2416,6 +2430,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -2543,6 +2559,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -2957,6 +2975,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -3191,6 +3211,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -3601,6 +3623,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -4091,6 +4115,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -4434,6 +4460,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -4603,6 +4631,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -5321,6 +5351,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -6039,6 +6071,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -6757,6 +6791,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -8770,19 +8806,6 @@ components:
           x-classification: internal
       required:
       - rate
-    ExchangeRatePatch:
-      type: object
-      description: Partial update body of ExchangeRate (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        rate:
-          $ref: ../root.yaml#/components/schemas/Rate
-          x-classification: internal
-        source:
-          type: string
-          maxLength: 255
-          x-classification: internal
-      minProperties: 1
     ExchangeRatePage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page
@@ -9703,28 +9726,6 @@ components:
           x-classification: internal
       required:
       - account_id
-    TaxDifferencePatch:
-      type: object
-      description: Partial update body of TaxDifference (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        account_id:
-          type: string
-          format: uuid
-          x-classification: internal
-        fiscal_amount:
-          $ref: ../root.yaml#/components/schemas/Money
-          x-classification: internal
-        book_amount:
-          $ref: ../root.yaml#/components/schemas/Money
-          x-classification: internal
-        difference_type:
-          type: string
-          enum:
-          - TEMPORARY
-          - PERMANENT
-          x-classification: internal
-      minProperties: 1
     TaxDifferencePage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page
@@ -10607,17 +10608,6 @@ components:
           x-classification: internal
       required:
       - rules
-    DimensionRuleSetPatch:
-      type: object
-      description: Partial update body of DimensionRuleSet (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        rules:
-          type: array
-          items:
-            $ref: '#/components/schemas/DimensionRule'
-          x-classification: internal
-      minProperties: 1
     DimensionSetting:
       type: object
       description: Ledger dimension-settings
@@ -10680,23 +10670,6 @@ components:
       required:
       - max_depth
       - dimension
-    DimensionSettingPatch:
-      type: object
-      description: Partial update body of DimensionSetting (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        max_depth:
-          type: integer
-          x-classification: internal
-        dimension:
-          type: string
-          enum:
-          - cost_center
-          - business_unit
-          - aux_abierto
-          - item_contable
-          x-classification: internal
-      minProperties: 1
     DimensionRule:
       type: object
       description: DimensionRule

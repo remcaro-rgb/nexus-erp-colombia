@@ -227,3 +227,23 @@ def test_T_P02_01_spectral_ruleset_present_and_mirrors_rules():
     for r in ("nexus-paths-versioned", "nexus-operation-permission", "nexus-mutating-idempotency-key", "nexus-no-json-number",
               "nexus-property-classification", "nexus-problem-json", "nexus-limit-max-500"):
         assert r in rules and rules[r].get("severity", "error") == "error", r
+
+
+def test_T_P02_01_every_local_ref_resolves(bundle, root_doc, fragments):
+    """No dangling $ref anywhere (found by Prism once: a schema shared by two resources)."""
+    def check(doc, name):
+        bad = []
+        for path, node in _walk(doc):
+            ref = node.get("$ref") if isinstance(node, dict) else None
+            if isinstance(ref, str) and ref.startswith("#/"):
+                cur = doc
+                try:
+                    for part in ref[2:].split("/"):
+                        cur = cur[part.replace("~1", "/").replace("~0", "~")]
+                except (KeyError, TypeError):
+                    bad.append((name, path, ref))
+        return bad
+    bad = check(bundle, "bundle") + check(root_doc, "root")
+    for n, f in fragments.items():
+        bad += check(f, n)
+    assert bad == []

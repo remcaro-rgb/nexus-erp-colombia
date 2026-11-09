@@ -215,6 +215,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -847,6 +849,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1071,6 +1075,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1377,16 +1383,6 @@ components:
           x-classification: internal
       required:
       - entity
-    ImportJobPatch:
-      type: object
-      description: Partial update body of ImportJob (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        entity:
-          type: string
-          maxLength: 255
-          x-classification: internal
-      minProperties: 1
     ImportJobPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page
@@ -1473,23 +1469,6 @@ components:
       required:
       - source
       - format
-    ExportJobPatch:
-      type: object
-      description: Partial update body of ExportJob (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        source:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        format:
-          type: string
-          enum:
-          - csv
-          - xlsx
-          - jsonl
-          x-classification: internal
-      minProperties: 1
     ExportJobPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page

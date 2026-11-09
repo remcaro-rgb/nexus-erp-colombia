@@ -79,6 +79,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -329,6 +331,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -637,6 +641,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -823,6 +829,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1526,6 +1534,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1940,6 +1950,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -2158,6 +2170,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -2891,30 +2905,6 @@ components:
       - employee_id
       - concept_id
       - period_id
-    NoveltyPatch:
-      type: object
-      description: Partial update body of Novelty (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        employee_id:
-          type: string
-          format: uuid
-          x-classification: restricted-pii
-        concept_id:
-          type: string
-          format: uuid
-          x-classification: internal
-        quantity:
-          $ref: ../root.yaml#/components/schemas/Decimal
-          x-classification: internal
-        amount:
-          $ref: ../root.yaml#/components/schemas/Money
-          x-classification: confidential
-        period_id:
-          type: string
-          format: uuid
-          x-classification: internal
-      minProperties: 1
     NoveltyPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page
@@ -3483,16 +3473,6 @@ components:
           x-classification: internal
       required:
       - period_id
-    PilaFilePatch:
-      type: object
-      description: Partial update body of PilaFile (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        period_id:
-          type: string
-          format: uuid
-          x-classification: internal
-      minProperties: 1
     PilaFilePage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page
@@ -3561,16 +3541,6 @@ components:
           x-classification: internal
       required:
       - period_id
-    ElectronicPayrollPatch:
-      type: object
-      description: Partial update body of ElectronicPayroll (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        period_id:
-          type: string
-          format: uuid
-          x-classification: internal
-      minProperties: 1
     ElectronicPayrollPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page

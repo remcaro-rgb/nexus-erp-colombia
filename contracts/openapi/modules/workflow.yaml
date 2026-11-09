@@ -80,6 +80,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -730,6 +732,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1270,6 +1274,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1486,6 +1492,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1890,6 +1898,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -2386,6 +2396,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -3501,23 +3513,6 @@ components:
       - resource
       - filename
       - content_type
-    AttachmentPatch:
-      type: object
-      description: Partial update body of Attachment (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        resource:
-          $ref: ../root.yaml#/components/schemas/DocumentRef
-          x-classification: internal
-        filename:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        content_type:
-          type: string
-          maxLength: 255
-          x-classification: internal
-      minProperties: 1
     AttachmentPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page
@@ -3567,11 +3562,6 @@ components:
             type: string
             maxLength: 255
           x-classification: internal
-        signing_secret_ref:
-          type: string
-          maxLength: 255
-          x-classification: secret
-          writeOnly: true
         version:
           type: integer
           x-classification: internal

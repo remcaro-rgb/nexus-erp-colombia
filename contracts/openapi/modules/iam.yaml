@@ -80,6 +80,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -342,6 +344,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -795,6 +799,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1144,6 +1150,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1378,6 +1386,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1550,6 +1560,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1828,6 +1840,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -2064,6 +2078,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -2301,6 +2317,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -2655,6 +2673,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -3043,6 +3063,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -3270,6 +3292,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -3869,6 +3893,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: internal
         default_business_unit_id:
           type:
@@ -3937,6 +3963,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: internal
         default_business_unit_id:
           type:
@@ -3963,6 +3991,16 @@ components:
       required:
       - code
       - name
+    BranchPage:
+      allOf:
+      - $ref: ../root.yaml#/components/schemas/Page
+      - type: object
+        properties:
+          items:
+            type: array
+            items:
+              $ref: '#/components/schemas/Branch'
+            x-classification: internal
     BranchPatch:
       type: object
       description: Partial update body of Branch (state never changes through PATCH; use action endpoints)
@@ -3996,6 +4034,8 @@ components:
           - string
           - 'null'
           pattern: ^[0-9+() -]{5,25}$
+          examples:
+          - +57 601 0000000
           x-classification: internal
         default_business_unit_id:
           type:
@@ -4020,16 +4060,6 @@ components:
           format: date
           x-classification: internal
       minProperties: 1
-    BranchPage:
-      allOf:
-      - $ref: ../root.yaml#/components/schemas/Page
-      - type: object
-        properties:
-          items:
-            type: array
-            items:
-              $ref: '#/components/schemas/Branch'
-            x-classification: internal
     CostCenterScope:
       type: object
       description: 'Superseded master (F-ACC-DIM): read-only projection of ledger cost-center ids usable in role scopes.'
@@ -4489,37 +4519,6 @@ components:
       required:
       - user_id
       - role_id
-    RoleAssignmentPatch:
-      type: object
-      description: Partial update body of RoleAssignment (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        active:
-          type: boolean
-          x-classification: internal
-        user_id:
-          type: string
-          format: uuid
-          x-classification: internal
-        role_id:
-          type: string
-          format: uuid
-          x-classification: internal
-        scope:
-          type: object
-          additionalProperties: true
-          x-classification: internal
-        valid_from:
-          type: string
-          format: date
-          x-classification: internal
-        valid_to:
-          type:
-          - string
-          - 'null'
-          format: date
-          x-classification: internal
-      minProperties: 1
     RoleAssignmentPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page
@@ -5281,26 +5280,6 @@ components:
       - subject
       - purpose
       - granted
-    ConsentPatch:
-      type: object
-      description: Partial update body of Consent (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        subject:
-          $ref: ../root.yaml#/components/schemas/PartyRef
-          x-classification: restricted-pii
-        purpose:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        granted:
-          type: boolean
-          x-classification: internal
-        evidence:
-          type: string
-          maxLength: 255
-          x-classification: internal
-      minProperties: 1
     ConsentPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page
@@ -5473,33 +5452,6 @@ components:
       - email
       - portal_kind
       - party
-    ExternalAccountPatch:
-      type: object
-      description: Partial update body of ExternalAccount (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        email:
-          type: string
-          format: email
-          maxLength: 254
-          x-classification: restricted-pii
-        portal_kind:
-          type: string
-          enum:
-          - supplier
-          - customer
-          - employee
-          x-classification: internal
-        party:
-          $ref: ../root.yaml#/components/schemas/PartyRef
-          x-classification: confidential
-        employee_id:
-          type:
-          - string
-          - 'null'
-          format: uuid
-          x-classification: restricted-pii
-      minProperties: 1
     ExternalAccountPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page

@@ -107,6 +107,9 @@
               "description": "NUMERIC(20,4) as string",
               "type": "string",
               "pattern": "^-?\\d{1,16}(\\.\\d{1,4})?$",
+              "examples": [
+                "1190000.0000"
+              ],
               "x-classification": "internal"
             },
             "currency": {

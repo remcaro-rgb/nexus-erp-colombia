@@ -79,6 +79,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -547,6 +549,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -965,6 +969,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1202,6 +1208,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1495,6 +1503,8 @@ paths:
               $ref: ../root.yaml#/components/headers/ETag
             Location:
               $ref: ../root.yaml#/components/headers/Location
+            Idempotent-Replayed:
+              $ref: ../root.yaml#/components/headers/IdempotentReplayed
         '400':
           $ref: ../root.yaml#/components/responses/BadRequest
         '401':
@@ -1649,16 +1659,6 @@ components:
           type: string
           maxLength: 255
           x-classification: internal
-    ConversationPatch:
-      type: object
-      description: Partial update body of Conversation (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        title:
-          type: string
-          maxLength: 255
-          x-classification: internal
-      minProperties: 1
     ConversationPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page
@@ -1953,11 +1953,6 @@ components:
           format: uri
           maxLength: 2000
           x-classification: internal
-        credentials_ref:
-          type: string
-          maxLength: 255
-          x-classification: secret
-          writeOnly: true
         data_retention:
           type: string
           maxLength: 10000
@@ -2222,24 +2217,6 @@ components:
           x-classification: confidential
       required:
       - title
-    KbDocumentPatch:
-      type: object
-      description: Partial update body of KbDocument (state never changes through PATCH; use action endpoints)
-      additionalProperties: false
-      properties:
-        title:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        source:
-          type: string
-          maxLength: 255
-          x-classification: internal
-        content_ref:
-          type: string
-          maxLength: 255
-          x-classification: confidential
-      minProperties: 1
     KbDocumentPage:
       allOf:
       - $ref: ../root.yaml#/components/schemas/Page
