@@ -49,7 +49,7 @@ def _in_fresh_thread(fn: Any) -> Any:
     return out["value"]
 
 
-def test_FIX_CI_W02_deliverer_sees_every_tenant_only_through_its_platform_job(grants) -> None:  # type: ignore[no-untyped-def]
+def test_FIX_CI_W02_deliverer_sees_every_tenant_only_through_its_platform_job(grants: Any) -> None:
     transport = OkTransport()
     svc = WebhookService(transport)
     tenants = []
