@@ -71,7 +71,8 @@ class DsrService:
         def work(uow: UnitOfWork) -> Any:
             req = DsrRequest.objects.create(
                 tenant_id=ctx.tenant_id, company_id=company_id, kind=kind, right=right, subject_type=subject_type,
-                subject_ref=subject_ref[:80], requester_name=requester_name[:200], requester_email=requester_email[:200],
+                subject_ref=subject_ref[:80], requester_name=requester_name[:200],
+                requester_email=requester_email[:200],
                 description=description, received_on=received, due_on=due, max_due_on=max_due,
                 created_by=ctx.principal_id, updated_by=ctx.principal_id,
             )  # fmt: skip
@@ -93,8 +94,15 @@ class DsrService:
                 "state", "identity_verified_at", "identity_method", "due_on", "extended", "extension_reason",
                 "response", "denial_reason", "export", "closed_at",
             ])  # fmt: skip
-            record_change(f"workflow.dsr_request.{action}", "workflow.dsr_request", req.id, company_id=req.company_id,
-                          before=before, after={"state": req.state}, uow=uow)
+            record_change(
+                f"workflow.dsr_request.{action}",
+                "workflow.dsr_request",
+                req.id,
+                company_id=req.company_id,
+                before=before,
+                after={"state": req.state},
+                uow=uow,
+            )
             return req
 
         return run_in_unit_of_work(work, ctx)
@@ -146,7 +154,9 @@ class DsrService:
             r.export = {"package": package, "suppressed": suppressed, "denied": denials}
             r.response = response
             if denials:
-                r.denial_reason = "Supresión parcialmente denegada por deber legal de conservación: " + "; ".join(denials)
+                r.denial_reason = "Supresión parcialmente denegada por deber legal de conservación: " + "; ".join(
+                    denials
+                )
             r.state, r.closed_at = "CLOSED", clock.now()
 
         return self._transition(ctx, request_id, "fulfil", fn)

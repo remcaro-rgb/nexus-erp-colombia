@@ -44,7 +44,7 @@ class DbNotificationService:
         channels = list(pref.channels) if pref is not None and pref.channels else list(request.channels)
         if "in_app" not in channels:
             channels.insert(0, "in_app")  # the bell always shows it
-        title, body = render(template, dict(request.data), hide=set())
+        title, _body = render(template, dict(request.data), hide=set())
         first_id: uuid.UUID | None = None
         for channel in channels:
             if channel not in ("in_app", "email"):
@@ -77,7 +77,9 @@ class DbNotificationService:
         allowed = {p for p in perms if policy().authorize(ctx, p).allowed}
         return qs.filter(permission__in=[*allowed, ""])
 
-    def list(self, ctx: TenantContext, company_id: uuid.UUID, *, unread_only: bool = False, limit: int = 50) -> list[Any]:
+    def list(
+        self, ctx: TenantContext, company_id: uuid.UUID, *, unread_only: bool = False, limit: int = 50
+    ) -> list[Any]:
         qs = self._visible(ctx, company_id)
         if unread_only:
             qs = qs.filter(read_at__isnull=True)

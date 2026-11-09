@@ -70,11 +70,12 @@ class AttachmentService:
                 tenant_id=ctx.tenant_id, company_id=company_id, resource_type=resource_type, resource_id=resource_id,
                 name=name[:200], object_key=stored.key, media_type=media_type, size=stored.size, sha256=stored.sha256,
                 scan_status=status, created_by=ctx.principal_id,
-                retention_until=clock.business_date().replace(year=clock.business_date().year + retention_years),
+                retention_until=retention_date(retention_years),
             )  # fmt: skip
             record_change(
                 "workflow.attachment.create", "workflow.attachment", att.id, company_id=company_id,
-                after={"name": att.name, "resource_type": resource_type, "resource_id": resource_id, "sha256": att.sha256},
+                after={"name": att.name, "resource_type": resource_type, "resource_id": resource_id,
+                       "sha256": att.sha256},
             )  # fmt: skip
             return att
 
@@ -102,7 +103,9 @@ class AttachmentService:
         )
         return list(policy().scope_queryset(ctx, "workflow.attachment.read", qs))
 
-    def signed_url(self, ctx: TenantContext, attachment_id: uuid.UUID, ttl_seconds: int = DEFAULT_TTL_SECONDS) -> SignedUrl:
+    def signed_url(
+        self, ctx: TenantContext, attachment_id: uuid.UUID, ttl_seconds: int = DEFAULT_TTL_SECONDS
+    ) -> SignedUrl:
         att = self._get(ctx, attachment_id)
         policy().require(ctx, "workflow.attachment.read", att)
         return self.store.sign(
@@ -125,8 +128,15 @@ class AttachmentService:
             before = att.legal_hold
             att.legal_hold = hold
             att.save(update_fields=["legal_hold"])
-            record_change("workflow.attachment.legal_hold", "workflow.attachment", att.id, company_id=att.company_id,
-                          before={"legal_hold": before}, after={"legal_hold": hold}, reason=reason)
+            record_change(
+                "workflow.attachment.legal_hold",
+                "workflow.attachment",
+                att.id,
+                company_id=att.company_id,
+                before={"legal_hold": before},
+                after={"legal_hold": hold},
+                reason=reason,
+            )
             return att
 
         result = run_in_unit_of_work(work, ctx)
@@ -144,8 +154,15 @@ class AttachmentService:
         def work(uow: Any) -> None:
             att.deleted_at = clock.now()
             att.save(update_fields=["deleted_at"])
-            record_change("workflow.attachment.delete", "workflow.attachment", att.id, company_id=att.company_id,
-                          before={"name": att.name}, after=None, reason=reason)
+            record_change(
+                "workflow.attachment.delete",
+                "workflow.attachment",
+                att.id,
+                company_id=att.company_id,
+                before={"name": att.name},
+                after=None,
+                reason=reason,
+            )
 
         run_in_unit_of_work(work, ctx)
         self.store.delete(ctx.tenant_id, att.object_key)

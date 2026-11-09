@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import datetime as dt
+import itertools
 
 import pytest
 from django.db import DatabaseError, connection
 
+from kernel import clock
 from kernel.interfaces.audit import AuditEntry
 from kernel.uow import run_in_unit_of_work, unit_of_work
 from workflow.audit.service import DbAuditService, diff, record_change
@@ -19,7 +20,8 @@ def _record(ctx, n: int = 3) -> None:  # type: ignore[no-untyped-def]
     svc = DbAuditService()
     for i in range(n):
         run_in_unit_of_work(
-            lambda uow, i=i: svc.record(uow, AuditEntry(f"test.thing.update{i}", "test.thing", None, None, {"n": i})), ctx
+            lambda uow, i=i: svc.record(uow, AuditEntry(f"test.thing.update{i}", "test.thing", None, None, {"n": i})),
+            ctx,
         )
 
 
@@ -28,7 +30,7 @@ def test_T_P07_04_chain_verifies_and_is_sequential(user_factory) -> None:  # typ
     _record(ctx, 5)
     rows = list(AuditEvent.objects.filter(tenant_id=ctx.tenant_id).order_by("seq"))
     assert [r.seq for r in rows] == [1, 2, 3, 4, 5]
-    assert rows[0].prev_hash == "0" * 64 and all(b.prev_hash == a.hash for a, b in zip(rows, rows[1:], strict=False))
+    assert rows[0].prev_hash == "0" * 64 and all(b.prev_hash == a.hash for a, b in itertools.pairwise(rows))
     report = DbAuditService().verify(ctx.tenant_id)
     assert report.ok and report.checked == 5
     assert DbAuditService().verify_chain(ctx.tenant_id)
@@ -116,7 +118,7 @@ def test_T_P07_04_anchor_written_with_retention_lock(user_factory, tmp_path) -> 
     ctx = user_factory()
     _record(ctx, 2)
     store = LocalFileStore(tmp_path, b"k" * 32)
-    anchor = DbAuditService().anchor(ctx.tenant_id, dt.date.today(), store)
+    anchor = DbAuditService().anchor(ctx.tenant_id, clock.business_date(), store)
     assert anchor.last_seq == 2 and anchor.head_hash == DbAuditService().verify(ctx.tenant_id).head_hash
     assert b'"last_seq": 2' in store.get(ctx.tenant_id, anchor.object_key)
     with pytest.raises(Conflict):

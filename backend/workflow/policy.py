@@ -13,7 +13,9 @@ def policy() -> PolicyService:
     return services.get(PolicyService)
 
 
-def mask_fields(ctx: TenantContext, resource_type: str, data: dict[str, Any], always: set[str] | None = None) -> dict[str, Any]:
+def mask_fields(
+    ctx: TenantContext, resource_type: str, data: dict[str, Any], always: set[str] | None = None
+) -> dict[str, Any]:
     """Drop fields the principal may not read (``field_mask``); ``always`` are kept (ids, status)."""
     mask: FieldMask = policy().field_mask(ctx, resource_type)
     keep = set(always or ()) | set(mask.readable)

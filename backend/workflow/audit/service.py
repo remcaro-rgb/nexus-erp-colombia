@@ -246,7 +246,12 @@ class DbAuditService:
         anchor, _ = AuditAnchor.objects.using(using).get_or_create(
             tenant_id=tenant_id,
             day=day,
-            defaults={"last_seq": last_seq, "head_hash": head_hash, "anchor_hash": anchor_hash, "object_key": stored.key},
+            defaults={
+                "last_seq": last_seq,
+                "head_hash": head_hash,
+                "anchor_hash": anchor_hash,
+                "object_key": stored.key,
+            },
         )
         return anchor
 

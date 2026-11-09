@@ -25,6 +25,7 @@ from urllib.parse import urlsplit
 
 from kernel import clock, ids
 from kernel.errors import NotFound, ValidationFailed
+from kernel.events import to_jsonable
 from kernel.tenancy import Channel, PrincipalType, TenantContext
 from kernel.uow import UnitOfWork, run_in_unit_of_work
 from workflow.audit.service import record_change
@@ -68,15 +69,14 @@ def validate_url(url: str) -> str:
     if parts.username or parts.password:
         raise ValidationFailed("credentials in webhook URLs are not allowed")
     if host not in DEV_HOSTS and not host.endswith(DEV_HOST_SUFFIXES):
-        raise ValidationFailed("DEV-only build: webhook targets must be local/test hosts", code="production_endpoint_refused")
+        raise ValidationFailed(
+            "DEV-only build: webhook targets must be local/test hosts", code="production_endpoint_refused"
+        )
     return url
 
 
 def matches(event_type: str, patterns: list[str]) -> bool:
-    for p in patterns:
-        if p == event_type or p == "*" or (p.endswith(".*") and event_type.startswith(p[:-1])):
-            return True
-    return False
+    return any(p == event_type or p == "*" or (p.endswith(".*") and event_type.startswith(p[:-1])) for p in patterns)
 
 
 class Transport(Protocol):
@@ -145,8 +145,14 @@ class WebhookService:
                 service_account_id=service_account_id, description=description[:255],
                 created_by=ctx.principal_id, updated_by=ctx.principal_id,
             )  # fmt: skip
-            record_change("workflow.webhook.create", "workflow.webhook", sub.id, company_id=company_id,
-                          after={"url": url, "event_types": event_types}, uow=uow)
+            record_change(
+                "workflow.webhook.create",
+                "workflow.webhook",
+                sub.id,
+                company_id=company_id,
+                after={"url": url, "event_types": event_types},
+                uow=uow,
+            )
             return sub
 
         return run_in_unit_of_work(work, ctx, idempotency_key=idempotency_key), secret
@@ -155,6 +161,7 @@ class WebhookService:
         """Outbox consumer: one delivery per matching subscription (idempotent per event)."""
         from workflow.models import WebhookDelivery, WebhookSubscription
 
+        envelope = to_jsonable(dict(envelope))
         subs = WebhookSubscription.objects.filter(
             tenant_id=envelope["tenant_id"], company_id=envelope.get("company_id"), active=True
         )
@@ -219,8 +226,13 @@ class WebhookService:
                 )
                 from workflow.notifications.helpers import notify
 
-                notify(uow, sub.created_by or sub.service_account_id, sub.company_id, "webhook_fallido",
-                       {"webhook": sub.description or str(sub.id), "evento": d.event_type})
+                notify(
+                    uow,
+                    sub.created_by or sub.service_account_id,
+                    sub.company_id,
+                    "webhook_fallido",
+                    {"webhook": sub.description or str(sub.id), "evento": d.event_type},
+                )
 
             run_in_unit_of_work(dead, ctx)
         return d
@@ -237,9 +249,11 @@ class WebhookService:
     def replay(self, ctx: TenantContext, delivery_id: uuid.UUID) -> Any:
         from workflow.models import WebhookDelivery
 
-        d = WebhookDelivery.objects.select_related("subscription").filter(
-            tenant_id=ctx.tenant_id, subscription__company_id__in=list(ctx.company_ids), id=delivery_id
-        ).first()
+        d = (
+            WebhookDelivery.objects.select_related("subscription")
+            .filter(tenant_id=ctx.tenant_id, subscription__company_id__in=list(ctx.company_ids), id=delivery_id)
+            .first()
+        )
         if d is None:
             raise NotFound("delivery not found")
         policy().require(ctx, "workflow.webhook.update", d.subscription)
@@ -247,8 +261,14 @@ class WebhookService:
         def work(uow: UnitOfWork) -> Any:
             d.state, d.attempts, d.next_attempt_at = WebhookDelivery.PENDING, 0, clock.now()
             d.save(update_fields=["state", "attempts", "next_attempt_at"])
-            record_change("workflow.webhook.replay", "workflow.webhook", d.subscription_id,
-                          company_id=d.subscription.company_id, after={"delivery": d.id}, uow=uow)
+            record_change(
+                "workflow.webhook.replay",
+                "workflow.webhook",
+                d.subscription_id,
+                company_id=d.subscription.company_id,
+                after={"delivery": d.id},
+                uow=uow,
+            )
             return d
 
         return run_in_unit_of_work(work, ctx)

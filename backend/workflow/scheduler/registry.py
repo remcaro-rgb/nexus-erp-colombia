@@ -22,7 +22,9 @@ class JobType:
 JOB_TYPES: dict[str, JobType] = {}
 
 
-def register_job_type(code: str, permission: str, label: str, handler: Handler | None = None, *, replace: bool = False) -> None:
+def register_job_type(
+    code: str, permission: str, label: str, handler: Handler | None = None, *, replace: bool = False
+) -> None:
     if code in JOB_TYPES and not replace and JOB_TYPES[code].handler is not None:
         raise ValueError(f"job type {code} already registered")
     JOB_TYPES[code] = JobType(code, permission, label, handler)

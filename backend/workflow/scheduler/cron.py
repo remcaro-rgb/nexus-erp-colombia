@@ -66,7 +66,10 @@ class Cron:
         if len(parts) != 5:
             raise ValidationFailed("cron needs 5 fields: minute hour day month weekday")
         names = ("minute", "hour", "day-of-month", "month", "day-of-week")
-        sets = [_field(p, lo, hi if n != "day-of-week" else 7, n) for p, (lo, hi), n in zip(parts, RANGES, names, strict=True)]
+        sets = [
+            _field(p, lo, hi if n != "day-of-week" else 7, n)
+            for p, (lo, hi), n in zip(parts, RANGES, names, strict=True)
+        ]
         return cls(*sets, dom_any=parts[2] == "*", dow_any=parts[4] == "*")
 
     def _day_matches(self, day: dt.date) -> bool:
@@ -92,8 +95,10 @@ class Cron:
             if self._day_matches(day):
                 for h in sorted(self.hours):
                     for m in sorted(self.minutes):
-                        naive = dt.datetime(day.year, day.month, day.day, h, m)
-                        instant = naive.replace(tzinfo=tz, fold=0).astimezone(dt.UTC)
+                        # fold=0: first occurrence of an ambiguous time; a time in a DST gap maps to the
+                        # instant just after the gap.
+                        wall = dt.datetime(day.year, day.month, day.day, h, m, tzinfo=tz, fold=0)
+                        instant = wall.astimezone(dt.UTC)
                         if instant > after.astimezone(dt.UTC):
                             return instant
             day += dt.timedelta(days=1)

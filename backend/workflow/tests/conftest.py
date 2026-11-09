@@ -18,10 +18,10 @@ if "workflow" not in settings.INSTALLED_APPS:
     settings.INSTALLED_APPS = [*settings.INSTALLED_APPS, "workflow"]
     apps.set_installed_apps(settings.INSTALLED_APPS)
 
-from kernel import ids, services  # noqa: E402
-from kernel.interfaces.policy import Decision, FieldMask, PolicyService  # noqa: E402
-from kernel.tenancy import TenantContext  # noqa: E402
-from kernel.testing.tenancy import make_context  # noqa: E402
+from kernel import ids, services
+from kernel.interfaces.policy import Decision, FieldMask, PolicyService
+from kernel.tenancy import TenantContext
+from kernel.testing.tenancy import make_context
 
 
 class GrantPolicy:

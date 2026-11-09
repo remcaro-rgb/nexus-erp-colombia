@@ -48,7 +48,9 @@ class Formula(CompanyModel, AuditedModel):
     class Meta:
         db_table = "workflow_formula"
         constraints: ClassVar = [
-            models.UniqueConstraint(fields=["tenant_id", "company_id", "code", "formula_version"], name="wf_formula_code_ver")
+            models.UniqueConstraint(
+                fields=["tenant_id", "company_id", "code", "formula_version"], name="wf_formula_code_ver"
+            )
         ]
         indexes: ClassVar = [models.Index(fields=["tenant_id", "company_id", "domain", "status"])]
 

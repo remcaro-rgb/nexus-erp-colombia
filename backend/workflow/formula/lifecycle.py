@@ -20,8 +20,8 @@ from kernel.uow import UnitOfWork, run_in_unit_of_work
 from workflow.audit.service import record_change
 from workflow.formula.engine import DOMAINS, EvaluationResult, FormulaDefinition, FormulaGraph, validate_definition
 from workflow.formula.errors import FormulaNotApproved, FormulaUnknownIdentifier
-from workflow.formula.tables import VersionedTable
 from workflow.formula.schema import check_table_name
+from workflow.formula.tables import VersionedTable
 from workflow.policy import policy
 
 AGENT_TYPES = (PrincipalType.AI_AGENT, PrincipalType.MCP_CLIENT)
@@ -130,9 +130,9 @@ class FormulaService:
         definition = FormulaDefinition.from_json({**data, "tests": values.get("test_cases", [])})  # shape + names
 
         def work(uow: UnitOfWork) -> Any:
-            last = Formula.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, code=definition.code).aggregate(
-                v=Max("formula_version")
-            )["v"]
+            last = Formula.objects.filter(
+                tenant_id=ctx.tenant_id, company_id=company_id, code=definition.code
+            ).aggregate(v=Max("formula_version"))["v"]
             row = Formula.objects.create(
                 tenant_id=ctx.tenant_id, company_id=company_id, domain=domain, code=definition.code,
                 formula_version=(last or 0) + 1, author_id=ctx.on_behalf_of or ctx.principal_id,
@@ -160,8 +160,15 @@ class FormulaService:
                 setattr(row, k, v)
             row.hash = definition_of(row).hash
             row.save_versioned(ctx.principal_id, [*values, "hash"])
-            record_change("workflow.formula.update", "workflow.formula", row.id, company_id=row.company_id,
-                          before=before, after=values, uow=uow)
+            record_change(
+                "workflow.formula.update",
+                "workflow.formula",
+                row.id,
+                company_id=row.company_id,
+                before=before,
+                after=values,
+                uow=uow,
+            )
             return row
 
         return run_in_unit_of_work(work, ctx)
@@ -202,8 +209,15 @@ class FormulaService:
             report.raise_for_errors()
             row.status, row.submitted_by, row.hash = "PENDING_APPROVAL", ctx.principal_id, report.hash or row.hash
             row.save_versioned(ctx.principal_id, ["status", "submitted_by", "hash"])
-            record_change("workflow.formula.submit", "workflow.formula", row.id, company_id=row.company_id,
-                          before={"status": "DRAFT"}, after={"status": row.status, "hash": row.hash}, uow=uow)
+            record_change(
+                "workflow.formula.submit",
+                "workflow.formula",
+                row.id,
+                company_id=row.company_id,
+                before={"status": "DRAFT"},
+                after={"status": row.status, "hash": row.hash},
+                uow=uow,
+            )
             return row
 
         return run_in_unit_of_work(work, ctx)
@@ -238,8 +252,16 @@ class FormulaService:
             uow.emit("workflow.formula.approved.v1",
                      {"formula_id": str(row.id), "code": row.code, "version_no": row.formula_version},
                      company_id=row.company_id)  # fmt: skip
-            record_change("workflow.formula.approve", "workflow.formula", row.id, company_id=row.company_id,
-                          before={"status": "PENDING_APPROVAL"}, after={"status": row.status}, reason=reason, uow=uow)
+            record_change(
+                "workflow.formula.approve",
+                "workflow.formula",
+                row.id,
+                company_id=row.company_id,
+                before={"status": "PENDING_APPROVAL"},
+                after={"status": row.status},
+                reason=reason,
+                uow=uow,
+            )
             return row
 
         return run_in_unit_of_work(work, ctx)
@@ -254,8 +276,16 @@ class FormulaService:
             before = row.status
             row.status, row.retired_at = "RETIRED", clock.now()
             row.save_versioned(ctx.principal_id, ["status", "retired_at"])
-            record_change("workflow.formula.retire", "workflow.formula", row.id, company_id=row.company_id,
-                          before={"status": before}, after={"status": "RETIRED"}, reason=reason, uow=uow)
+            record_change(
+                "workflow.formula.retire",
+                "workflow.formula",
+                row.id,
+                company_id=row.company_id,
+                before={"status": before},
+                after={"status": "RETIRED"},
+                reason=reason,
+                uow=uow,
+            )
             return row
 
         return run_in_unit_of_work(work, ctx)
@@ -312,7 +342,9 @@ class FormulaService:
 
         policy().require(ctx, "workflow.formula.read")
         ctx.require_company(company_id)
-        rows = Formula.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id).order_by("code", "formula_version")
+        rows = Formula.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id).order_by(
+            "code", "formula_version"
+        )
         return [{**self._as_json(r), "status": r.status, "hash": r.hash} for r in rows]
 
     def import_json(self, ctx: TenantContext, company_id: uuid.UUID, items: list[Mapping[str, Any]]) -> list[Any]:

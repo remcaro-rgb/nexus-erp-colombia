@@ -189,9 +189,13 @@ class DbWorkflowService:
         existing = (
             ApprovalRequest.objects.select_for_update()
             .filter(
-                tenant_id=ctx.tenant_id, company_id=company_id, document_type=document.type, document_id=document.id,
-                action=action, state__in=[ApprovalRequest.PENDING, ApprovalRequest.APPROVED],
-            )  # fmt: skip
+                tenant_id=ctx.tenant_id,
+                company_id=company_id,
+                document_type=document.type,
+                document_id=document.id,
+                action=action,
+                state__in=[ApprovalRequest.PENDING, ApprovalRequest.APPROVED],
+            )
             .order_by("-created_at")
             .first()
         )
@@ -248,7 +252,9 @@ class DbWorkflowService:
             return
         dto = self.request(uow, company_id, document, action, facts=facts)
         if dto is not None and dto.state != "APPROVED":
-            raise Conflict("the document needs approval before posting", code="approval_required", approval_id=str(dto.id))
+            raise Conflict(
+                "the document needs approval before posting", code="approval_required", approval_id=str(dto.id)
+            )
 
     def state(self, request_id: uuid.UUID) -> ApprovalRequestDTO:
         from workflow.models import ApprovalRequest
@@ -290,7 +296,11 @@ class DbWorkflowService:
         now = clock.now()
         delegators = set(
             ApprovalDelegation.objects.filter(
-                tenant_id=req.tenant_id, company_id=req.company_id, delegate_id=me, valid_from__lte=now, valid_to__gte=now
+                tenant_id=req.tenant_id,
+                company_id=req.company_id,
+                delegate_id=me,
+                valid_from__lte=now,
+                valid_to__gte=now,
             ).values_list("delegator_id", flat=True)
         )
         hit = sorted(direct & delegators)
@@ -339,7 +349,11 @@ class DbWorkflowService:
                 "workflow.approval.decided.v1",
                 {
                     "approval_id": str(req.id),
-                    "resource": {"type": req.document_type, "id": str(req.document_id), "number": req.document_number or None},
+                    "resource": {
+                        "type": req.document_type,
+                        "id": str(req.document_id),
+                        "number": req.document_number or None,
+                    },
                     "decision": req.state,
                 },
                 company_id=req.company_id,
@@ -353,7 +367,9 @@ class DbWorkflowService:
         )  # fmt: skip
         return to_dto(req)
 
-    def delegate(self, uow: UnitOfWork, request_id: uuid.UUID, to_principal: uuid.UUID, reason: str) -> ApprovalRequestDTO:
+    def delegate(
+        self, uow: UnitOfWork, request_id: uuid.UUID, to_principal: uuid.UUID, reason: str
+    ) -> ApprovalRequestDTO:
         from workflow.models import ApprovalAssignment
 
         req = self._load_pending(uow, request_id)
@@ -387,8 +403,15 @@ class DbWorkflowService:
         req.state = ApprovalRequest.CANCELLED
         req.decided_at = clock.now()
         req.save_versioned(uow.ctx.principal_id, ["state", "decided_at"])
-        record_change("workflow.approval.cancel", "workflow.approval", req.id, company_id=req.company_id,
-                      after={"state": req.state}, reason=reason, uow=uow)
+        record_change(
+            "workflow.approval.cancel",
+            "workflow.approval",
+            req.id,
+            company_id=req.company_id,
+            after={"state": req.state},
+            reason=reason,
+            uow=uow,
+        )
         return to_dto(req)
 
     # ------------------------------------------------------------------ escalation
@@ -401,9 +424,12 @@ class DbWorkflowService:
             ApprovalRequest.objects.select_for_update(skip_locked=True)
             .select_related("policy")
             .filter(
-                tenant_id=uow.ctx.tenant_id, company_id__in=list(uow.ctx.company_ids), state=ApprovalRequest.PENDING,
-                due_at__lt=now, escalated_at__isnull=True,
-            )  # fmt: skip
+                tenant_id=uow.ctx.tenant_id,
+                company_id__in=list(uow.ctx.company_ids),
+                state=ApprovalRequest.PENDING,
+                due_at__lt=now,
+                escalated_at__isnull=True,
+            )
         )
         count = 0
         for req in overdue:
@@ -428,8 +454,14 @@ class DbWorkflowService:
             recipients = {principal} if principal else directory().members_of_role(uow.ctx, req.company_id, role)
             for p in sorted(r for r in recipients if r and r != req.requested_by):
                 _notify(uow, p, req, "aprobacion_escalada")
-            record_change("workflow.approval.escalate", "workflow.approval", req.id, company_id=req.company_id,
-                          after={"escalated_to": str(principal or role)}, uow=uow)
+            record_change(
+                "workflow.approval.escalate",
+                "workflow.approval",
+                req.id,
+                company_id=req.company_id,
+                after={"escalated_to": str(principal or role)},
+                uow=uow,
+            )
             count += 1
         return count
 
@@ -441,9 +473,13 @@ class DbWorkflowService:
         companies = [company_id] if company_id else list(ctx.company_ids)
         roles: set[str] = set()
         for c in companies:
-            for role in ApprovalAssignment.objects.filter(
-                tenant_id=ctx.tenant_id, request__company_id=c, request__state="PENDING"
-            ).exclude(role="").values_list("role", flat=True):
+            for role in (
+                ApprovalAssignment.objects.filter(
+                    tenant_id=ctx.tenant_id, request__company_id=c, request__state="PENDING"
+                )
+                .exclude(role="")
+                .values_list("role", flat=True)
+            ):
                 if me in directory().members_of_role(ctx, c, role):
                     roles.add(role)
         now = clock.now()

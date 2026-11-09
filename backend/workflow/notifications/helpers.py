@@ -10,10 +10,14 @@ from kernel.interfaces.notifications import NotificationRequest, NotificationSer
 from kernel.uow import UnitOfWork
 
 
-def notify(uow: UnitOfWork, recipient: uuid.UUID, company_id: uuid.UUID, template: str, data: dict[str, Any]) -> uuid.UUID:
+def notify(
+    uow: UnitOfWork, recipient: uuid.UUID, company_id: uuid.UUID, template: str, data: dict[str, Any]
+) -> uuid.UUID:
     svc = services.optional(NotificationService)
     if svc is None:
         from workflow.notifications.service import DbNotificationService
 
         svc = DbNotificationService()
-    return svc.notify(uow, NotificationRequest(recipient_id=recipient, template_code=template, data=data, company_id=company_id))
+    return svc.notify(
+        uow, NotificationRequest(recipient_id=recipient, template_code=template, data=data, company_id=company_id)
+    )

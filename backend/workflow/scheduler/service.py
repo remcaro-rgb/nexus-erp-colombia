@@ -36,7 +36,9 @@ MAX_BATCH = 500
 
 
 def to_dto(job: Any) -> ScheduledJobDTO:
-    return ScheduledJobDTO(job.id, job.code, job.cron, job.timezone, job.job_type, dict(job.params), job.state == "ACTIVE")
+    return ScheduledJobDTO(
+        job.id, job.code, job.cron, job.timezone, job.job_type, dict(job.params), job.state == "ACTIVE"
+    )
 
 
 def owner_context(job: Any) -> TenantContext:
@@ -135,8 +137,15 @@ class DbSchedulerService:
             if state == "ACTIVE" and job.cron:
                 job.next_run_at = Cron.parse(job.cron).next_after(clock.now(), job.timezone)
             job.save_versioned(ctx.principal_id, ["state", "next_run_at"])
-            record_change(f"workflow.scheduled_job.{action}", "workflow.scheduled_job", job.id,
-                          company_id=job.company_id, before={"state": before}, after={"state": state}, uow=uow)
+            record_change(
+                f"workflow.scheduled_job.{action}",
+                "workflow.scheduled_job",
+                job.id,
+                company_id=job.company_id,
+                before={"state": before},
+                after={"state": state},
+                uow=uow,
+            )
             return job
 
         return run_in_unit_of_work(work, ctx)
@@ -170,7 +179,8 @@ class DbSchedulerService:
 
         def work(uow: UnitOfWork) -> Any:
             run, _ = JobRun.objects.get_or_create(
-                idempotency_key=idempotency_key(job.id, at), defaults={"tenant_id": job.tenant_id, "job": job, "scheduled_for": at}
+                idempotency_key=idempotency_key(job.id, at),
+                defaults={"tenant_id": job.tenant_id, "job": job, "scheduled_for": at},
             )
             uow.on_commit(lambda: enqueue(run.id))
             return run
@@ -206,7 +216,9 @@ class DbSchedulerService:
                 )
                 created += int(was_created)
                 if job.cron:
-                    job.next_run_at = Cron.parse(job.cron).next_after(max(scheduled_for, now - dt.timedelta(seconds=1)), job.timezone)
+                    job.next_run_at = Cron.parse(job.cron).next_after(
+                        max(scheduled_for, now - dt.timedelta(seconds=1)), job.timezone
+                    )
                 else:
                     job.next_run_at = None
                     job.state = "DONE"
@@ -240,13 +252,23 @@ class DbSchedulerService:
                 j.state = "FAILED"
             j.save(update_fields=["last_run_at", "last_result", "state"])
             notify(uow, job.owner_id, job.company_id, "tarea_fallida", {"tarea": job.code, "motivo": reason[:200]})
-            record_change("workflow.scheduled_job.run_failed", "workflow.scheduled_job", job.id,
-                          company_id=job.company_id, after={"run": run.idempotency_key, "error": reason[:200]}, uow=uow)
+            record_change(
+                "workflow.scheduled_job.run_failed",
+                "workflow.scheduled_job",
+                job.id,
+                company_id=job.company_id,
+                after={"run": run.idempotency_key, "error": reason[:200]},
+                uow=uow,
+            )
             return r
 
-        allowed = jt is not None and policy().authorize(ctx, jt.permission, {"grant_ref": job.grant_ref, "job": job}).allowed
+        allowed = (
+            jt is not None and policy().authorize(ctx, jt.permission, {"grant_ref": job.grant_ref, "job": job}).allowed
+        )
         if jt is None or jt.handler is None:
-            return run_in_unit_of_work(lambda uow: fail(uow, f"no handler registered for {job.job_type}", disable=False), ctx)
+            return run_in_unit_of_work(
+                lambda uow: fail(uow, f"no handler registered for {job.job_type}", disable=False), ctx
+            )
         if not allowed:
             return run_in_unit_of_work(
                 lambda uow: fail(uow, f"the owner no longer holds {jt.permission}", disable=True), ctx
@@ -268,7 +290,8 @@ class DbSchedulerService:
         try:
             return run_in_unit_of_work(work, ctx)
         except DomainError as exc:
-            return run_in_unit_of_work(lambda uow: fail(uow, f"{exc.code}: {exc.detail}", disable=False), ctx)
+            message = f"{exc.code}: {exc.detail}"
+        return run_in_unit_of_work(lambda uow: fail(uow, message, disable=False), ctx)
 
 
 def enqueue(run_id: uuid.UUID) -> None:

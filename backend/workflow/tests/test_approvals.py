@@ -47,13 +47,37 @@ def _policy(ctx, company, code, steps, **kw):  # type: ignore[no-untyped-def]
 def policies(org, company):  # type: ignore[no-untyped-def]
     ctx = org["requester"]
     _policy(ctx, company, "OC-BAJA", [{"kind": "manager"}], max_amount=Decimal("999999.9999"), priority=10)
-    _policy(ctx, company, "OC-MEDIA", [{"kind": "manager"}, {"kind": "role", "ref": "gerencia"}],
-            min_amount=Decimal("1000000"), max_amount=Decimal("9999999.9999"), priority=20)
-    _policy(ctx, company, "OC-ALTA", [{"kind": "manager"}, {"approvers": [{"kind": "role", "ref": "gerencia"},
-            {"kind": "role", "ref": "tesoreria"}], "quorum": 2}], min_amount=Decimal("10000000"), priority=30,
-            escalation_hours=24, escalate_to={"kind": "user", "ref": str(org["auditor"].principal_id)})
-    _policy(ctx, company, "OC-PROVEEDOR-NUEVO", [{"kind": "role", "ref": "tesoreria"}], priority=5,
-            condition="proveedor_nuevo and amount > 500000", condition_inputs={"amount": "money", "proveedor_nuevo": "boolean"})
+    _policy(
+        ctx,
+        company,
+        "OC-MEDIA",
+        [{"kind": "manager"}, {"kind": "role", "ref": "gerencia"}],
+        min_amount=Decimal("1000000"),
+        max_amount=Decimal("9999999.9999"),
+        priority=20,
+    )
+    _policy(
+        ctx,
+        company,
+        "OC-ALTA",
+        [
+            {"kind": "manager"},
+            {"approvers": [{"kind": "role", "ref": "gerencia"}, {"kind": "role", "ref": "tesoreria"}], "quorum": 2},
+        ],
+        min_amount=Decimal("10000000"),
+        priority=30,
+        escalation_hours=24,
+        escalate_to={"kind": "user", "ref": str(org["auditor"].principal_id)},
+    )
+    _policy(
+        ctx,
+        company,
+        "OC-PROVEEDOR-NUEVO",
+        [{"kind": "role", "ref": "tesoreria"}],
+        priority=5,
+        condition="proveedor_nuevo and amount > 500000",
+        condition_inputs={"amount": "money", "proveedor_nuevo": "boolean"},
+    )
 
 
 def _request(ctx, company, amount, **facts):  # type: ignore[no-untyped-def]
@@ -97,13 +121,17 @@ def test_T_P07_01_multi_step_routing_and_quorum(org, policies, company) -> None:
     assert _decide(org["tesorero"], dto.id).state == "APPROVED"
     assert svc.is_approved(org["requester"], doc)
     # Same document again is idempotent: the approved request is returned.
-    again = run_in_unit_of_work(lambda uow: svc.request(uow, company, doc, "post", facts={"amount": "20000000"}), org["requester"])
+    again = run_in_unit_of_work(
+        lambda uow: svc.request(uow, company, doc, "post", facts={"amount": "20000000"}), org["requester"]
+    )
     assert again.id == dto.id and again.state == "APPROVED"
 
 
 def test_T_P07_01_no_policy_means_no_approval_needed(org, policies, company) -> None:  # type: ignore[no-untyped-def]
     doc = DocumentRef("sales.invoice", ids.new_id())
-    res = run_in_unit_of_work(lambda uow: DbWorkflowService().request(uow, company, doc, "post", facts={}), org["requester"])
+    res = run_in_unit_of_work(
+        lambda uow: DbWorkflowService().request(uow, company, doc, "post", facts={}), org["requester"]
+    )
     assert res is None
 
 
@@ -146,7 +174,9 @@ def test_T_P07_02_delegation_never_reaches_the_requester(org, policies, company)
     dto, _ = _request(org["requester"], company, "500000", proveedor_nuevo=False)
     svc = DbWorkflowService()
     with pytest.raises(PermissionDenied):
-        run_in_unit_of_work(lambda uow: svc.delegate(uow, dto.id, org["requester"].principal_id, "vacaciones"), org["jefe"])
+        run_in_unit_of_work(
+            lambda uow: svc.delegate(uow, dto.id, org["requester"].principal_id, "vacaciones"), org["jefe"]
+        )
     run_in_unit_of_work(lambda uow: svc.delegate(uow, dto.id, org["auditor"].principal_id, "vacaciones"), org["jefe"])
     assert _decide(org["auditor"], dto.id).state == "APPROVED"
 
