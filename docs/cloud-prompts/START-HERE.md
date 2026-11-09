@@ -1,4 +1,4 @@
-# START HERE — run Nexus ERP Colombia with Claude Code cloud sessions (edition 3.0.2-claude-cloud)
+# START HERE — run Nexus ERP Colombia with Claude Code cloud sessions (edition 3.0.3-claude-cloud)
 
 Nothing has been built yet. These files make the build **copy-paste only**: you open sessions and paste prompt files; the sessions do the rest.
 Repository: **https://github.com/remcaro-rgb/nexus-erp-colombia** (private).
@@ -34,6 +34,8 @@ Repository: **https://github.com/remcaro-rgb/nexus-erp-colombia** (private).
 * `REWORK` → paste the named `RETRY-TASK.md`, then the integrator again.
 * `STOP-OPERATOR` (3 failed attempts) or `OPERATOR: … BLOCKED` → read `docs/run/STATUS.md` on GitHub; fix the named cause (or decide), then paste the RETRY file.
 * `BLOCKED-AUDIT` → a commit reached `main` without the integrator (or an unpinned `Nexus-Seed:` commit, or a change to `tools/**`); paste `prompts/REPAIR-audit-main.md`, then the integrator again.
+* `BLOCKED-UPDATE-MISSING` → push `repo-update-3.0.3` from your Mac (its README), then paste the integrator again.
+* `rework: P… (PARITY-GATE FAILED …)` → since 3.0.3 every merge must keep the four GitHub CI jobs green; paste the named RETRY (it reads the gate's excerpt in `docs/run/evidence/WNN/parity-gate/`).
 * Full table: RUNBOOK.md → "If something goes wrong".
 
 ## What is in this package
@@ -43,6 +45,9 @@ Repository: **https://github.com/remcaro-rgb/nexus-erp-colombia** (private).
 * `repo-update-3.0.1.tar.gz` (+ `.sha256`) — for the EXISTING repository seeded with 3.0.0: `apply.sh` adds the UI-preview tools and updated prompts (maintenance paths only).
 * `repo-update-3.0.2.tar.gz` (+ `.sha256`) — for the EXISTING repository (after 3.0.1): `apply.sh` commits the single pinned 3.0.2 tightening commit
   (audit-main accepts `Nexus-Seed:` commits only by pin; Dependabot branches ignored). Apply it once; never commit another `Nexus-Seed:` trailer by hand.
+* `repo-update-3.0.3.tar.gz` (+ `.sha256`) — after 3.0.2: the single pinned 3.0.3 commit — CI-parity gate for integrators (`tools/parity_gate.py`),
+  throw-away DEV login for the UI preview (`tools/dev_login.py`), Step 5b parity self-check in every worker prompt. A NEW repository: seed 3.0.2, then apply it.
+* `w02-followup/` — `FIX-CI-W02.md` / `RETRY-FIX-CI-W02.md` (CI repair after wave 02) and its README.
 
 Honest limits: success is not guaranteed; every acceptance is based on tests the integrator re-ran itself; legal externals (DIAN, PILA, rates)
 stay labelled synthetic fixtures; DEV-only, never production.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ui_snapshot — UI progress screenshots for the integrator (edition 3.0.1-claude-cloud). Integrator-only; workers never run or edit it.
+"""ui_snapshot — UI progress screenshots for the integrator (edition 3.0.3-claude-cloud). Integrator-only; workers never run or edit it.
 
   python3 tools/ui_snapshot.py --wave N [--base-url URL] [--commit]
 
@@ -7,8 +7,10 @@
   the login screen and home dashboard, the main page of every module of docs/spec/ui/module-registry.json whose owner task is ACCEPTED
   in docs/run/STATE.json and whose route really renders (others are listed as "not yet built", never faked), in light AND dark theme,
   plus the dashboard with the sidebar and the AI panel collapsed.
-* Synthetic seeded data only. The demo login is read from the gitignored secrets (deploy/dev/secrets/) or NEXUS_UI_USER/NEXUS_UI_PASSWORD,
-  passed to the browser script on stdin and never printed. Password/token/secret fields are masked in every image. No devtools.
+* Synthetic seeded data only. The demo login is read from the gitignored secrets (deploy/dev/secrets/) or NEXUS_UI_USER/NEXUS_UI_PASSWORD;
+  when there is none (before P21's demo tenant) tools/dev_login.py bootstraps a throwaway DEV user `ui-preview` with a fresh random password
+  stored only in deploy/dev/secrets/ui-preview.env (0600). The password is passed to the browser script on stdin and never printed.
+* Base URL: ERP_PUBLIC_ORIGIN of deploy/dev/runtime.env (the origin Keycloak redirects back to; loopback only), else 127.0.0.1:8080-8090. Password/token/secret fields are masked in every image. No devtools.
 * Writes docs/ui-progress/WNN/*.png (+ INDEX.md) and regenerates docs/ui-progress/README.md (waves newest first). PNGs are recompressed;
   if the wave exceeds 8 MB the shots are retaken at a lower device scale (0.75, then 0.5), then the largest are dropped and listed.
 * Never blocks integration: always exits 0. Last line: `UI-SNAPSHOT: OK …` or `UI-SNAPSHOT: FAILED <reason>`.
@@ -83,7 +85,7 @@ def find_login():
     cands = []
     for f in sorted(glob.glob(os.path.join(ROOT, "deploy/dev/secrets/*"))):
         base = os.path.basename(f)
-        if base in (".gitkeep", "README.md") or not os.path.isfile(f):
+        if base in (".gitkeep", "README.md", "ui-preview.env") or base.startswith(".") or not os.path.isfile(f):  # ui-preview: dev_login re-syncs it
             continue
         try:
             txt = open(f, encoding="utf-8", errors="ignore").read()
@@ -118,8 +120,20 @@ def find_login():
     return {"user": cands[0][1], "password": cands[0][2]}, f"deploy/dev/secrets/{cands[0][3]}"
 
 
+def dev_login_module():
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+    import dev_login  # noqa: E402  (3.0.3 integrator tooling, same directory)
+    return dev_login
+
+
 def find_base_url(given):
-    urls = [given] if given else [f"http://127.0.0.1:{p}" for p in [int(os.environ.get("ERP_DEV_PORT", 8080))] + list(range(8080, 8091))]
+    urls = [given] if given else []
+    if not given:
+        try:
+            urls.append(dev_login_module().public_origin())  # the OIDC redirect origin: cookies and redirect_uri must match it
+        except Exception:
+            pass
+        urls += [f"http://127.0.0.1:{p}" for p in [int(os.environ.get("ERP_DEV_PORT", 8080))] + list(range(8080, 8091))]
     for u in dict.fromkeys(urls):
         try:
             urllib.request.urlopen(u + "/", timeout=5)
@@ -156,6 +170,8 @@ def write_index(wave, wdir, meta):
          f"**Status: {meta['status']}**" + (f" — {meta['reason']}" if meta.get("reason") else ""), "",
          "Synthetic seeded data only (DEV). Password, token and secret fields are masked. Pages not yet built are listed, never faked."
          " Contract notes are automatic measurements against docs/spec/UI-CONTRACT.md §3 (header 64 px, sidebar 256/80 px, AI panel 320 px).", ""]
+    if meta.get("login_src"):
+        L += [f"Signed in as: {meta['login_src']}", ""]
     if meta.get("stub"):
         L += ["> **REHEARSAL PLACEHOLDER** — these images are 1×1 stubs written by the local git rehearsal, not real screenshots.", ""]
     shots = meta.get("shots", [])
@@ -248,8 +264,16 @@ def main():
             if not base:
                 raise RuntimeError("dev stack not reachable on 127.0.0.1:8080-8090 (run `make dev-up && make dev-seed`)")
             login, src = find_login()
-            if not login:
-                meta["reason_login"] = src
+            if login:
+                meta["login_src"] = f"demo login from {src}"
+            else:
+                try:
+                    r = dev_login_module().ensure()
+                    login = {"user": r["user"], "password": r["password"]}
+                    meta["login_src"] = (f"throwaway DEV user `{r['user']}` of a synthetic tenant, bootstrapped by tools/dev_login.py "
+                                         f"(password only in {r['file']}, 0600, rotated each run)")
+                except Exception as e:
+                    meta["reason_login"] = f"{src}; dev login bootstrap: {str(e)[:200]}"
             for dsf in (1, 0.75, 0.5):
                 for f in glob.glob(os.path.join(wdir, "*.png")):
                     os.remove(f)

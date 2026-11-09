@@ -1,4 +1,4 @@
-# RUNBOOK — Nexus ERP Colombia on Claude Code cloud sessions (edition 3.0.2-claude-cloud)
+# RUNBOOK — Nexus ERP Colombia on Claude Code cloud sessions (edition 3.0.3-claude-cloud)
 
 Repository: https://github.com/remcaro-rgb/nexus-erp-colombia. Peak parallel sessions: **5 workers** (+1 integrator that runs alone between waves). See PARALLELISM.md.
 

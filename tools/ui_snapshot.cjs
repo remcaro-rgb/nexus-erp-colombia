@@ -54,17 +54,35 @@ async function main() {
     for (const th of ["light", "dark"]) { await setTheme(page, th); await shot("login", "Login / entry", "/", th); }
     await setTheme(page, "light");
     if (job.login) {
-      const user = page.locator('#username, input[name="username"], input[type="email"]').first();
+      // The SPA either shows the identity-provider form directly, offers a sign-in button, or redirects there from a protected route.
+      const USER = '#username, input[name="username"], input[type="email"]';
+      if (!(await page.locator(USER).count())) {
+        const btn = page.getByRole("button", { name: /ingresar|iniciar sesi[oó]n|entrar|acceder|sign in|log ?in/i })
+          .or(page.getByRole("link", { name: /ingresar|iniciar sesi[oó]n|entrar|acceder|sign in|log ?in/i })).first();
+        if (await btn.count()) await btn.click().catch(() => {});
+        else await page.goto(job.base + "/m/inicio", { waitUntil: "networkidle", timeout: 45000 }).catch(() => {});
+        await page.locator(USER).first().waitFor({ timeout: 20000 }).catch(() => {});
+      }
+      const user = page.locator(USER).first();
       if (await user.count()) {
         await user.fill(job.login.user);
         await page.locator('#password, input[name="password"], input[type="password"]').first().fill(job.login.password);
         await Promise.all([page.waitForLoadState("networkidle").catch(() => {}), page.locator('#kc-login, button[type="submit"], input[type="submit"]').first().click()]);
+        await page.waitForURL((u) => !/\/auth\/realms\//.test(u.pathname), { timeout: 30000 }).catch(() => {});
         await page.waitForTimeout(1500);
+        if (/\/auth\/realms\//.test(new URL(page.url()).pathname)) {
+          const why = ((await page.locator("#input-error, .kc-feedback-text, [id*=error]").first().textContent().catch(() => "")) || "").trim().slice(0, 80);
+          res.error = "login failed: still on the identity provider page after submitting" + (why ? ` (${why})` : "");
+          res.login = "failed";
+        } else res.login = "ok";
+      } else {
+        res.error = "login form not found (no sign-in button, and /m/inicio did not redirect to the identity provider)";
+        res.login = "no-form";
       }
     } else {
       res.error = "no demo login available: only the entry screen was captured";
     }
-    if (job.login) {
+    if (job.login && res.login === "ok") {
       for (const pg of job.pages) {
         let status = 0;
         try {

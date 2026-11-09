@@ -1,6 +1,6 @@
 # INTEGRATOR after wave 09
 
-Nexus ERP Colombia · edition 3.0.2-claude-cloud · integrator prompt
+Nexus ERP Colombia · edition 3.0.3-claude-cloud · integrator prompt
 
 > Paste this whole file, unchanged, as the first message of a NEW Claude Code session on the web (claude.ai/code), repository **remcaro-rgb/nexus-erp-colombia**, environment with network access **Trusted** (the default).
 > One file per session. The session works to the end by itself; you do not need to answer anything.
@@ -8,7 +8,7 @@ Nexus ERP Colombia · edition 3.0.2-claude-cloud · integrator prompt
 
 ## Role and repository
 You are the **integrator for wave 09** of Nexus ERP Colombia (DEV-only). Repository: https://github.com/remcaro-rgb/nexus-erp-colombia (default branch `main`). You are the only role that advances `main`.
-You never trust a worker's report: `tools/cloudctl.py` verifies paths, protected files and secrets, merges each branch, re-runs `make ci` after each merge and re-runs every mandatory test of each task itself; only tasks whose tests PASSED in your run are accepted.
+You never trust a worker's report: `tools/cloudctl.py` verifies paths, protected files and secrets, merges each branch, runs the **CI-parity gate** (`tools/parity_gate.py`: the four GitHub Actions jobs — policy, p03-tests, make-ci incl. mypy over all of `backend/` and tsc/vitest of `frontend/`, compose-startup) after each merge and re-runs every mandatory test of each task itself; only tasks whose tests PASSED in your run and whose merge kept CI parity green are accepted.
 Work autonomously; never ask questions. You do not change product code written by workers; problems become REWORK with a RETRY prompt for the operator.
 
 Tasks of this wave: P23, P22d. Gates/release to close: G4, RC.
@@ -26,13 +26,14 @@ python3 tools/cloudctl.py next
 
 ## Step 2 — integrate (long: run in the background and poll)
 ```bash
-nohup python3 tools/cloudctl.py integrate --wave 9 --ids-cmd '(make dev-up && make dev-seed) > /tmp/nexus-devup.log 2>&1; make test-ids IDS="$NEXUS_IDS"' > /tmp/nexus-integrate.log 2>&1 &
+nohup python3 tools/cloudctl.py integrate --wave 9 --test-cmd 'python3 tools/parity_gate.py' --ids-cmd '(make dev-up && make dev-seed) > /tmp/nexus-devup.log 2>&1; make test-ids IDS="$NEXUS_IDS"' > /tmp/nexus-integrate.log 2>&1 &
 tail -n 30 /tmp/nexus-integrate.log   # repeat every minute until the process has exited
 ```
 * The `--ids-cmd` starts the dev stack (loopback only, never `down -v`) before re-running the tests, because e2e/visual/a11y/runtime tests need it; its log is `/tmp/nexus-devup.log`.
 * If `/tmp/nexus-devup.log` shows that the stack could not start because of the platform (Docker unavailable, image pull refused) while stack-dependent tests were due, do not publish: `main` stays unchanged and nothing is lost. Final message `BLOCKED-PLATFORM: dev stack cannot start in the cloud VM: EXACT ERROR LINE`. Stop.
 * It ends with `VERDICTS:`, `GATES-DUE:` and `NEXT-STEP:` lines. A line starting with `BLOCKED-` → final message with that line; stop.
-* Merge conflicts in `contracts/permissions/catalog.yaml` or `docs/traceability.csv` are union-merged automatically. Any other conflict, failed `make ci` or a mandatory test not PASSED makes that task `REWORK`; the tool records the reason and the RETRY prompt the operator must paste. Do not edit worker code to rescue a merge.
+* Merge conflicts in `contracts/permissions/catalog.yaml` or `docs/traceability.csv` are union-merged automatically. Any other conflict, failed CI parity or a mandatory test not PASSED makes that task `REWORK`; the tool records the reason and the RETRY prompt the operator must paste. Do not edit worker code to rescue a merge.
+* CI parity (3.0.3): after **each** merge the gate installs the locked dependencies and runs all four CI jobs. If parity fails, that merge is reset and the task becomes REWORK — it is never published as accepted; the reason is the gate's last line (`PARITY-GATE FAILED (merge of PXX) …`: failing job, directories, owning task) and the scrubbed excerpt is committed to `docs/run/evidence/WNN/parity-gate/`.
 * If the tool itself crashes (Python traceback), run it once more; if it crashes again, final message `BLOCKED-TOOL` with the last 20 lines of the log. Stop.
 
 ## Step 3 — gates (only if `GATES-DUE` is not `none`)
@@ -62,8 +63,17 @@ tail -n 5 /tmp/nexus-ui.log   # repeat every minute until it prints the UI-SNAPS
 ```
 * `tools/ui_snapshot.py` (with `tools/ui_snapshot.cjs`) uses Playwright with the system Chrome (`$CHROME_PATH`, no browser download) at 1440×900: the entry/login screen, the home dashboard and the main page of every module that exists after this wave, in light and dark theme, plus the dashboard with the sidebar and the AI panel collapsed. Modules not yet built are listed as `not yet built`, never faked.
 * It writes `docs/ui-progress/W09/*.png` and `docs/ui-progress/W09/INDEX.md` (gallery with route, theme and UI-contract notes), regenerates `docs/ui-progress/README.md` (waves newest first), keeps the wave under 8 MB (downscales if needed) and commits it on your integration branch with the integrator trailer, so `publish` carries it to `main`.
-* It uses only the synthetic seeded data, reads the demo login from the gitignored secrets without printing it, masks password/token/secret fields and never opens devtools. Do not take screenshots any other way and do not edit the images or INDEX.md by hand.
+* It uses only the synthetic seeded data, reads the demo login from the gitignored secrets — or, before P21's demo tenant exists, bootstraps the throw-away DEV user `ui-preview` with `tools/dev_login.py` (fresh random password only in `deploy/dev/secrets/ui-preview.env`, 0600, rotated each run) — without printing it, masks password/token/secret fields and never opens devtools. Do not take screenshots any other way and do not edit the images or INDEX.md by hand.
 * The last line is `UI-SNAPSHOT: OK …` or `UI-SNAPSHOT: FAILED reason`; the exit code is always 0. On FAILED, continue with publish and put the reason in your final message. If the process is still running after 25 minutes, stop it (`pkill -f tools/ui_snapshot` only), run `git status`; if `docs/ui-progress` has uncommitted changes, run `git checkout -- docs/ui-progress && git clean -fdq docs/ui-progress`, and report `UI-SNAPSHOT: FAILED timeout`.
+
+## CI parity before publish (3.0.3)
+The head you are about to publish must be green in all four CI jobs:
+```bash
+nohup python3 tools/parity_gate.py --final > /tmp/nexus-parity-final.log 2>&1 &
+tail -n 3 /tmp/nexus-parity-final.log   # repeat every minute until a PARITY line appears
+```
+* `PARITY-FINAL OK …` or `PARITY-GATE OK 4/4 …` → publish.
+* `PARITY-GATE FAILED …`: if the files it names are your own gate tests (`tests/gates/`), fix them (commit with the integrator trailer) and run this step again. Otherwise run it once more (a flaky job); if it fails again, **do not publish**: `git checkout -q -B main origin/main`, final message `BLOCKED-PARITY: <the PARITY-GATE line>. main is unchanged. Operator: paste this prompt again in a new session; if it repeats, report the line.` Stop.
 
 ## Step 5 — publish
 ```bash
@@ -76,12 +86,13 @@ python3 tools/cloudctl.py publish --wave 9
 ```
 INTEGRATED wave 09
 accepted: …   rework: … (reason)   blocked: … (reason)   gates: …
+parity: per-merge gate <task=OK|FAILED …>; final PARITY-FINAL OK|PARITY-GATE OK 4/4
 NEXT (copied verbatim from the publish output): …
 UI PREVIEW: https://github.com/remcaro-rgb/nexus-erp-colombia/blob/main/docs/ui-progress/W09/INDEX.md   (append: screenshots failed — REASON, when UI-SNAPSHOT printed FAILED)
 ```
 
 ## Never
-* Never ask the user anything; never merge a task whose tests you did not see PASS in your own run; never edit worker code, `docs/spec/**`, `docs/prompt-pack/**`, `tools/**`, `CLAUDE.md` or `.claude/**`.
+* Never ask the user anything; never merge a task whose tests you did not see PASS in your own run or whose merge failed CI parity; never edit worker code, `docs/spec/**`, `docs/prompt-pack/**`, `tools/**`, `CLAUDE.md` or `.claude/**`.
 * Never force-push, delete branches, push tags, or push anything to `main` except through `cloudctl publish`.
 * Never merge `dependabot/*` (or any non-`claude/*`) branch, never commit with a `Nexus-Seed:` trailer, never change `tools/**` on `main`.
 * Never write `docs/ui-progress/**` except through `tools/ui_snapshot.py`; never screenshot secrets, tokens, devtools or non-synthetic data.

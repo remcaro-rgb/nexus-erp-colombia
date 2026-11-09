@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""cloudctl — wave/runbook control for Nexus ERP on Claude Code cloud sessions (edition 3.0.2-claude-cloud).
+"""cloudctl — wave/runbook control for Nexus ERP on Claude Code cloud sessions (edition 3.0.3-claude-cloud).
 
 Python 3.11+ standard library only. Run from the repository root (the git top level is used).
 
@@ -9,6 +9,8 @@ Python 3.11+ standard library only. Run from the repository root (the git top le
   worker-check  --task T                 changed paths vs owned paths, protected paths, secret scan
   worker-report --task T --status DONE|BLOCKED [--reason R] [--no-push]   docs/run/reports/T.json as its own commit, then push the branch
   integrate     --wave N [--test-cmd C] [--ids-cmd C]   (C may use $NEXUS_IDS) scan reports, verify, merge, re-run tests, accept/reject, commit state (local; integrator only)
+                                         --test-cmd runs after EACH merge (default since 3.0.3: the CI-parity gate `python3 tools/parity_gate.py`);
+                                         a merge after which it fails is reset and the task gets REWORK with the command's last output as reason
   close-gates   --wave N [--ids-cmd C]                  gates/RC whose requirements are accepted: re-run every test due, gate-check, commit state
   publish       --wave N [--no-push]                    audit + fast-forward push of main (and the RC branch) + print the next paste list
   audit-repair  [--no-push]              revert commits that reached main without the integrator (acknowledged by trailer) and push
@@ -509,6 +511,7 @@ PINNED_SEED_COMMITS = {
     "update301": "da85d6c90d49f60f38bb0c3a99f9ba5005e33da5",  # Nexus prompts update 3.0.1-claude-cloud
 }
 UPDATE_302_TRAILER = "Nexus-Seed: 3.0.2-claude-cloud"
+UPDATE_303_TRAILER = "Nexus-Seed: 3.0.3-claude-cloud"
 # The 3.0.2 tightening commit is pinned by CONTENT (its SHA cannot be known before it exists): exactly one first-parent commit after update301
 # with the exact trailer line, whose changed paths are all listed below (plus tools/cloudctl.py) and whose tree holds exactly these blobs.
 # tools/cloudctl.py is pinned by the sha256 of its own text with the PIN block (between the markers) removed.
@@ -604,6 +607,108 @@ PIN_302_FILES = {
 }
 PIN_302_CLOUDCTL_SHA256 = '0178f7cd1ed983aa56518d8e8a9a09aed096a3164f5d2b41be53d0708705e2cf'
 # <<< PIN-3.0.2
+# The 3.0.3 maintenance commit (CI-parity gate, dev UI login, prompts) is pinned the same way: exactly one first-parent commit after the
+# accepted 3.0.2 commit (or after the 3.0.2 seed of a fresh repository) with the exact trailer line, whose changed paths are all listed
+# below (plus tools/cloudctl.py) and whose tree holds exactly these blobs; tools/cloudctl.py by the sha256 of its text without the PIN-3.0.3
+# block. The PIN-3.0.2 block above stays byte-identical so the 3.0.2 commit keeps validating against its own tree.
+# >>> PIN-3.0.3
+PIN_303_FILES = {
+    'docs/cloud-prompts/CLOUD-PLATFORM-NOTES.md': 'ce5fb111f2c14d53e0ed71fc9a3c1933dd046aa7',
+    'docs/cloud-prompts/INTEGRATOR-after-W01.md': '73d06b9ac38398ec25dfbecd4557eff1949cb06b',
+    'docs/cloud-prompts/INTEGRATOR-after-W02.md': 'b62090ce862153f84c84580be86e17a3837bfb5e',
+    'docs/cloud-prompts/INTEGRATOR-after-W03.md': '676652cec5546f2e8c4f6b6d0df9878888b931a5',
+    'docs/cloud-prompts/INTEGRATOR-after-W04.md': '04494a5dc5b28c6a1882bbb6c368e0eca31c7d3d',
+    'docs/cloud-prompts/INTEGRATOR-after-W05.md': '4e26c328ceea3836974187bf9cf1c33a6232f5dc',
+    'docs/cloud-prompts/INTEGRATOR-after-W06.md': '31e17e7a11c3851494673106c05bf736949479dd',
+    'docs/cloud-prompts/INTEGRATOR-after-W07.md': '9e05ca3988ce6b513cff8db341e2ce7d559499f5',
+    'docs/cloud-prompts/INTEGRATOR-after-W08.md': 'c06b54c5ed47eab29f401de9cbaabdaa4347dd85',
+    'docs/cloud-prompts/INTEGRATOR-after-W09.md': '59efd879ff6ba776d65645f7bb0f6346260d24e8',
+    'docs/cloud-prompts/INTEGRATOR-after-W10.md': '854b9bb646deef57ab9289e245474a75987110cb',
+    'docs/cloud-prompts/PARALLELISM.md': '9d98a50d1249b2cfb924bcf8134a0a0f1f388e3a',
+    'docs/cloud-prompts/PASTE-ORDER.md': '27139cedfd2934965023904f8bc8f37ede99e62d',
+    'docs/cloud-prompts/REPAIR-audit-main.md': 'c60e5074319c056a1d8f9e3f6237ffad0ef1a0df',
+    'docs/cloud-prompts/RETRY-DEV.md': '02a590eb4edb90fc06ea46d7691de14c2017c48d',
+    'docs/cloud-prompts/RETRY-P01.md': 'ec4ca8786d9f832644d813fd9f4f4a0f64aab181',
+    'docs/cloud-prompts/RETRY-P02.md': '81b735afd3500b9b7ef32f25bb1f2b9be1d4edfc',
+    'docs/cloud-prompts/RETRY-P03.md': '3b0f42a50ec549f6774efe6fc2be6f85ebaaed0f',
+    'docs/cloud-prompts/RETRY-P04.md': 'eb4aa4ade3ae03fbf6a338096d9c491654aeceb7',
+    'docs/cloud-prompts/RETRY-P05.md': '9c9c65e75c7868e6378a98d3dcf2f021914e370a',
+    'docs/cloud-prompts/RETRY-P06.md': 'bbf1e4b204d5c9088d32ee6cf796c1b814b0213f',
+    'docs/cloud-prompts/RETRY-P07.md': 'c16ef9b7ef9fc490b51c1a8032a2bcac00c0ef47',
+    'docs/cloud-prompts/RETRY-P08.md': '259061341c78ed4af89f6e19a3c039efc98c58a5',
+    'docs/cloud-prompts/RETRY-P09a.md': '73181defddda1b6550a519b42031865f5d181ca4',
+    'docs/cloud-prompts/RETRY-P09b.md': '8c3456dfe4e10c73abfe86d27368fd17727f680c',
+    'docs/cloud-prompts/RETRY-P09c.md': 'eba9448cd91a33c6fef2948e0d003d2aaa1c585a',
+    'docs/cloud-prompts/RETRY-P10a.md': 'b05b92af6a7351716191a35bbf37a7bf4a20566f',
+    'docs/cloud-prompts/RETRY-P10b.md': '480e13e525b2209d1797b100a9b0b0a8ba909144',
+    'docs/cloud-prompts/RETRY-P11a.md': '2df40c4b97c7478e5400288e582a39881668a612',
+    'docs/cloud-prompts/RETRY-P11b.md': 'cbcc96149f1604ac418a2afa831ff91a00d9bcac',
+    'docs/cloud-prompts/RETRY-P12.md': '7e7227e0d7167852326158ddad5370946fda5460',
+    'docs/cloud-prompts/RETRY-P13a.md': 'aa986aac3ba39c75cc3900aed99f71bf8c5e13ba',
+    'docs/cloud-prompts/RETRY-P13b.md': 'ff9a13502f07eb585fd5079d9d8a3a67fa382b27',
+    'docs/cloud-prompts/RETRY-P14.md': 'a9c18ba61ba070ea4922b79e62ea0159f6f3965b',
+    'docs/cloud-prompts/RETRY-P15.md': '3b8ea7b081b8f38b8c1ed366a51e9b6b047896bb',
+    'docs/cloud-prompts/RETRY-P16a.md': '925404919585f94219e95a3a8495ba26718444a2',
+    'docs/cloud-prompts/RETRY-P16b.md': '058cd479511854546670efde73b041105dd7d7cd',
+    'docs/cloud-prompts/RETRY-P17a.md': 'f40dcd7bbe002336ba7a9f841a21f22505e39aa3',
+    'docs/cloud-prompts/RETRY-P17b.md': '1c6dc43a0f689ffee408fe36fe1bcba8bbf968d3',
+    'docs/cloud-prompts/RETRY-P17c.md': 'c4dbdf8fa83460f7cc18e14314e18ab523f97aef',
+    'docs/cloud-prompts/RETRY-P18.md': '9e3e272629df020d43e8485cc46a98e6e637e891',
+    'docs/cloud-prompts/RETRY-P19.md': '4944901481da2054eb87d5b160dc42b5e9397a34',
+    'docs/cloud-prompts/RETRY-P20.md': 'e17542730e715bbd5b0d21b248b32380e675500a',
+    'docs/cloud-prompts/RETRY-P21.md': 'f7949d9f976f8ab450156b44f0a19ebf62fec921',
+    'docs/cloud-prompts/RETRY-P22a.md': '00c430c3bba2fae6f1cf9c98ffc29b6d72288826',
+    'docs/cloud-prompts/RETRY-P22b.md': '58b9bc7e5f678ed0dce9e0aa472227cba89b19f8',
+    'docs/cloud-prompts/RETRY-P22c.md': '8b635f4402844c49c56dffac7b13ded9e279cc30',
+    'docs/cloud-prompts/RETRY-P22d.md': 'cce71d4b5075f9d03ff873f5f0b5045467d9656d',
+    'docs/cloud-prompts/RETRY-P23.md': 'b0defd9b978edf2fd23737b6a85d07c1b65c4f80',
+    'docs/cloud-prompts/RUNBOOK.csv': 'd69d331534b158ec5f790b99e80d5981bb7fa626',
+    'docs/cloud-prompts/RUNBOOK.md': '76cf5b2d5bca2d3c97bad6615904f2887739094c',
+    'docs/cloud-prompts/START-HERE.md': '56c772e4092b3ec2e99638fad48c19525401d59e',
+    'docs/cloud-prompts/W01-S1-P01-foundation-kernel.md': '49d18cd62bb21899bf1b6f9e4207cc5604906dba',
+    'docs/cloud-prompts/W01-S2-P02-contract-freeze.md': '957e84b6a5c502e9dc897f5ea2ba717e6db06f81',
+    'docs/cloud-prompts/W01-S3-P03-devops-ci.md': '33ebb9ee43b232721c00c9bceec7fdebc2aa20a7',
+    'docs/cloud-prompts/W02-S1-P04-iam-rls-field-security.md': 'b74d6884ecf5b74d5b6c375d536a92562d31a268',
+    'docs/cloud-prompts/W02-S2-P05-ledger-posting-engine.md': '95e7436a9b92c8d22205fa41b22e4cf31e356405',
+    'docs/cloud-prompts/W02-S3-P07-workflow-audit-scheduler.md': '9140b874ff725cae304f05d9fcd74b29fc8a4a09',
+    'docs/cloud-prompts/W02-S4-P08-ux-shell-design-system.md': '24f7aebd5c678cfa102c1833bbf289de3f362f32',
+    'docs/cloud-prompts/W02-S5-P06-tax-localization-co.md': '9578c77c2f9a8b6678ca69b2f37171f674199675',
+    'docs/cloud-prompts/W02-S6-P22a-qa-harness.md': 'ab206787caff44589df84cf2248c0a7b96438f02',
+    'docs/cloud-prompts/W03-S1-P15-dian-einvoice-gateway.md': '8992c82b3da69519f4f7b361e787e0f226c36012',
+    'docs/cloud-prompts/W03-S2-P09a-inventory-core.md': 'fbaa3fa4a6ac6fb79d63195582a6602c985cc055',
+    'docs/cloud-prompts/W03-S3-P13b-payroll-formulas.md': 'faa0548890389c85ca54292bcc27f297cf0a3bb5',
+    'docs/cloud-prompts/W03-S4-P11a-purchasing-ap-core.md': '62f160b51f122eba86b7b0f77df88b10d6858567',
+    'docs/cloud-prompts/W03-S5-P13a-hr-timekeeping-employee-portal.md': 'a7d6bc121100ac84d7e97d94be3acade80b7c439',
+    'docs/cloud-prompts/W03-S6-P14-fixed-assets.md': '5ddd52c63a8064c9b83bf31f9aa260c49099cae4',
+    'docs/cloud-prompts/W03-S7-P22b-qa-cross-module.md': '54dc3eb0da902632764382a5659aa65d279f1c55',
+    'docs/cloud-prompts/W04-S1-P10a-sales-ar-crm-core.md': '854280f8e6be5cbac9b48eff1ecc424bc3aed073',
+    'docs/cloud-prompts/W04-S2-P11b-requisitions-supplier-portal.md': '338c7a0e3a1bce5cf7f8d7e3a5b2e11bdf4522ed',
+    'docs/cloud-prompts/W04-S3-P09c-inventory-bom-transformations.md': '2ad82fd1199bd92f19723e3a201670af72114442',
+    'docs/cloud-prompts/W04-S4-P09b-inventory-barcodes-issues.md': 'ccd5dbd7c775799eb80133118919731b1413c4f4',
+    'docs/cloud-prompts/W05-S1-P16a-treasury-vouchers.md': '8e8188aa9e2f641f8a9d6f49f57761f409bb949c',
+    'docs/cloud-prompts/W05-S2-P12-pos.md': '6c832b1b206d367ee73c83a807eab095e3c8a1c8',
+    'docs/cloud-prompts/W05-S3-P10b-customer-portal.md': 'b3cf37c171094bdf7d556f715d2a73ca7d976d03',
+    'docs/cloud-prompts/W05-S4-P16b-intercompany-consolidation.md': '899e31a942dc3e755fee4f2896fea65ecc396244',
+    'docs/cloud-prompts/W06-S1-P18-bulk-import-export.md': '54615ab56bf00956916646ff63ed43b65f77c316',
+    'docs/cloud-prompts/W06-S2-P22c-qa-leak-tests.md': 'a649996abe61d856e3cfc24b173665a1f30cb22c',
+    'docs/cloud-prompts/W06-S3-P17a-reporting-semantic-documents.md': '15c22c026dada9c32461feb8d7f4ea4af42676d1',
+    'docs/cloud-prompts/W07-S1-P19-ai-business-agent.md': '6842ab75731745edc7380e35bb34b666bf0a93d8',
+    'docs/cloud-prompts/W07-S2-P17b-financial-statements.md': '200f8048fe7e9d33a4b5051fdd59e8011fe2dce5',
+    'docs/cloud-prompts/W07-S3-P17c-exogena.md': '7c5235573389b6fcdac9f9dcf5b26029f8d7a693',
+    'docs/cloud-prompts/W08-S1-P21-ai-onboarding-agent.md': '9660d07bc72be834a29a95ebba75a30fc1f08e7e',
+    'docs/cloud-prompts/W08-S2-P20-mcp-server.md': 'b02ceea3249f683a9d7d19b60dbce31d47db1614',
+    'docs/cloud-prompts/W09-S1-P23-compliance-evidence.md': 'f937ef2bf28f65619f94f7642c7180ee8d69b358',
+    'docs/cloud-prompts/W09-S2-P22d-qa-e2e-a11y-perf.md': 'a9a9acda8e74b345ac1073eaeb271d1aa005cbdf',
+    'docs/cloud-prompts/W10-S1-DEV-dev-runtime-local-run.md': 'ad15c1caec523e22c571614ea06d9a9457fd4ad9',
+    'tools/README.md': '98543c5129cfdbd772a168f1dd975d4271282a9a',
+    'tools/dev_login.py': '2aa4ec55eb8de0bd6a2cfb0ceae325295a9f1dcf',
+    'tools/parity_gate.py': '0ce2eabd09eeb9835c85a716fd464ba15a1d88b6',
+    'tools/test_cloudctl.py': '7e7b44495237d6d6c9cc6d44d5846bd6fbd05bfe',
+    'tools/ui_snapshot.cjs': '11b97ec8f1937c2db84a3562b892d4e54e0f1b33',
+    'tools/ui_snapshot.py': '47ef2f19e811c43813cbfd7241d3ba774ef1c1bb',
+}
+PIN_303_CLOUDCTL_SHA256 = '8ae5e552fcc70a4e8613922d7c9a54d2e4b26c5b294d87d8a31351a69ddd8768'
+# <<< PIN-3.0.3
 TOOLING_PATHS = ["tools/**", "CLAUDE.md", ".claude/**", "docs/spec/**", "docs/prompt-pack/**", "docs/cloud-prompts/**", "scripts/cloud/**", ".gitignore"]
 
 
@@ -618,12 +723,13 @@ def pinned_shas():
     return pins
 
 
-def normalized_cloudctl_sha256(text):
+def normalized_cloudctl_sha256(text, pin="3.0.2"):
+    """sha256 of cloudctl.py text without its PIN-<pin> block (the block holds the pins and cannot pin itself)."""
     out, skip = [], False
     for line in text.splitlines(keepends=True):
-        if line.startswith("# >>> PIN-3.0.2"):
+        if line.startswith(f"# >>> PIN-{pin}"):
             skip = True
-        elif line.startswith("# <<< PIN-3.0.2"):
+        elif line.startswith(f"# <<< PIN-{pin}"):
             skip = False
         elif not skip:
             out.append(line)
@@ -657,6 +763,27 @@ def is_302_commit(h, body):
         return False, f"3.0.2 commit touches unpinned paths {extra[:5]}"
     if not tree_matches_302(h):
         return False, "3.0.2 commit content differs from the pinned 3.0.2 files"
+    return True, ""
+
+
+def tree_matches_303(h):
+    if not PIN_303_FILES or not PIN_303_CLOUDCTL_SHA256:
+        return False
+    if any(blob_at(h, p) != b for p, b in PIN_303_FILES.items()):
+        return False
+    c = git("show", f"{h}:tools/cloudctl.py", check=False)
+    return c.returncode == 0 and normalized_cloudctl_sha256(c.stdout, "3.0.3") == PIN_303_CLOUDCTL_SHA256
+
+
+def is_303_commit(h, body):
+    if not re.search(rf"(?m)^{re.escape(UPDATE_303_TRAILER)}\s*$", body):
+        return False, "trailer"
+    allowed = set(PIN_303_FILES) | {"tools/cloudctl.py"}
+    extra = [p for p in changed_vs_first_parent(h) if p not in allowed]
+    if extra:
+        return False, f"3.0.3 commit touches unpinned paths {extra[:5]}"
+    if not tree_matches_303(h):
+        return False, "3.0.3 commit content differs from the pinned 3.0.3 files"
     return True, ""
 
 
@@ -717,6 +844,9 @@ def audit_main(ref, full=False, explain=None):
     upd301 = pos.get(pins["update301"])
     valid302 = [] if (fresh or upd301 is None) else [i for i, (h, b) in enumerate(commits[:upd301]) if INTEG_TRAILER not in b and SEED_TRAILER in b and is_302_commit(h, b)[0]]
     accepted302 = max(valid302) if valid302 else None  # the oldest one; any later copy is a forgery
+    anchor303 = base if fresh else accepted302  # 3.0.3 is accepted only after 3.0.2 (applied commit or 3.0.2 seed)
+    valid303 = [] if anchor303 is None else [i for i, (h, b) in enumerate(commits[:anchor303]) if INTEG_TRAILER not in b and SEED_TRAILER in b and is_303_commit(h, b)[0]]
+    accepted303 = max(valid303) if valid303 else None
     bad, acks = [], {}
     def flag(h, reason):
         bad.append(h if full else h[:12]); why[h] = reason
@@ -734,10 +864,14 @@ def audit_main(ref, full=False, explain=None):
         if SEED_TRAILER in body:
             if not fresh and h == pins["update301"]:
                 continue
-            if i == accepted302:
+            if i == accepted302 or i == accepted303:
                 continue
             if i in valid302:
                 flag(h, "a second 3.0.2 maintenance commit (only one is ever allowed)"); continue
+            if i in valid303:
+                flag(h, "a second 3.0.3 maintenance commit (only one is ever allowed)"); continue
+            if re.search(rf"(?m)^{re.escape(UPDATE_303_TRAILER)}\s*$", body):
+                flag(h, f"unpinned Nexus-Seed commit ({is_303_commit(h, body)[1] if anchor303 is not None else '3.0.3 needs the 3.0.2 update first'})"); continue
             if not fresh and upd301 is not None and i < upd301:
                 flag(h, f"unpinned Nexus-Seed commit ({is_302_commit(h, body)[1]})"); continue
             flag(h, "unpinned Nexus-Seed commit"); continue
@@ -868,6 +1002,11 @@ def commit_state(plan, st, wave, verdict, log, what):
         git("commit", "-q", "-m", f"state: {what} after wave {wave:02d}\n\n" + "\n".join(f"{k}: {v[:120]}" for k, v in verdict.items()) + f"\n\n{INTEG_TRAILER} wave {wave:02d} {what}")
 
 
+# 3.0.3: after each merge the integrator runs the CI-parity gate (the four GitHub Actions jobs), not only `make ci`, so a task whose merge
+# turns policy / mypy / tsc / compose red is REWORK instead of ACCEPTED. Repositories without the gate tool keep `make ci`.
+DEFAULT_TEST_CMD = "python3 tools/parity_gate.py" if os.path.isfile(os.path.join(ROOT, "tools", "parity_gate.py")) else "make ci"
+
+
 def cmd_integrate(a):
     plan = load_plan()
     main = plan["default_branch"]
@@ -929,7 +1068,8 @@ def cmd_integrate(a):
                 rc, tail = run_cmd(a.test_cmd, f"after {tid}", log)
                 if rc != 0:
                     git("reset", "-q", "--hard", "HEAD^")
-                    dropped.append((tid, f"`{a.test_cmd}` failed after merging it: {tail[-300:]}"))
+                    what = "CI parity (tools/parity_gate.py)" if "parity_gate.py" in a.test_cmd else f"`{a.test_cmd}`"
+                    dropped.append((tid, f"{what} failed after merging it: {tail.strip().splitlines()[-1][-300:] if 'parity_gate.py' in a.test_cmd and tail.strip() else tail[-300:]}"))
                     continue
             merged.append(tid)
         res = {}
@@ -1054,7 +1194,7 @@ def main(argv=None):
     s = sub.add_parser("worker-report"); s.add_argument("--task", required=True); s.add_argument("--status", required=True, choices=["DONE", "BLOCKED"])
     s.add_argument("--reason", default=""); s.add_argument("--no-push", action="store_true")
     s = sub.add_parser("integrate"); s.add_argument("--wave", type=int, required=True)
-    s.add_argument("--test-cmd", default="make ci"); s.add_argument("--ids-cmd", default='make test-ids IDS="$NEXUS_IDS"')
+    s.add_argument("--test-cmd", default=DEFAULT_TEST_CMD); s.add_argument("--ids-cmd", default='make test-ids IDS="$NEXUS_IDS"')
     s = sub.add_parser("close-gates"); s.add_argument("--wave", type=int, required=True); s.add_argument("--ids-cmd", default='make test-ids IDS="$NEXUS_IDS"')
     s = sub.add_parser("publish"); s.add_argument("--wave", type=int, required=True); s.add_argument("--no-push", action="store_true")
     s = sub.add_parser("audit-repair"); s.add_argument("--no-push", action="store_true")

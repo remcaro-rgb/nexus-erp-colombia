@@ -1,6 +1,6 @@
 # INTEGRATOR after wave 01
 
-Nexus ERP Colombia · edition 3.0.2-claude-cloud · integrator prompt
+Nexus ERP Colombia · edition 3.0.3-claude-cloud · integrator prompt
 
 > Paste this whole file, unchanged, as the first message of a NEW Claude Code session on the web (claude.ai/code), repository **remcaro-rgb/nexus-erp-colombia**, environment with network access **Trusted** (the default).
 > One file per session. The session works to the end by itself; you do not need to answer anything.

@@ -1,6 +1,6 @@
 # RETRY — P05 — Ledger / posting engine
 
-Nexus ERP Colombia · edition 3.0.2-claude-cloud · wave 02 · worker prompt · resume/retry
+Nexus ERP Colombia · edition 3.0.3-claude-cloud · wave 02 · worker prompt · resume/retry
 
 > Paste this whole file, unchanged, as the first message of a NEW Claude Code session on the web (claude.ai/code), repository **remcaro-rgb/nexus-erp-colombia**, environment with network access **Trusted** (the default).
 > One file per session. The session works to the end by itself; you do not need to answer anything.
@@ -15,6 +15,14 @@ A previous session for P05 ended without being accepted (session expired, reject
 `worker-start --resume` prints the integrator's rework notes (`rework_notes`) and, if an earlier branch of this attempt pushed work in progress,
 merges it into your branch (`resumed_from`). Fix exactly what the notes name, keep what already works, then finish the whole task as below.
 If `rework_notes` names a merge conflict: run `git merge origin/main`, resolve the conflict inside your owned paths, and re-run every test.
+
+## What the wave-02 integration found (read before Step 2)
+* Rework note: `integrator-run mandatory tests not PASSED: ['T-ACC-DIM-08']`. T-ACC-DIM-08 is your **e2e** test (UI: table↔tree toggle, create group+leaf, move, archive in the 4 tabs; keyboard tree navigation). The integrator runs it with `make test-ids IDS="T-ACC-DIM-08"`, which runs Playwright as `pnpm --dir frontend exec playwright test --grep T-ACC-DIM-08` **only when the root `package.json` (P08's) exists**; P08 was rejected in the same run, so your e2e test never ran and could not pass. P08 is being redone in parallel (`RETRY-P08`).
+* Make it pass exactly the way the integrator runs it: merge P08's newest branch **locally** (the newest `origin/claude/*` branch with `docs/run/progress/P08.md`; never push it, never commit it to your branch: use a detached trial checkout as in this command), then `pnpm install --frozen-lockfile`, `make dev-up && make dev-seed`, `make test-ids IDS="T-ACC-DIM-08"` and check `reports/playwright/results.json`:
+  `BR=$(git branch --show-current); git checkout -q --detach; git merge -q --no-edit <P08 branch>; …tests…; git checkout -q "$BR"`
+  The spec lives in your paths (`frontend/src/features/ledger/**`). Today that command has no Playwright config and crashes on vitest `*.test.ts` files (CCR P08-3); the parallel `FIX-CI-W02` adds `frontend/playwright.config.ts` limited to feature e2e specs (`src/features/**/e2e/**/*.spec.ts`) — name and place your spec accordingly (e.g. `frontend/src/features/ledger/e2e/*.spec.ts`, title starting with `[T-ACC-DIM-08]`) and trial-merge the newest FIX-CI-W02 branch too when it exists; if discovery or the shell needs something only P08 (or P01's `Makefile`) can change, write `contracts/change-requests/P05-n.md`, and if the test then still cannot run, report **BLOCKED** naming that exact cause (a BLOCKED report does not use up an attempt) instead of DONE.
+* Your ledger app is wired automatically once the CI fix (`FIX-CI-W02`, running in parallel) is merged: it installs every `backend/<app>/apps.py` and mounts `backend/<app>/urls.py` at `api/v1/<label>/` (the OpenAPI paths `/api/v1/ledger/…`). Do not edit `backend/erp/**`. Every table of yours with a `tenant_id` column needs RLS **enabled and forced** in your migrations (the DR drill in CI checks it), and `makemigrations --check` must be clean.
+* Since 3.0.3 your merge must keep **CI parity** green (Step 5b): mypy over `backend/ledger` with the app installed. On your branch alone, `Model.objects` errors appear only because the app is not installed yet; to see your real mypy result, trial-merge the newest `FIX-CI-W02` branch the same detached way (if one exists) and run `rm -rf .mypy_cache && uv run --frozen mypy backend`. Fix every error inside `backend/ledger/**` with real types.
 
 ## Step 1 — precondition (run exactly this first)
 ```bash
@@ -94,6 +102,18 @@ python3 tools/cloudctl.py worker-check --task P05
 * Every ID of your task must show `PASSED` in `reports/P05-feature-results.json`. Not PASSED → fix the code (not the test's intent) and repeat from the commit.
 * `worker-check` prints `CHECK-FAILED` → move the offending change into your owned paths (or revert it and write a change request), commit, repeat.
 * If a long test run would exceed the foreground limit, run it with `nohup make … > /tmp/tests.log 2>&1 &` and poll the log.
+
+## Step 5b — CI parity self-check (what the integrator gates on since 3.0.3)
+After merging your branch the integrator runs `python3 tools/parity_gate.py`: the four GitHub Actions jobs (policy scanners over the whole repository, P03 tests, `make-ci` incl. **mypy over all of `backend/`** and `tsc`/vitest of `frontend/`, compose start-up incl. the DR drill). If it fails, your task becomes REWORK. Run it yourself first (long: background + poll):
+```bash
+git add -A && git commit -qm "P05: parity fixes" || true
+nohup python3 tools/parity_gate.py > /tmp/nexus-parity.log 2>&1 &
+tail -n 5 /tmp/nexus-parity.log   # repeat every minute until a PARITY-GATE line appears
+```
+* `PARITY-GATE OK 4/4` → continue with Step 6.
+* `PARITY-GATE FAILED …` naming files in **your owned paths** → fix them for real (types, not excludes; a `# type: ignore[code]` only with a reason on the same line; no scanner, allow-list, CI or `pyproject.toml` changes outside your paths; never weaken a check), commit, repeat Steps 5 and 5b.
+* Failures only **outside** your owned paths (another task's code, or `main` itself) are not yours: never edit those files. List the failing lines under "CI parity outside my paths" in your handoff and continue. Likewise a dev stack the platform cannot start (Docker unavailable, image pull refused).
+* If `tools/parity_gate.py` does not exist yet, run `bash scripts/ci/ci-parity.sh` (when it exists) with the same rules.
 
 ## Step 6 — finish (exactly one of these, as the last thing you do)
 ```bash

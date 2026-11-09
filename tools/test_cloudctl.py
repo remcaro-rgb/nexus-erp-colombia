@@ -194,12 +194,39 @@ class ReportTests(unittest.TestCase):
         self.assertTrue(C.validate_report(self.rep(reason="ghp_" + "x" * 36), "P01"))
 
 
+def _git_repo(*a):
+    return subprocess.run(["git", *a], cwd=REPO, capture_output=True, text=True)
+
+
+_HIST302 = []
+
+
+def hist_302():
+    """The commit of this repository holding the pinned 3.0.2 contents (the applied 3.0.2 update, or the 3.0.2 seed of a fresh repository).
+    Since 3.0.3 the working copy no longer holds the 3.0.2 files, so the 3.0.2 audit tests take them from history."""
+    if not _HIST302:
+        keep = C.ROOT
+        C.ROOT = REPO
+        try:
+            hs = _git_repo("log", "--all", "--format=%H", "--fixed-strings", "--grep", C.UPDATE_302_TRAILER).stdout.split()
+            _HIST302.append(next((h for h in hs if C.tree_matches_302(h)), None))
+        finally:
+            C.ROOT = keep
+    return _HIST302[0]
+
+
+def content_302(path):
+    return _git_repo("show", f"{hist_302()}:{path}").stdout
+
+
 class AuditTests(unittest.TestCase):
     """audit-main on throw-away git repositories (rehearsal pins stand in for the real seed/3.0.1 SHAs)."""
 
     def setUp(self):
         if not C.PIN_302_FILES:
             self.skipTest("3.0.2 pins not generated")
+        if not hist_302():
+            self.skipTest("the pinned 3.0.2 contents are not in this clone's history (shallow clone?)")
         self.tmp = tempfile.mkdtemp(prefix="nexus-audit-")
         self.env_keep = {k: os.environ.get(k) for k in ("NEXUS_REHEARSAL", "NEXUS_REHEARSAL_PINS")}
         self.root_keep = C.ROOT
@@ -242,8 +269,82 @@ class AuditTests(unittest.TestCase):
 
     def apply_302(self):
         for p in list(C.PIN_302_FILES) + ["tools/cloudctl.py"]:
-            self.w(p, open(os.path.join(REPO, p), encoding="utf-8").read())
+            self.w(p, content_302(p))
         return self.c("Nexus prompts update 3.0.2-claude-cloud", C.UPDATE_302_TRAILER)
+
+    def files_303(self):
+        for p in list(C.PIN_303_FILES) + ["tools/cloudctl.py"]:
+            self.w(p, open(os.path.join(REPO, p), encoding="utf-8").read())
+
+    def apply_303(self):
+        self.files_303()
+        return self.c("Nexus prompts update 3.0.3-claude-cloud", C.UPDATE_303_TRAILER)
+
+    def need_303(self):
+        if not C.PIN_303_FILES:
+            self.skipTest("3.0.3 pins not generated")
+
+    def test_legit_303_after_302_accepted(self):
+        self.need_303()
+        self.apply_302()
+        self.w("docs/run/STATE.json", "{\"w\": 3}\n")
+        self.c("state: W02", "Nexus-Integrator: wave 02 integrate")   # main moved between 3.0.2 and 3.0.3: still fine
+        self.apply_303()
+        self.assertEqual(C.audit_main("HEAD"), [])
+
+    def test_303_without_302_rejected(self):
+        self.need_303()
+        h = self.apply_303()
+        why = {}
+        self.assertEqual(C.audit_main("HEAD", full=True, explain=why), [h])
+        self.assertIn("3.0.2 update first", why[h])
+
+    def test_second_303_commit_rejected(self):
+        self.need_303()
+        self.apply_302()
+        self.apply_303()
+        h = self.c("Nexus prompts update 3.0.3-claude-cloud", C.UPDATE_303_TRAILER, allow_empty=True)
+        why = {}
+        self.assertEqual(C.audit_main("HEAD", full=True, explain=why), [h])
+        self.assertIn("second 3.0.3", why[h])
+
+    def test_303_touching_other_path_rejected(self):
+        self.need_303()
+        self.apply_302()
+        self.files_303()
+        self.w("backend/evil.py", "x\n")
+        h = self.c("Nexus prompts update 3.0.3-claude-cloud", C.UPDATE_303_TRAILER)
+        why = {}
+        self.assertEqual(C.audit_main("HEAD", full=True, explain=why), [h])
+        self.assertIn("unpinned paths", why[h])
+
+    def test_303_with_modified_content_rejected(self):
+        self.need_303()
+        self.apply_302()
+        self.files_303()
+        self.w("tools/parity_gate.py", open(os.path.join(REPO, "tools/parity_gate.py"), encoding="utf-8").read() + "# tampered\n")
+        h = self.c("Nexus prompts update 3.0.3-claude-cloud", C.UPDATE_303_TRAILER)
+        why = {}
+        self.assertEqual(C.audit_main("HEAD", full=True, explain=why), [h])
+        self.assertIn("differs from the pinned 3.0.3", why[h])
+
+    def test_303_on_fresh_302_seed_accepted(self):
+        self.need_303()
+        tmp2, orig = tempfile.mkdtemp(prefix="nexus-audit-fresh-"), self.tmp
+        try:
+            C.ROOT, self.tmp = tmp2, tmp2
+            self.g("init", "-q", "-b", "main")
+            for p in list(C.PIN_302_FILES) + ["tools/cloudctl.py"]:
+                self.w(p, content_302(p))
+            self.c("seed 3.0.2", C.UPDATE_302_TRAILER)
+            os.environ["NEXUS_REHEARSAL_PINS"] = "seed=" + "1" * 40
+            self.apply_303()
+            self.assertEqual(C.audit_main("HEAD"), [])
+            h = self.c("again", C.UPDATE_303_TRAILER, allow_empty=True)
+            self.assertEqual(C.audit_main("HEAD", full=True), [h])
+        finally:
+            self.tmp = orig
+            shutil.rmtree(tmp2, ignore_errors=True)
 
     def test_pinned_history_and_legit_302_accepted(self):
         self.assertEqual(C.audit_main("HEAD"), [])
@@ -268,15 +369,15 @@ class AuditTests(unittest.TestCase):
 
     def test_302_touching_other_path_rejected(self):
         for p in list(C.PIN_302_FILES) + ["tools/cloudctl.py"]:
-            self.w(p, open(os.path.join(REPO, p), encoding="utf-8").read())
+            self.w(p, content_302(p))
         self.w("backend/evil.py", "x\n")
         h = self.c("Nexus prompts update 3.0.2-claude-cloud", C.UPDATE_302_TRAILER)
         self.assertEqual(C.audit_main("HEAD", full=True), [h])
 
     def test_302_with_modified_content_rejected(self):
         for p in list(C.PIN_302_FILES) + ["tools/cloudctl.py"]:
-            self.w(p, open(os.path.join(REPO, p), encoding="utf-8").read())
-        self.w("tools/cloudctl.py", open(os.path.join(REPO, "tools/cloudctl.py"), encoding="utf-8").read() + "# tampered\n")
+            self.w(p, content_302(p))
+        self.w("tools/cloudctl.py", content_302("tools/cloudctl.py") + "# tampered\n")
         h = self.c("Nexus prompts update 3.0.2-claude-cloud", C.UPDATE_302_TRAILER)
         self.assertEqual(C.audit_main("HEAD", full=True), [h])
 
@@ -311,9 +412,93 @@ class AuditTests(unittest.TestCase):
         os.environ["NEXUS_REHEARSAL_PINS"] = "seed=" + "0" * 40
         self.assertTrue(C.audit_main("HEAD")[0].startswith("pinned seed commit"))
 
-    def test_normalized_self_hash(self):
+    def test_normalized_302_hash_from_history(self):
+        self.assertEqual(C.normalized_cloudctl_sha256(content_302("tools/cloudctl.py")), C.PIN_302_CLOUDCTL_SHA256)
+
+    def test_normalized_303_self_hash(self):
+        self.need_303()
         txt = open(os.path.join(REPO, "tools/cloudctl.py"), encoding="utf-8").read()
-        self.assertEqual(C.normalized_cloudctl_sha256(txt), C.PIN_302_CLOUDCTL_SHA256)
+        self.assertEqual(C.normalized_cloudctl_sha256(txt, "3.0.3"), C.PIN_303_CLOUDCTL_SHA256)
+
+    def test_pin_302_block_unchanged(self):
+        blk = lambda t: t[t.index("# >>> PIN-3.0.2"):t.index("# <<< PIN-3.0.2")]
+        self.assertEqual(blk(open(os.path.join(REPO, "tools/cloudctl.py"), encoding="utf-8").read()), blk(content_302("tools/cloudctl.py")))
+
+
+class ParityGateTests(unittest.TestCase):
+    """tools/parity_gate.py: per-job split, owner attribution and scrubbing of the REWORK reason (3.0.3)."""
+
+    @classmethod
+    def setUpClass(cls):
+        import parity_gate as G
+        cls.G = G
+
+    def test_default_test_cmd_is_parity_gate(self):
+        self.assertEqual(C.DEFAULT_TEST_CMD, "python3 tools/parity_gate.py")
+
+    def test_split_and_attribute(self):
+        G = self.G
+        out = ("[ci-parity] step forbidden-patterns\n"
+               "backend/workflow/tests/test_x.py:33: forbidden " + "pri" + "nt(: payload\n"
+               "CI-PARITY policy exit=1\nCI-PARITY p03-tests exit=0\n"
+               "backend/ledger/models.py:10: error: Name \"x\" is not defined  [name-defined]\n"
+               "backend/ledger/api.py:3: error: Missing return  [return]\n"
+               "src/features/ledger/Page.tsx(4,7): error TS2322: Type mismatch.\n"
+               "Found 2 errors in 2 files (checked 300 source files)\n"
+               "CI-PARITY make-ci exit=1\n")
+        jobs = G.split_jobs(out)
+        self.assertEqual({k: v[0] for k, v in jobs.items()}, {"policy": 1, "p03-tests": 0, "make-ci": 1})
+        owners = lambda p: ["P05"] if "ledger" in p else ["P07"] if "workflow" in p else []
+        s = G.summarize("make-ci", jobs["make-ci"][1], owners)
+        self.assertIn("mypy: 2 backend/ledger(P05)", s)
+        self.assertIn("tsc: 1 frontend/src/features/ledger(P05)", s)
+        self.assertIn("mypy total 2 in 2 files", s)
+        self.assertIn("backend/workflow/tests/test_x.py:33(P07)", G.summarize("policy", jobs["policy"][1], owners))
+
+    def test_scrub(self):
+        G = self.G
+        val = "Zq" + "8vT3mW9xK2pL7rN4bY6cH1dF5gJ0sA" + "e3Qw9Ur7Ty"
+        self.assertNotIn(val, G.scrub("ERP_DB_" + "PASSWORD=" + val))
+        self.assertNotIn(val, G.scrub("token " + val))
+        self.assertNotIn("s3cr3tpw", G.scrub("postgres://erp:" + "s3cr3tpw" + "@db:5432/erp"))
+        self.assertIn("a" * 40, G.scrub("HEAD " + "a" * 40))
+
+
+class DevLoginTests(unittest.TestCase):
+    """tools/dev_login.py: loopback-only origin and the 0600 throw-away credentials file (3.0.3)."""
+
+    @classmethod
+    def setUpClass(cls):
+        import dev_login as D
+        cls.D = D
+
+    def setUp(self):
+        self.keep = os.environ.get("ERP_PUBLIC_ORIGIN")
+
+    def tearDown(self):
+        if self.keep is None:
+            os.environ.pop("ERP_PUBLIC_ORIGIN", None)
+        else:
+            os.environ["ERP_PUBLIC_ORIGIN"] = self.keep
+
+    def test_loopback_only(self):
+        D = self.D
+        for ok in ("http://localhost:8080", "http://127.0.0.1:8083"):
+            os.environ["ERP_PUBLIC_ORIGIN"] = ok
+            self.assertEqual(D.public_origin(), ok)
+        for bad in ("http://0.0.0.0:8080", "http://10.0.0.5:8080", "https://erp.example.com", "http://localhost.evil.test"):
+            os.environ["ERP_PUBLIC_ORIGIN"] = bad
+            with self.assertRaises(D.LoginError):
+                D.public_origin()
+
+    def test_secret_file_mode(self):
+        d = tempfile.mkdtemp(prefix="nexus-devlogin-")
+        try:
+            tmp = self.D.write_secret_file(os.path.join(d, "secrets", "ui-preview.env"), "x" * 32)
+            self.assertEqual(os.stat(tmp).st_mode & 0o777, 0o600)
+            self.assertEqual(os.stat(os.path.dirname(tmp)).st_mode & 0o077, 0)
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
 
 
 if __name__ == "__main__":
