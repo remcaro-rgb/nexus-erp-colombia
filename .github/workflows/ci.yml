@@ -75,7 +75,7 @@ jobs:
       - name: Frontend build + vitest
         if: hashFiles('frontend/package.json') != ''
         run: bash scripts/ci/ci-parity.sh make-ci --step frontend
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with: {name: junit-ci, path: reports/, if-no-files-found: ignore}
 
@@ -122,7 +122,7 @@ jobs:
         run: uv sync --frozen
       - name: P03 tests (pytest with the kernel plugin, locked dev environment)
         run: bash scripts/ci/ci-parity.sh p03-tests
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with: {name: junit-p03, path: reports/junit/, if-no-files-found: ignore}
 
@@ -148,6 +148,6 @@ jobs:
       - name: dev-down (keeps volumes)
         if: always()
         run: bash scripts/ci/ci-parity.sh compose-startup --step dev-down
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with: {name: compose-up, path: "reports/\nreports-health.json", if-no-files-found: ignore}
