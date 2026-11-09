@@ -15,7 +15,10 @@ from typing import Any
 from django.core.exceptions import ImproperlyConfigured
 from django.db.backends.signals import connection_created
 
-ROLE_QUERY = "SELECT rolname, rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user"
+from kernel import tenancy
+
+# The SQL lives in kernel.tenancy, the ADR-003 module that owns raw SQL for RLS (ADR-004 allow-list).
+ROLE_QUERY = tenancy.DB_ROLE_QUERY
 
 #: External gates (shared/09) that must be APPROVED before fiscal production mode:
 #: EG-1 habilitación and EG-7 legal sign-off, plus a signing route: EG-2 (direct
@@ -30,8 +33,10 @@ class UnsafeDatabaseRole(ImproperlyConfigured):
 
 def check_db_role(cursor: Any) -> str:
     """Raise :class:`UnsafeDatabaseRole` if the current role is superuser/BYPASSRLS."""
-    cursor.execute(ROLE_QUERY)
-    row = cursor.fetchone()
+    return _evaluate_role(tenancy.fetch_db_role(cursor))
+
+
+def _evaluate_role(row: Any) -> str:
     if row is None:
         raise UnsafeDatabaseRole("cannot determine the current database role")
     name, is_super, bypass = row
@@ -47,8 +52,7 @@ def _on_connection_created(sender: Any, connection: Any, **kwargs: Any) -> None:
 
     if connection.vendor != "postgresql" or not getattr(settings, "ERP_REQUIRE_SAFE_DB_ROLE", True):
         return
-    with connection.cursor() as cursor:
-        check_db_role(cursor)
+    _evaluate_role(tenancy.fetch_connection_db_role(connection))
 
 
 def connect_db_role_check() -> None:

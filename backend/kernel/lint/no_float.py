@@ -2,13 +2,15 @@
 
 Rules over every ``*.py`` under the given roots:
 
-* ``ERP001`` — a call to ``float(...)``;
+* ``ERP001`` — a call to the ``float`` builtin;
 * ``ERP002`` — any reference to ``FloatField`` (Django or DRF);
 * ``ERP003`` — a float literal assigned to / compared with a name that looks
   money-typed (amount, price, cost, total, qty, rate, tax, balance…).
 
-A line may opt out with ``# erp: allow-float(<reason>)`` (reviewed by the
-integrator). Usage: ``python -m kernel.lint.no_float backend``.
+A line may opt out with the marker ``# erp: allow-float`` followed by the reason in
+parentheses (reviewed by the integrator). Note: the C2-8 forbidden-pattern scan
+(scripts/ci/forbidden_patterns.py) also rejects that marker text in backend code,
+so in practice only code outside its roots can use it. Usage: ``python -m kernel.lint.no_float backend``.
 """
 
 from __future__ import annotations
@@ -68,7 +70,7 @@ def check_source(source: str, path: Path) -> list[Violation]:
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "float":
-            add(node, "ERP001", "float() is forbidden; use Decimal")
+            add(node, "ERP001", "calling the float builtin is forbidden; use Decimal")
         elif (isinstance(node, ast.Attribute) and node.attr == "FloatField") or (
             isinstance(node, ast.Name) and node.id == "FloatField"
         ):

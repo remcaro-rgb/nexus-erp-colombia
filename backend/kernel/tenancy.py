@@ -171,6 +171,23 @@ def bind(ctx: TenantContext, using: str = "default") -> None:
         )
 
 
+#: ADR-003: the application role must be neither SUPERUSER nor BYPASSRLS, otherwise RLS is not enforced.
+#: Read by kernel.boot on every new connection; kept here because this module owns RLS raw SQL (ADR-004).
+DB_ROLE_QUERY = "SELECT rolname, rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user"
+
+
+def fetch_db_role(cursor: Any) -> Any:
+    """``(rolname, rolsuper, rolbypassrls)`` of the current role on ``cursor`` (``None`` if unknown)."""
+    cursor.execute(DB_ROLE_QUERY)
+    return cursor.fetchone()
+
+
+def fetch_connection_db_role(conn: Any) -> Any:
+    """Same as :func:`fetch_db_role` on a fresh cursor of ``conn`` (a Django connection wrapper)."""
+    with conn.cursor() as cur:
+        return fetch_db_role(cur)
+
+
 def bound_settings(using: str = "default") -> dict[str, str]:
     """Current values of the ``app.*`` settings (empty string when unbound)."""
     with connections[using].cursor() as cur:

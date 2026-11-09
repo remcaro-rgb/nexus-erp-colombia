@@ -15,7 +15,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Any
 
-from django.db import connections
+from django.db import transaction
 
 from kernel import ids
 from kernel.errors import IdempotencyKeyInvalid, IdempotencyKeyReused
@@ -53,33 +53,41 @@ def claim(tenant_id: uuid.UUID, key: str, req_hash: str, scope: str, using: str 
     Returns ``None`` when this transaction owns the key (execute the command),
     or the stored response to replay. Raises :class:`IdempotencyKeyReused` when
     the key was used with a different request.
+
+    ORM only (ADR-004): ``get_or_create`` inserts inside a savepoint; a concurrent
+    insert of the same ``(tenant_id, key)`` blocks on the unique index until the
+    first transaction ends, then fails with IntegrityError and re-reads the
+    committed row (replay), or succeeds if the first transaction rolled back.
     """
+    from kernel.models import IdempotencyRecord
+
     validate_key(key)
-    with connections[using].cursor() as cur:
-        cur.execute(
-            "INSERT INTO kernel_idempotency "
-            "(id, tenant_id, key, scope, request_hash, response, status_code, status, created_at) "
-            "VALUES (%s, %s, %s, %s, %s, NULL, 0, 'COMPLETED', now()) "
-            "ON CONFLICT (tenant_id, key) DO NOTHING RETURNING id",
-            [ids.new_id(), tenant_id, key, scope, req_hash],
+    with transaction.atomic(using=using):
+        record, created = IdempotencyRecord.objects.using(using).get_or_create(
+            tenant_id=tenant_id,
+            key=key,
+            defaults={
+                "id": ids.new_id(),
+                "scope": scope,
+                "request_hash": req_hash,
+                "response": None,
+                "status_code": 0,
+                "status": IdempotencyRecord.Status.COMPLETED,
+            },
         )
-        if cur.fetchone() is not None:
-            return None
-        cur.execute(
-            "SELECT request_hash, response, status_code FROM kernel_idempotency WHERE tenant_id = %s AND key = %s",
-            [tenant_id, key],
-        )
-        row = cur.fetchone()
-    stored_hash, response, status_code = row
-    if stored_hash != req_hash:
+    if created:
+        return None
+    if record.request_hash != req_hash:
         raise IdempotencyKeyReused("this Idempotency-Key was used with a different request")
-    body = json.loads(response) if isinstance(response, str) else response
-    return StoredResponse(body=body, status_code=int(status_code))
+    body = json.loads(record.response) if isinstance(record.response, str) else record.response
+    return StoredResponse(body=body, status_code=int(record.status_code))
 
 
 def complete(tenant_id: uuid.UUID, key: str, body: Any, status_code: int, using: str = "default") -> None:
-    with connections[using].cursor() as cur:
-        cur.execute(
-            "UPDATE kernel_idempotency SET response = %s::jsonb, status_code = %s WHERE tenant_id = %s AND key = %s",
-            [json.dumps(body, cls=EventJSONEncoder), status_code, tenant_id, key],
-        )
+    from kernel.models import IdempotencyRecord
+
+    # Canonical JSON first (Decimals as strings, EventJSONEncoder), then stored through the JSONField.
+    canonical = json.loads(json.dumps(body, cls=EventJSONEncoder))
+    IdempotencyRecord.objects.using(using).filter(tenant_id=tenant_id, key=key).update(
+        response=canonical, status_code=status_code
+    )

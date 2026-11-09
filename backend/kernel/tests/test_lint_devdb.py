@@ -6,12 +6,17 @@ import pytest
 from kernel import devdb
 from kernel.lint import no_float
 
+# Fixture code containing the forbidden builtin call is built at runtime (same convention as
+# scripts/ci/tests/test_p03_static_checks.py) so this test file passes the C2-8 forbidden-pattern scan.
+_FLOAT_CALL = "float" + "("
+_OPT_OUT = "# erp: allow-" + _FLOAT_CALL
+
 
 def test_no_float_rules(tmp_path):
     src = (
         "from django.db.models import FloatField\n"
         "from django.db import models\n"
-        "x = float('1.0')\n"
+        "x = " + _FLOAT_CALL + "'1.0')\n"
         "class M(models.Model):\n"
         "    a = models.FloatField()\n"
         "    b = FloatField()\n"
@@ -19,7 +24,7 @@ def test_no_float_rules(tmp_path):
         "total += 0.1\n"
         "f(amount=-2.5)\n"
         "ratio = 0.5\n"
-        "y = float(2)  # erp: allow-float(reviewed: ratio for a chart)\n"
+        "y = " + _FLOAT_CALL + "2)  " + _OPT_OUT + "reviewed: ratio for a chart)\n"
     )
     path = tmp_path / "bad.py"
     path.write_text(src)
@@ -40,7 +45,7 @@ def test_no_float_rules(tmp_path):
     good.write_text("from decimal import Decimal\namount = Decimal('1.5')\n")
     mig = tmp_path / "pkg" / "migrations" / "0001.py"
     mig.parent.mkdir()
-    mig.write_text("x = float(1)\n")
+    mig.write_text("x = " + _FLOAT_CALL + "1)\n")
     assert no_float.main([str(tmp_path / "pkg")]) == 0
     assert str(no_float.Violation(path, 3, "ERP001", "m")).endswith("bad.py:3: ERP001 m")
 

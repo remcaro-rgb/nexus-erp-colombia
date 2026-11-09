@@ -212,7 +212,7 @@ def test_event_envelope_rules():
     with pytest.raises(ValidationFailed):
         events.validate_event_type("Sales.Invoice.posted")
     with pytest.raises(ValidationFailed):
-        events.DomainEvent.build(ctx, "sales.invoice.posted.v1", {"x": 0.5})  # erp: allow-float(rejection test)
+        events.DomainEvent.build(ctx, "sales.invoice.posted.v1", {"x": 0.5})  # a float payload is rejected
     with pytest.raises(ValidationFailed):
         events.DomainEvent.build(ctx, "sales.invoice.posted.v1", {}, company_id=uuid.uuid4())
     from kernel.money import Money
