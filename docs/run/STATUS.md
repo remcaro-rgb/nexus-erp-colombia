@@ -1,6 +1,6 @@
 # STATUS — Nexus ERP (edition 3.0.0-claude-cloud)
 
-Updated: 2026-11-09T14:43:58Z (UTC). Repository: https://github.com/remcaro-rgb/nexus-erp-colombia.
+Updated: 2026-11-09T14:52:56Z (UTC). Repository: https://github.com/remcaro-rgb/nexus-erp-colombia.
 
 Written only by the integrator (`python3 tools/cloudctl.py status`). A task counts as working only when it is ACCEPTED with
 integrator-run test evidence under `docs/run/evidence/`.
@@ -8,7 +8,14 @@ integrator-run test evidence under `docs/run/evidence/`.
 ## What to paste next
 
 ```
-NEXT: no worker prompt is due; paste prompts/INTEGRATOR-after-W01.md into 1 NEW session.
+NEXT: wave 02 — open 6 NEW Claude Code cloud session(s) on remcaro-rgb/nexus-erp-colombia (at most 5 at the same time; start the next one when one finishes) and paste exactly one file into each:
+  prompts/W02-S1-P04-iam-rls-field-security.md
+  prompts/W02-S2-P05-ledger-posting-engine.md
+  prompts/W02-S3-P07-workflow-audit-scheduler.md
+  prompts/W02-S4-P08-ux-shell-design-system.md
+  prompts/W02-S5-P06-tax-localization-co.md
+  prompts/W02-S6-P22a-qa-harness.md
+THEN: when every one of those sessions has ended (DONE or BLOCKED), paste prompts/INTEGRATOR-after-W02.md into 1 NEW session.
 ```
 
 ## Tasks
@@ -18,13 +25,13 @@ NEXT: no worker prompt is due; paste prompts/INTEGRATOR-after-W01.md into 1 NEW 
 | 01 | P01 | worker | ACCEPTED | 1 | 2026-11-09T14:43:58Z |  |
 | 01 | P02 | worker | ACCEPTED | 1 | 2026-11-09T14:43:58Z |  |
 | 01 | P03 | worker | ACCEPTED | 1 | 2026-11-09T14:43:58Z |  |
-| 01 | G0 | gate | READY | 1 |  |  |
-| 02 | P04 | worker | PENDING | 1 |  |  |
-| 02 | P05 | worker | PENDING | 1 |  |  |
-| 02 | P07 | worker | PENDING | 1 |  |  |
-| 02 | P08 | worker | PENDING | 1 |  |  |
-| 02 | P06 | worker | PENDING | 1 |  |  |
-| 02 | P22a | worker | PENDING | 1 |  |  |
+| 01 | G0 | gate | ACCEPTED | 1 | 2026-11-09T14:52:56Z |  |
+| 02 | P04 | worker | READY | 1 |  |  |
+| 02 | P05 | worker | READY | 1 |  |  |
+| 02 | P07 | worker | READY | 1 |  |  |
+| 02 | P08 | worker | READY | 1 |  |  |
+| 02 | P06 | worker | READY | 1 |  |  |
+| 02 | P22a | worker | READY | 1 |  |  |
 | 02 | G1 | gate | PENDING | 1 |  |  |
 | 03 | P15 | worker | PENDING | 1 |  |  |
 | 03 | P09a | worker | PENDING | 1 |  |  |

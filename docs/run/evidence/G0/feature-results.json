@@ -1,0 +1,15 @@
+{
+  "schema": "erp-features/results/v1",
+  "registry_sha256": "a62fa1d937c13533ddc08f22b87a65d9bce24d662e6df7e8996f3aa7ee939ab4",
+  "commit": "1473890a96e79e32531dc1c4462c17cc4e5371a0",
+  "tests": {
+    "T-X-QA-06": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_X_QA_06_frozen_openapi_contains_every_registry_endpoint_event_and_error"
+    },
+    "T-X-QA-07": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_X_QA_07_support_every_interface_is_a_typed_protocol_with_a_double"
+    }
+  }
+}
