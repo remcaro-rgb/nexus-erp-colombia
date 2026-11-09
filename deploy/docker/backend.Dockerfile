@@ -18,7 +18,10 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_PROJECT_ENVIRONMENT=/opt/venv
 WORKDIR /src
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev --no-install-project --no-editable
+# Optional egress proxy CA (cloud build VMs): BuildKit secret `proxy_ca`, never stored in a layer.
+RUN --mount=type=secret,id=proxy_ca,required=false \
+    if [ -s /run/secrets/proxy_ca ]; then export SSL_CERT_FILE=/run/secrets/proxy_ca; fi; \
+    uv sync --frozen --no-dev --no-install-project --no-editable
 COPY backend/ /src/backend/
 
 FROM ${PYTHON_IMAGE} AS runtime

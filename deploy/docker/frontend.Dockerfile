@@ -8,10 +8,15 @@ ARG CADDY_IMAGE=docker.io/library/caddy:2.11.9-alpine@sha256:0bbb055bda6793c999b
 
 FROM ${NODE_IMAGE} AS build
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH CI=true PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-RUN corepack enable
+RUN --mount=type=secret,id=proxy_ca,required=false \
+    if [ -s /run/secrets/proxy_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/proxy_ca; fi; \
+    corepack enable && corepack prepare --activate
 WORKDIR /src
 COPY . .
-RUN pnpm install --frozen-lockfile \
+# Optional egress proxy CA (cloud build VMs): BuildKit secret `proxy_ca`, never stored in a layer.
+RUN --mount=type=secret,id=proxy_ca,required=false \
+    if [ -s /run/secrets/proxy_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/proxy_ca; fi; \
+    pnpm install --frozen-lockfile \
  && pnpm --dir frontend run build \
  && test -f frontend/dist/index.html
 

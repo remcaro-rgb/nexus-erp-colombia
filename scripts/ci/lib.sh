@@ -10,7 +10,6 @@ NEXUS_PROJECT="${NEXUS_PROJECT:-nexus-erp-dev}"
 NEXUS_RUNTIME_ENV="${NEXUS_RUNTIME_ENV:-$NEXUS_REPO_ROOT/deploy/dev/runtime.env}"
 export ERP_SECRETS_DIR="${ERP_SECRETS_DIR:-$NEXUS_REPO_ROOT/deploy/dev/secrets}"
 export ERP_IMAGE_TAG="${ERP_IMAGE_TAG:-dev}"
-NEXUS_PORT_RANGE=(8080 8081 8082 8083 8084 8085 8086 8087 8088 8089 8090)
 
 log() { printf '[nexus-dev] %s\n' "$*" >&2; }
 die() { local code="${2:-1}"; printf '[nexus-dev] ERROR: %s\n' "$1" >&2; exit "$code"; }
@@ -24,8 +23,8 @@ ensure_docker() {
   if command -v dockerd >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
     log "docker daemon not running; starting dockerd (log: /tmp/nexus-dockerd.log)"
     sudo -n sh -c 'nohup dockerd > /tmp/nexus-dockerd.log 2>&1 &'
-    local i
-    for i in $(seq 1 60); do
+    local _
+    for _ in $(seq 1 60); do
       if docker info >/dev/null 2>&1; then return 0; fi
       if sudo -n docker info >/dev/null 2>&1; then
         # socket created for root only: let the invoking user reach it
@@ -39,8 +38,10 @@ ensure_docker() {
 
 load_runtime_env() {
   if [[ -f "$NEXUS_RUNTIME_ENV" ]]; then
+    set -a
     # shellcheck disable=SC1090
-    set -a; . "$NEXUS_RUNTIME_ENV"; set +a
+    . "$NEXUS_RUNTIME_ENV"
+    set +a
   fi
   export ERP_DEV_BIND_HOST="${ERP_DEV_BIND_HOST:-127.0.0.1}"
   export ERP_DEV_PORT="${ERP_DEV_PORT:-8080}"

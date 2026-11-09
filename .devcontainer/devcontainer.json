@@ -1,0 +1,22 @@
+{
+  "name": "Nexus ERP (DEV-only)",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {"version": "3.13"},
+    "ghcr.io/devcontainers/features/node:1": {"version": "22", "pnpmVersion": "latest"},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/va-h/devcontainers-features/uv:1": {}
+  },
+  "containerEnv": {
+    "ERP_ENVIRONMENT": "dev",
+    "ERP_DEV_BIND_HOST": "127.0.0.1",
+    "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1",
+    "TZ": "America/Bogota"
+  },
+  "postCreateCommand": "if [ -f uv.lock ]; then uv sync --frozen; fi; if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; fi",
+  "forwardPorts": [8080],
+  "portsAttributes": {"8080": {"label": "Nexus ERP DEV proxy", "onAutoForward": "notify"}},
+  "customizations": {
+    "vscode": {"extensions": ["charliermarsh.ruff", "ms-python.python", "dbaeumer.vscode-eslint", "ms-azuretools.vscode-docker"]}
+  }
+}

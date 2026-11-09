@@ -17,6 +17,17 @@ cd "$NEXUS_REPO_ROOT"
 sha="$(git rev-parse --short=12 HEAD 2>/dev/null || echo unknown)"
 common=(--label "org.opencontainers.image.revision=$sha" --label "nexus.environment=dev")
 [[ $force -eq 1 ]] && common+=(--no-cache)
+# Sessions behind an egress proxy on the host loopback (cloud VMs): build on the host network with the proxy
+# variables (Docker predefined build args, not persisted) and the proxy CA as a BuildKit secret.
+if [[ -n "${HTTPS_PROXY:-${https_proxy:-}}" ]]; then
+  proxy="${HTTPS_PROXY:-${https_proxy:-}}"
+  common+=(--network host --build-arg "HTTPS_PROXY=$proxy" --build-arg "https_proxy=$proxy"
+           --build-arg "NO_PROXY=${NO_PROXY:-localhost,127.0.0.1}")
+  ca="${NEXUS_BUILD_CA_FILE:-${SSL_CERT_FILE:-}}"
+  [[ -z "$ca" && -f /root/.ccr/ca-bundle.crt ]] && ca=/root/.ccr/ca-bundle.crt
+  [[ -n "$ca" && -f "$ca" ]] && common+=(--secret "id=proxy_ca,src=$ca")
+  log "building through the configured HTTPS proxy"
+fi
 built=()
 
 build() { # target image dockerfile

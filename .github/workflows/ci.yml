@@ -1,0 +1,161 @@
+# Nexus ERP CI (P03 deliverable 3). Owner: P03. DEV-only project: no deploy job, no secrets needed.
+# Required checks for the merge queue: ci, policy, devops-tests, compose-up. Actions pinned by commit SHA.
+# Jobs adapt to the wave: steps whose sources do not exist yet (frontend, Makefile targets) say so and pass.
+name: ci
+
+on:
+  push:
+    branches: [main, "claude/**", "release/**"]
+  pull_request:
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ERP_ENVIRONMENT: dev
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+  UV_PYTHON: "3.13"
+
+jobs:
+  ci:
+    name: make ci (lint, unit, contract)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: docker.io/library/postgres:18.6-alpine@sha256:123b17998ccaf47e53b502e8c6a1e79afd8f579c6f3eec83c563da026f957395
+        env:
+          POSTGRES_PASSWORD: ci-ephemeral-not-a-secret
+        ports: ["127.0.0.1:5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 3s --health-retries 20
+      redis:
+        image: docker.io/valkey/valkey:8.1.11-alpine@sha256:2602ace2be6569bc2bbb06f873776516ab9089821525be34f4305c67eb9db02a
+        ports: ["127.0.0.1:6379:6379"]
+    env:
+      PGHOST: 127.0.0.1
+      PGUSER: postgres
+      PGPASSWORD: ci-ephemeral-not-a-secret
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        if: hashFiles('pnpm-lock.yaml') != ''
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        if: hashFiles('pnpm-lock.yaml') != ''
+        with: {node-version: "22", cache: pnpm}
+      - name: Install Python deps (uv.lock, frozen)
+        if: hashFiles('uv.lock') != ''
+        run: uv sync --frozen
+      - name: Install JS deps (pnpm-lock.yaml, frozen)
+        if: hashFiles('pnpm-lock.yaml') != ''
+        run: pnpm install --frozen-lockfile
+      - name: make ci
+        run: |
+          if [ -f Makefile ] && grep -q '^ci:' Makefile; then make ci; else
+            echo "Makefile target 'ci' not present yet (owned by P01)"; fi
+      - name: makemigrations --check
+        if: hashFiles('backend/manage.py') != ''
+        run: uv run python backend/manage.py makemigrations --check --dry-run
+      - name: Type check (mypy / tsc)
+        run: |
+          if [ -f uv.lock ] && grep -q '^name = "mypy"' uv.lock; then uv run mypy backend; else echo "mypy not locked yet"; fi
+          if [ -f frontend/tsconfig.json ]; then pnpm --dir frontend exec tsc --noEmit; else echo "frontend not present yet"; fi
+      - name: Frontend build + vitest
+        if: hashFiles('frontend/package.json') != ''
+        run: pnpm --dir frontend run build && pnpm --dir frontend exec vitest run
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        if: always()
+        with: {name: junit-ci, path: reports/, if-no-files-found: ignore}
+
+  policy:
+    name: policy (forbidden patterns, ADR-004, compose, secrets)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with: {fetch-depth: 0}
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+      - name: Forbidden patterns (C2-8)
+        run: python3 scripts/ci/forbidden_patterns.py
+      - name: ADR-004 static checks (secured views, raw SQL, HTTP clients)
+        run: python3 scripts/ci/static_checks.py
+      - name: Compose policy lint (D-P03)
+        run: |
+          docker compose -f deploy/dev/compose.yaml --env-file deploy/dev/dev.env.example --profile '*' config -q
+          python3 scripts/ci/lint_compose.py
+      - name: Shell lint (shellcheck)
+        run: uvx --from shellcheck-py==0.11.0.1 shellcheck -x -S warning scripts/ci/*.sh deploy/dev/*.sh deploy/dev/db/init/*.sh deploy/docker/*.sh
+      - name: OTel scrub config in sync with pii-patterns.json
+        run: python3 scripts/ci/render_otel_scrub.py --check
+      - name: Secret scan (repo files)
+        run: python3 scripts/ci/secret_scan.py
+      - name: Secret scan (gitleaks, full history)
+        run: >-
+          docker run --rm -v "$PWD:/repo" -w /repo
+          docker.io/zricethezav/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+          git --redact --no-banner /repo
+      - name: SAST (semgrep, Django + Python rules)
+        if: hashFiles('backend/**/*.py') != ''
+        run: >-
+          uvx --from semgrep==1.142.0 semgrep scan --error --metrics=off
+          --config p/django --config p/python --config p/secrets backend
+      - name: Dependency audit (pip-audit / pnpm audit)
+        run: |
+          if [ -f uv.lock ]; then uv export --frozen --no-hashes --format requirements-txt > /tmp/req.txt \
+            && uvx --from pip-audit==2.9.0 pip-audit --strict -r /tmp/req.txt; else echo "uv.lock not present yet"; fi
+          if [ -f pnpm-lock.yaml ]; then corepack enable && pnpm audit --audit-level critical; else echo "pnpm-lock.yaml not present yet"; fi
+      - name: License check (no AGPL/GPL in the application dependencies)
+        if: hashFiles('uv.lock') != ''
+        run: |
+          uv sync --frozen --no-dev
+          uvx --from pip-licenses==5.0.0 pip-licenses --python .venv/bin/python --fail-on 'GNU Affero General Public License v3 (AGPLv3);GNU General Public License v3 (GPLv3)'
+
+  devops-tests:
+    name: P03 tests (T-P03-01..06)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+      - run: scripts/ci/run-tests.sh
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        if: always()
+        with: {name: junit-p03, path: reports/junit/, if-no-files-found: ignore}
+
+  compose-up:
+    name: T-P03-01 docker compose up healthy from a clean clone
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - name: dev-up (builds images when sources exist, migrates, waits healthy)
+        run: scripts/ci/dev-up.sh
+      - name: dev-seed
+        run: scripts/ci/dev-seed.sh
+      - name: dev-health
+        run: scripts/ci/dev-health.sh | tee reports-health.json
+      - name: DR drill (T-P03-03) against the running stack
+        run: python3 scripts/ci/dr_drill.py
+      - name: Image SBOM (syft, CycloneDX) + vulnerability scan (grype, fail on critical)
+        run: |
+          scripts/ci/build-images.sh --sbom
+          for img in $(docker image ls --format '{{.Repository}}:{{.Tag}}' | grep '^erp-'); do
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock ghcr.io/anchore/grype:v0.121.2@sha256:6a36234da13f9faa327306ac0b3dab3405cfa2b4eb20c8f904125a8707863913 \
+              "docker:$img" --fail-on critical --only-fixed
+          done
+      - name: Logs on failure (no secrets are logged by the services)
+        if: failure()
+        run: docker compose -p nexus-erp-dev -f deploy/dev/compose.yaml ps -a
+      - name: dev-down (keeps volumes)
+        if: always()
+        run: scripts/ci/dev-down.sh
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        if: always()
+        with: {name: compose-up, path: "reports/\nreports-health.json", if-no-files-found: ignore}
