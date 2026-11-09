@@ -20,6 +20,7 @@ from decimal import Decimal
 from typing import Any
 
 from django.db import IntegrityError, connections, transaction
+from django.db.models import CharField, F, Func, Value
 
 from kernel import ids, sequences, services
 from kernel.errors import Conflict, NotFound, SequenceNotFound, UnitOfWorkRequired, ValidationFailed
@@ -45,6 +46,7 @@ from ledger.models import (
     Journal,
     JournalEntry,
     JournalLine,
+    LedgerBalance,
     Period,
 )
 
@@ -268,10 +270,17 @@ class LedgerPostingService:
         if period is None:
             raise ledger_error("period_closed", f"no accounting period is defined for {day}")
         # FOR SHARE: concurrent postings do not block each other, a close (UPDATE) waits for them.
-        with connections["default"].cursor() as cur:
-            cur.execute("SELECT status FROM ledger_period WHERE id = %s FOR SHARE", [period.id])
-            row = cur.fetchone()
-        period.status = row[0] if row else Period.Status.CLOSED
+        status = (
+            Period.objects.filter(pk=period.pk)
+            .annotate(
+                locked_status=Func(
+                    Value(period.pk), function="ledger_period_status_for_share", output_field=CharField()
+                )
+            )
+            .values_list("locked_status", flat=True)
+            .first()
+        )
+        period.status = status or Period.Status.CLOSED
         if period.status == Period.Status.CLOSED:
             raise ledger_error("period_closed", f"period {period.code} is closed")
         if period.status == Period.Status.SOFT_CLOSED:
@@ -608,34 +617,27 @@ class LedgerPostingService:
                 agg[key] = [ln.slots, ZERO, ZERO]
             agg[key][1] += ln.debit
             agg[key][2] += ln.credit
-        sql = (
-            "INSERT INTO ledger_balance (id, tenant_id, company_id, book_id, account_id, period_id, dims_hash, "
-            "cost_center_id, business_unit_id, aux_abierto_id, item_dimension_id, debit, credit) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
-            "ON CONFLICT (tenant_id, company_id, book_id, account_id, period_id, dims_hash) DO UPDATE SET "
-            "debit = ledger_balance.debit + EXCLUDED.debit, credit = ledger_balance.credit + EXCLUDED.credit"
+        keys = sorted(agg)
+        base = {
+            "tenant_id": ctx.tenant_id,
+            "company_id": plan.request.company_id,
+            "book_id": book.id,
+            "period_id": plan.period.id,
+        }
+        # Ensure every balance row exists (INSERT … ON CONFLICT DO NOTHING), then add the amounts with row-locking
+        # UPDATEs in sorted key order (no lost updates, no deadlock between concurrent postings).
+        LedgerBalance.objects.using(uow.using).bulk_create(
+            [
+                LedgerBalance(id=ids.new_id(), account_id=account_id, dims_hash=dh, **base, **agg[(account_id, dh)][0])
+                for account_id, dh in keys
+            ],
+            ignore_conflicts=True,
         )
-        with connections[uow.using].cursor() as cur:
-            for account_id, dh in sorted(agg):
-                slots, debit, credit = agg[(account_id, dh)]
-                cur.execute(
-                    sql,
-                    [
-                        ids.new_id(),
-                        ctx.tenant_id,
-                        plan.request.company_id,
-                        book.id,
-                        account_id,
-                        plan.period.id,
-                        dh,
-                        slots["cost_center_id"],
-                        slots["business_unit_id"],
-                        slots["aux_abierto_id"],
-                        slots["item_dimension_id"],
-                        debit,
-                        credit,
-                    ],
-                )
+        for account_id, dh in keys:
+            _slots, debit, credit = agg[(account_id, dh)]
+            LedgerBalance.objects.using(uow.using).filter(account_id=account_id, dims_hash=dh, **base).update(
+                debit=F("debit") + debit, credit=F("credit") + credit
+            )
 
     def _persist(self, uow: UnitOfWork, plan: Plan) -> PostingResult:
         primary: JournalEntry | None = None

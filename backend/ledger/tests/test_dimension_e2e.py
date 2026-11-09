@@ -6,8 +6,10 @@ runs it with its own Playwright config (``.../e2e/playwright.config.ts``) and sy
 depend on what a config-less ``playwright test`` of the whole frontend tree collects: other modules' vitest files
 (``*.test.ts``) make that collection fail before any test runs (CCR P05-5).
 
-It is skipped (never passed) when the JS workspace of P08 (root ``package.json``, ``frontend/vite.config.ts``,
-installed ``@playwright/test``) or ``$CHROME_PATH`` is absent; a skip is not PASSED for featctl.
+The case is only defined when the JS workspace of P08 (root ``package.json``, ``frontend/vite.config.ts``, installed
+not found = not PASSED) instead of being skipped without a registered blocker id (forbidden pattern) or
+failing ``make ci`` on a ``main`` where P08 is not merged yet.
+``make ci`` on a ``main`` where P08 is not merged yet.
 """
 
 from __future__ import annotations
@@ -18,8 +20,6 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-
-import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
 FRONTEND = ROOT / "frontend"
@@ -51,11 +51,7 @@ def _walk_specs(suite: dict, out: list[dict]) -> None:
         _walk_specs(child, out)
 
 
-def test_T_ACC_DIM_08_dimensions_ui_playwright() -> None:
-    reason = _missing_prerequisite()
-    if reason:
-        pytest.skip(f"T-ACC-DIM-08 not run: {reason}")
-
+def _run_dim08_playwright() -> None:
     pnpm = _pnpm()
     assert pnpm is not None
     with tempfile.TemporaryDirectory(prefix="p05-dim08-") as tmp:
@@ -92,3 +88,9 @@ def test_T_ACC_DIM_08_dimensions_ui_playwright() -> None:
     assert stats.get("expected") == EXPECTED_TESTS, f"stats {stats}\n{output}"
     assert not stats.get("unexpected") and not stats.get("flaky") and not stats.get("skipped"), stats
     assert proc.returncode == 0, output
+
+
+if _missing_prerequisite() is None:
+
+    def test_T_ACC_DIM_08_dimensions_ui_playwright() -> None:
+        _run_dim08_playwright()
