@@ -20,6 +20,7 @@ from collections.abc import Callable, Iterable, Mapping
 from typing import Any, ClassVar
 
 from django.db.models import Model, Q, QuerySet
+from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -94,6 +95,8 @@ class SecuredView(APIView):
     permissions: ClassVar[dict[str, str]] = {}
     #: resource type for field policies (``<module>.<resource>``)
     resource_type: ClassVar[str] = ""
+    #: query parameters validated elsewhere (not filters)
+    ignored_params: ClassVar[tuple[str, ...]] = ()
 
     _ctx_stack: contextlib.ExitStack | None = None
 
@@ -102,9 +105,12 @@ class SecuredView(APIView):
         super().initial(request, *args, **kwargs)
         self._ctx_stack = contextlib.ExitStack()
         self._ctx_stack.enter_context(tenancy.activate(self.ctx))
+        self.check_access(request)
+
+    def check_access(self, request: Request) -> None:
         code = self.permissions.get(request.method or "")
         if code is None:
-            raise Unauthenticated("method not allowed")  # pragma: no cover - DRF answers 405 first
+            raise MethodNotAllowed(request.method or "")
         get_engine().require(self.ctx, code)
 
     def finalize_response(self, request: Request, response: Any, *args: Any, **kwargs: Any) -> Any:
@@ -212,7 +218,7 @@ class SecuredView(APIView):
         masks: Mapping[str, str],
     ) -> QuerySet[Any]:
         for key, value in request.query_params.items():
-            if key in ("q", "sort", "limit", "cursor", "fields"):
+            if key in ("q", "sort", "limit", "cursor", "fields") or key in self.ignored_params:
                 continue
             name, op = key, "eq"
             if key.startswith("filter[") and key.endswith("]"):

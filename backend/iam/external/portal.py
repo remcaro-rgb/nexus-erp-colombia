@@ -40,19 +40,21 @@ class PortalView(SecuredView):
     authentication_classes: ClassVar[list[Any]] = [PortalAuthentication]
     #: None = any portal kind
     portal_kind: ClassVar[str | None] = None
+    #: already checked against the token by _check_scope_params
+    ignored_params: ClassVar[tuple[str, ...]] = SCOPE_PARAMS
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         REGISTRY.append(cls)
 
-    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
-        super().initial(request, *args, **kwargs)
+    def check_access(self, request: Request) -> None:
         portal = self.effective.portal
         if portal is None:
             raise ExternalAccountScopeViolation("not a portal principal")
         if self.portal_kind is not None and portal.kind != self.portal_kind:
             raise PortalKindMismatch("this endpoint belongs to another portal")
         self._check_scope_params(request)
+        super().check_access(request)
 
     #: fields an external user may receive (allowlist; never costs, margins, formulas…)
     portal_fields: ClassVar[tuple[str, ...]] = ("id",)
