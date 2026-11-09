@@ -67,6 +67,12 @@ class PlanTests(unittest.TestCase):
         E, _ = C.validate_plan(p, REG, LEGACY)
         self.assertTrue(any("bad prompt_file" in e for e in E))
 
+    def test_ui_progress_overlap_detected(self):
+        p = copy.deepcopy(PLAN)
+        p["tasks"]["P08"]["paths"] = p["tasks"]["P08"]["paths"] + ["docs/ui-progress/**"]
+        E, _ = C.validate_plan(p, REG, LEGACY)
+        self.assertTrue(any("docs/ui-progress" in e for e in E), E[:3])
+
     def test_parallel_cap(self):
         self.assertEqual(PLAN["limits"]["max_parallel_sessions"], 5)
         self.assertEqual(PLAN["limits"]["max_attempts"], 3)
@@ -144,7 +150,7 @@ class PathAndSecretTests(unittest.TestCase):
         self.assertTrue(C.check_paths(PLAN, "P01", ["backend/inventory/x.py"]))
 
     def test_protected_rejected(self):
-        for p in ("docs/run/STATE.json", "tools/cloudctl.py", "CLAUDE.md", "docs/spec/UI-CONTRACT.md", ".claude/settings.json"):
+        for p in ("docs/ui-progress/W03/INDEX.md", "docs/ui-progress/README.md", "tools/ui_snapshot.py", "docs/run/STATE.json", "tools/cloudctl.py", "CLAUDE.md", "docs/spec/UI-CONTRACT.md", ".claude/settings.json"):
             self.assertTrue(C.check_paths(PLAN, "P01", [p]), p)
 
     def test_other_task_report_rejected(self):

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""cloudctl — wave/runbook control for Nexus ERP on Claude Code cloud sessions (edition 3.0.0-claude-cloud).
+"""cloudctl — wave/runbook control for Nexus ERP on Claude Code cloud sessions (edition 3.0.1-claude-cloud).
 
 Python 3.11+ standard library only. Run from the repository root (the git top level is used).
 
@@ -28,7 +28,9 @@ PLAN_SCHEMA = "nexus-cloud/plan/v1"
 SEED_TRAILER = "Nexus-Seed:"
 INTEG_TRAILER = "Nexus-Integrator:"
 PROTECTED = ["CLAUDE.md", "docs/spec/**", "docs/prompt-pack/**", "docs/cloud-prompts/**", "docs/run/STATE.json", "docs/run/STATUS.md",
-             "docs/run/plan-cloud.json", "docs/run/evidence/**", "tools/**", ".claude/**", "scripts/cloud/**", ".gitignore"]
+             "docs/run/plan-cloud.json", "docs/run/evidence/**", "tools/**", ".claude/**", "scripts/cloud/**", ".gitignore", "docs/ui-progress/**"]
+# owner maintenance commits (trailer Nexus-Seed:) after the initial seed may touch only these paths (prompt/tool updates, never product or state)
+MAINT_PATHS = ["docs/cloud-prompts/**", "docs/ui-progress/README.md", "tools/**", "CLAUDE.md", ".claude/settings.json"]
 SECRET_PATTERNS = [
     ("private key", re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----")),
     ("AWS access key", re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
@@ -160,6 +162,8 @@ def validate_plan(plan, reg=None, legacy=None):
             need(t.get("retry_file") == f"RETRY-{tid}.md", f"{tid}: retry_file must be RETRY-{tid}.md")
             need(isinstance(t.get("paths"), list) and t["paths"], f"{tid}: owned paths missing")
             need(t.get("weight", 0) > 0, f"{tid}: weight must be > 0")
+            for g in t.get("paths", []):
+                need(not globs_overlap(g, "docs/ui-progress/**"), f"{tid}: owned path {g} overlaps docs/ui-progress/** (integrator only)")
     state, order = {}, []
     def visit(n, stack):
         if state.get(n) == 1:
@@ -499,22 +503,30 @@ ACK_TRAILER = "Nexus-Audit-Ack:"
 
 
 def audit_main(ref, full=False):
-    """First-parent commits after the seed must carry the integrator trailer, unless a later integrator commit acknowledges (reverted) them."""
-    bad, acks, seen_seed = [], set(), False
+    """First-parent commits after the initial seed must be integrator commits (trailer Nexus-Integrator:), owner maintenance commits
+    (trailer Nexus-Seed:) that touch only MAINT_PATHS, or commits acknowledged (reverted) by a later integrator commit."""
+    commits = []
     for chunk in git("log", "--first-parent", "--format=%H%x1f%B%x1e", ref).split("\x1e"):
         chunk = chunk.strip()
-        if not chunk:
-            continue
-        h, body = chunk.split("\x1f", 1)
-        if SEED_TRAILER in body:
-            seen_seed = True
-            break
+        if chunk:
+            commits.append(chunk.split("\x1f", 1))
+    seeds = [i for i, (_, b) in enumerate(commits) if SEED_TRAILER in b]
+    if not seeds:
+        return ["no seed commit (Nexus-Seed trailer) in the first-parent history"]
+    base = seeds[-1]  # the oldest seed commit is the initial seed
+    bad, acks = [], set()
+    for h, body in commits[:base]:
         if INTEG_TRAILER in body:
             acks |= set(re.findall(rf"(?m)^{ACK_TRAILER}\s*([0-9a-f]{{40}})", body))
-        elif h not in acks:
-            bad.append(h if full else h[:12])
-    if not seen_seed:
-        bad.append("no seed commit (Nexus-Seed trailer) in the first-parent history")
+            continue
+        if h in acks:
+            continue
+        if SEED_TRAILER in body:
+            touched = [p for p in git("diff-tree", "--no-commit-id", "--name-only", "-r", "-m", "--first-parent", h).splitlines() if p]
+            outside = [p for p in touched if not any(match(p, g) for g in MAINT_PATHS)]
+            if not outside:
+                continue
+        bad.append(h if full else h[:12])
     return bad
 
 
@@ -752,9 +764,9 @@ def cmd_close_gates(a):
     own = []
     for h in git("rev-list", "--first-parent", "--no-merges", f"origin/{plan['default_branch']}..HEAD").splitlines():
         own += [p for p in git("diff-tree", "--no-commit-id", "--name-only", "-r", h).splitlines() if not p.startswith("docs/run/")]
-    stray = [p for p in own if not (match(p, "tests/gates/**") or match(p, "docs/gates/**"))]
+    stray = [p for p in own if not (match(p, "tests/gates/**") or match(p, "docs/gates/**") or match(p, "docs/ui-progress/**"))]
     if stray:
-        die(f"BLOCKED-ORDER: integrator commits touch paths outside tests/gates/** and docs/gates/**: {stray[:8]}", 2)
+        die(f"BLOCKED-ORDER: integrator commits touch paths outside tests/gates/**, docs/gates/** and docs/ui-progress/**: {stray[:8]}", 2)
     has_make = os.path.isfile(os.path.join(ROOT, "Makefile"))
     for g in [t for t in T if T[t]["kind"] in ("gate", "release")]:
         if S[g]["status"] == "ACCEPTED" or not deps_ok(plan, st, g):

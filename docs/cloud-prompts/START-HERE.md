@@ -1,4 +1,4 @@
-# START HERE — run Nexus ERP Colombia with Claude Code cloud sessions (edition 3.0.0-claude-cloud)
+# START HERE — run Nexus ERP Colombia with Claude Code cloud sessions (edition 3.0.1-claude-cloud)
 
 Nothing has been built yet. These files make the build **copy-paste only**: you open sessions and paste prompt files; the sessions do the rest.
 Repository: **https://github.com/remcaro-rgb/nexus-erp-colombia** (private).
@@ -23,6 +23,8 @@ Repository: **https://github.com/remcaro-rgb/nexus-erp-colombia** (private).
 3. A worker is done when its last message starts with `RESULT` (DONE or BLOCKED). You never need to answer questions.
 4. When all sessions of the wave have ended: paste `INTEGRATOR-after-WNN.md` into **one** new session. Its final message (`INTEGRATED wave NN`)
    ends with **NEXT**: the exact files to paste next (including any `RETRY-TASK.md`). Follow NEXT; it overrides the happy-path table.
+   From wave 02 on it also prints **UI PREVIEW**: a link to `docs/ui-progress/WNN/INDEX.md` on GitHub with screenshots of every page built so far
+   (light and dark). The list of all waves is `docs/ui-progress/README.md`.
 5. Repeat until NEXT says `COMPLETE`. Then follow `docs/run/LOCAL-RUN.md` (in the repo) on your Mac mini to run the app at http://localhost:8080.
 
 ## When something goes wrong

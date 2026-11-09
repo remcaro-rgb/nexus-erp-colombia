@@ -26,7 +26,9 @@
       "Bash(git push -u origin main:*)",
       "Bash(git push origin HEAD:main:*)",
       "Bash(git push origin HEAD:refs/heads/main:*)",
-      "Bash(git push origin release/:*)"
+      "Bash(git push origin release/:*)",
+      "Edit(docs/ui-progress/**)",
+      "Write(docs/ui-progress/**)"
     ]
   },
   "env": {

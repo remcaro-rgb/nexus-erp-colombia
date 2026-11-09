@@ -1,4 +1,4 @@
-# Nexus ERP Colombia — rules for every Claude Code session (edition 3.0.0-claude-cloud, DEV-only)
+# Nexus ERP Colombia — rules for every Claude Code session (edition 3.0.1-claude-cloud, DEV-only)
 
 Repository: https://github.com/remcaro-rgb/nexus-erp-colombia · default branch `main` · product spec 2.2.0-dev in `docs/spec/` + `docs/prompt-pack/`.
 
@@ -12,7 +12,7 @@ Repository: https://github.com/remcaro-rgb/nexus-erp-colombia · default branch 
 
 ## Where you may write
 * Workers: only their owned paths plus `docs/handoffs/<T>.md`, `contracts/change-requests/<T>-*`, `docs/run/progress/<T>.md`, `docs/run/reports/<T>.json` and their own codes appended to `contracts/permissions/catalog.yaml`.
-* Protected (integrator/seed only): `CLAUDE.md`, `docs/spec/**`, `docs/prompt-pack/**`, `docs/cloud-prompts/**`, `docs/run/STATE.json`, `docs/run/STATUS.md`, `docs/run/plan-cloud.json`, `docs/run/evidence/**`, `tools/**`, `.claude/**`, `scripts/cloud/**`, `.gitignore`.
+* Protected (integrator/seed only): `CLAUDE.md`, `docs/spec/**`, `docs/prompt-pack/**`, `docs/cloud-prompts/**`, `docs/run/STATE.json`, `docs/run/STATUS.md`, `docs/run/plan-cloud.json`, `docs/run/evidence/**`, `tools/**`, `.claude/**`, `scripts/cloud/**`, `.gitignore`, `docs/ui-progress/**` (UI screenshots: written only by the integrator with `tools/ui_snapshot.py`).
 * Need something outside your paths? Write a change request `contracts/change-requests/<T>-<n>.md` and use a typed fake behind `kernel.interfaces` meanwhile.
 
 ## Git
