@@ -220,7 +220,9 @@ class LedgerPostingService:
                 company_id=entry.company_id,
             )
             if entry.id == original.id:
-                primary_result = PostingResult(new_entry.id, new_entry.number, new_entry.total_debit, new_entry.total_credit)
+                primary_result = PostingResult(
+                    new_entry.id, new_entry.number, new_entry.total_debit, new_entry.total_credit
+                )
         if primary_result is None:  # pragma: no cover - original is always among siblings
             raise NotFound("journal entry not found")
         return primary_result
@@ -234,11 +236,19 @@ class LedgerPostingService:
             raise ValidationFailed("an entry needs lines", pointer="/lines", reason="required")
         if not request.source.type or not request.purpose:
             raise ValidationFailed("source.type and purpose are required", pointer="/source", reason="required")
-        journal = Journal.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, code=request.journal_code).first()
+        journal = Journal.objects.filter(
+            tenant_id=ctx.tenant_id, company_id=company_id, code=request.journal_code
+        ).first()
         if journal is None:
-            raise ValidationFailed(f"journal {request.journal_code} not configured", pointer="/journal_code", reason="not_found")
+            raise ValidationFailed(
+                f"journal {request.journal_code} not configured", pointer="/journal_code", reason="not_found"
+            )
         period = self._period(ctx, company_id, request.posting_date, journal.code)
-        books = list(Book.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, mirror=True).order_by("-primary", "code"))
+        books = list(
+            Book.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, mirror=True).order_by(
+                "-primary", "code"
+            )
+        )
         if not books:
             raise ValidationFailed("no accounting book configured", pointer="/books", reason="not_found")
         plan = Plan(request=request, journal=journal, period=period, books=books)
@@ -266,12 +276,20 @@ class LedgerPostingService:
             raise ledger_error("period_closed", f"period {period.code} is closed")
         if period.status == Period.Status.SOFT_CLOSED:
             policy = services.optional(PolicyService)
-            if policy is None or not policy.authorize(ctx, SOFT_CLOSED_PERMISSION, {"period_id": str(period.id)}).allowed:
+            if (
+                policy is None
+                or not policy.authorize(ctx, SOFT_CLOSED_PERMISSION, {"period_id": str(period.id)}).allowed
+            ):
                 raise ledger_error("period_closed", f"period {period.code} is soft-closed")
         return period
 
     def _account_for(
-        self, ctx: TenantContext, request: PostingRequest, journal: Journal, line: PostingLine, cache: dict[str, Account]
+        self,
+        ctx: TenantContext,
+        request: PostingRequest,
+        journal: Journal,
+        line: PostingLine,
+        cache: dict[str, Account],
     ) -> Account:
         key = f"{line.account_role}|{line.tax_code or ''}|{line.warehouse_id or ''}"
         if key in cache:
@@ -323,7 +341,9 @@ class LedgerPostingService:
                 raise ValidationFailed("fx_rate must be positive", pointer="/lines/fx_rate", reason="range")
             return q_fx(line.fx_rate)
         rate = (
-            ExchangeRate.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, currency=currency, date__lte=day)
+            ExchangeRate.objects.filter(
+                tenant_id=ctx.tenant_id, company_id=company_id, currency=currency, date__lte=day
+            )
             .order_by("-date")
             .values_list("rate", flat=True)
             .first()
@@ -400,9 +420,7 @@ class LedgerPostingService:
         if abs(residual) > ROUNDING_TOLERANCE:
             raise ledger_error("entry_unbalanced", f"the entry is not balanced (difference {residual} COP)")
         role = ROUNDING_ROLE if currencies == [FUNCTIONAL_CURRENCY] else FX_ROUNDING_ROLE
-        account = self._account_for(
-            ctx, plan.request, plan.journal, PostingLine(role, "DEBIT", abs(residual)), {}
-        )
+        account = self._account_for(ctx, plan.request, plan.journal, PostingLine(role, "DEBIT", abs(residual)), {})
         empty = {slot: None for slot in SLOT_BY_DIMENSION.values()}
         plan.lines.append(
             PlannedLine(

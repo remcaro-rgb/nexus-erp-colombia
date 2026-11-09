@@ -14,7 +14,14 @@ from ledger.models import DimensionNode
 
 def _info(n: DimensionNode) -> NodeInfo:
     return NodeInfo(
-        n.id, n.company_id, n.dimension, n.code, n.description, n.node_type, n.parent_id, n.status == "ACTIVE"  # type: ignore[arg-type]
+        n.id,
+        n.company_id,
+        n.dimension,
+        n.code,
+        n.description,
+        n.node_type,
+        n.parent_id,
+        n.status == "ACTIVE",  # type: ignore[arg-type]
     )
 
 

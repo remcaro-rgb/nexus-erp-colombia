@@ -45,7 +45,9 @@ def setup_company(uow: UnitOfWork, company_id: uuid.UUID) -> None:
             tenant_id=ctx.tenant_id, company_id=company_id, code=code, defaults={"name": name, "primary": primary}
         )
     for code, name in JOURNALS:
-        Journal.objects.get_or_create(tenant_id=ctx.tenant_id, company_id=company_id, code=code, defaults={"name": name})
+        Journal.objects.get_or_create(
+            tenant_id=ctx.tenant_id, company_id=company_id, code=code, defaults={"name": name}
+        )
     for code, name in ROLES:
         AccountRole.objects.get_or_create(
             tenant_id=ctx.tenant_id, company_id=company_id, code=code, defaults={"name": name}

@@ -39,7 +39,16 @@ DETALLE = DimensionNode.NodeType.DETALLE
 ACTIVE = DimensionNode.Status.ACTIVE
 ARCHIVED = DimensionNode.Status.ARCHIVED
 
-EDITABLE_FIELDS = ("code", "description", "node_type", "parent_id", "valid_from", "valid_to", "sort_key", "external_ref")
+EDITABLE_FIELDS = (
+    "code",
+    "description",
+    "node_type",
+    "parent_id",
+    "valid_from",
+    "valid_to",
+    "sort_key",
+    "external_ref",
+)
 EVENT = "ledger.dimension.changed.v1"
 
 
@@ -99,7 +108,9 @@ def nodes_qs(ctx: TenantContext, company_id: uuid.UUID, dimension: str) -> Query
     return DimensionNode.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, dimension=dimension)
 
 
-def get_node(ctx: TenantContext, company_id: uuid.UUID, dimension: str, node_id: Any, *, lock: bool = False) -> DimensionNode:
+def get_node(
+    ctx: TenantContext, company_id: uuid.UUID, dimension: str, node_id: Any, *, lock: bool = False
+) -> DimensionNode:
     try:
         nid = uuid.UUID(str(node_id))
     except ValueError:
@@ -120,7 +131,9 @@ def usage_count(node: DimensionNode) -> int:
 
 def usage(node: DimensionNode) -> dict[str, Any]:
     lines = usage_count(node)
-    children = DimensionNode.objects.filter(company_id=node.company_id, dimension=node.dimension, parent_id=node.id).count()
+    children = DimensionNode.objects.filter(
+        company_id=node.company_id, dimension=node.dimension, parent_id=node.id
+    ).count()
     return {"references": lines, "by_type": {"journal_lines": lines, "children": children}}
 
 
@@ -164,7 +177,11 @@ def tree(
     """Nested ``TreeNode`` list (root.yaml TreeNode) of the current hierarchy."""
     nodes = list(nodes_qs(ctx, company_id, dimension))
     if valid_on is not None:
-        nodes = [n for n in nodes if (not n.valid_from or n.valid_from <= valid_on) and (not n.valid_to or n.valid_to >= valid_on)]
+        nodes = [
+            n
+            for n in nodes
+            if (not n.valid_from or n.valid_from <= valid_on) and (not n.valid_to or n.valid_to >= valid_on)
+        ]
     by_id = {n.id: n for n in nodes}
     kids = _children_map(nodes)
 
@@ -186,7 +203,9 @@ def tree(
             raise NotFound("dimension node not found")
         starts = [by_id[root]]
     else:
-        starts = [n for n in kids.get(None, [])] + [n for pid, ns in kids.items() if pid is not None and pid not in by_id for n in ns]
+        starts = [n for n in kids.get(None, [])] + [
+            n for pid, ns in kids.items() if pid is not None and pid not in by_id for n in ns
+        ]
     result = [build(n, 1) for n in starts]
     if allowed_ids is not None:
         result = _prune(result, {str(i) for i in allowed_ids})
@@ -248,7 +267,9 @@ def _short(value: Any, pointer: str) -> str | None:
     return text
 
 
-def _assert_code_free(ctx: TenantContext, company_id: uuid.UUID, dimension: str, code: str, exclude: uuid.UUID | None) -> None:
+def _assert_code_free(
+    ctx: TenantContext, company_id: uuid.UUID, dimension: str, code: str, exclude: uuid.UUID | None
+) -> None:
     qs = DimensionNode.objects.annotate(lc=Lower("code")).filter(
         tenant_id=ctx.tenant_id, company_id=company_id, dimension=dimension, lc=code.lower()
     )
@@ -258,9 +279,7 @@ def _assert_code_free(ctx: TenantContext, company_id: uuid.UUID, dimension: str,
         raise ledger_error("dimension_code_duplicate", f"code {code!r} already exists in this dimension")
 
 
-def _resolve_parent(
-    ctx: TenantContext, company_id: uuid.UUID, dimension: str, parent_id: Any
-) -> DimensionNode | None:
+def _resolve_parent(ctx: TenantContext, company_id: uuid.UUID, dimension: str, parent_id: Any) -> DimensionNode | None:
     if parent_id in (None, ""):
         return None
     try:
@@ -480,9 +499,9 @@ def move_node(uow: UnitOfWork, node: DimensionNode, new_parent_id: Any) -> Dimen
         return node
     on = today()
     subtree = list(
-        DimensionClosure.objects.filter(company_id=node.company_id, ancestor_id=node.id, valid_to__isnull=True).values_list(
-            "descendant_id", "distance"
-        )
+        DimensionClosure.objects.filter(
+            company_id=node.company_id, ancestor_id=node.id, valid_to__isnull=True
+        ).values_list("descendant_id", "distance")
     )
     members = [d for d, _ in subtree]
     stale = DimensionClosure.objects.filter(
@@ -545,9 +564,12 @@ def update_node(uow: UnitOfWork, node: DimensionNode, data: dict[str, Any], if_m
         if new_type != node.node_type:
             if usage_count(node):
                 raise DimensionInUse("a used node cannot change node_type")
-            if new_type == DETALLE and DimensionNode.objects.filter(
-                company_id=node.company_id, dimension=node.dimension, parent_id=node.id
-            ).exists():
+            if (
+                new_type == DETALLE
+                and DimensionNode.objects.filter(
+                    company_id=node.company_id, dimension=node.dimension, parent_id=node.id
+                ).exists()
+            ):
                 raise ValidationFailed(
                     "an AGRUPADOR with children cannot become DETALLE", pointer="/node_type", reason="has_children"
                 )
@@ -657,15 +679,24 @@ def check_line_reference(
         if cache is not None:
             cache[node_id] = node
     if node is None:
-        raise ledger_error("dimension_cross_company", f"{dimension} node is not a node of this company", dimension=dimension)
+        raise ledger_error(
+            "dimension_cross_company", f"{dimension} node is not a node of this company", dimension=dimension
+        )
     if node.dimension != dimension:
-        raise ValidationFailed(f"node belongs to dimension {node.dimension}", pointer=f"/{dimension}", reason="dimension_mismatch")
+        raise ValidationFailed(
+            f"node belongs to dimension {node.dimension}", pointer=f"/{dimension}", reason="dimension_mismatch"
+        )
     if node.node_type != DETALLE:
         raise ledger_error(
-            "dimension_node_not_postable", f"{dimension} {node.code} is an AGRUPADOR", dimension=dimension, code=node.code
+            "dimension_node_not_postable",
+            f"{dimension} {node.code} is an AGRUPADOR",
+            dimension=dimension,
+            node_code=node.code,
         )
     if not allow_archived and not is_effective(node, on):
-        raise ledger_error("dimension_archived", f"{dimension} {node.code} is archived or not valid on {on}", dimension=dimension)
+        raise ledger_error(
+            "dimension_archived", f"{dimension} {node.code} is archived or not valid on {on}", dimension=dimension
+        )
     return node
 
 

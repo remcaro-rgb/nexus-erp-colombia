@@ -60,7 +60,9 @@ class World:
     def run(self, fn: Any, ctx: tenancy.TenantContext | None = None) -> Any:
         return run_in_unit_of_work(fn, ctx or self.ctx)
 
-    def node(self, dimension: str, code: str, node_type: str = "DETALLE", parent: Any = None, company: Any = None, **kw: Any) -> Any:
+    def node(
+        self, dimension: str, code: str, node_type: str = "DETALLE", parent: Any = None, company: Any = None, **kw: Any
+    ) -> Any:
         data = dims.NodeInput(
             code=code,
             description=kw.pop("description", f"Nodo {code} (SINTÉTICO)"),
@@ -71,8 +73,17 @@ class World:
         )
         return self.run(lambda u: dims.create_node(u, company or self.company, dimension, data))
 
-    def post(self, lines: list[PostingLine], *, source_type: str = "ledger.manual", purpose: str = "manual",
-             day: dt.date = TODAY, journal: str = "GENERAL", company: Any = None, after: Any = None) -> Any:
+    def post(
+        self,
+        lines: list[PostingLine],
+        *,
+        source_type: str = "ledger.manual",
+        purpose: str = "manual",
+        day: dt.date = TODAY,
+        journal: str = "GENERAL",
+        company: Any = None,
+        after: Any = None,
+    ) -> Any:
         req = self.request(lines, source_type=source_type, purpose=purpose, day=day, journal=journal, company=company)
 
         def fn(u: Any) -> Any:
@@ -87,8 +98,16 @@ class World:
         req = self.request(lines, **kw)
         return self.run(lambda u: services.get(PostingService).simulate(u, req))
 
-    def request(self, lines: list[PostingLine], *, source_type: str = "ledger.manual", purpose: str = "manual",
-                day: dt.date = TODAY, journal: str = "GENERAL", company: Any = None) -> PostingRequest:
+    def request(
+        self,
+        lines: list[PostingLine],
+        *,
+        source_type: str = "ledger.manual",
+        purpose: str = "manual",
+        day: dt.date = TODAY,
+        journal: str = "GENERAL",
+        company: Any = None,
+    ) -> PostingRequest:
         return PostingRequest(
             company_id=company or self.company,
             posting_date=day,
@@ -125,13 +144,32 @@ def bootstrap_company(ctx: tenancy.TenantContext, company: uuid.UUID) -> None:
         periods.ensure_year(u, company, 2026)
         for code, name, typ, nature, control, sources in ACCOUNTS:
             acc = Account.objects.create(
-                tenant_id=ctx.tenant_id, company_id=company, code=code, name=name, type=typ, nature=nature,
-                is_control=control, control_sources=sources,
+                tenant_id=ctx.tenant_id,
+                company_id=company,
+                code=code,
+                name=name,
+                type=typ,
+                nature=nature,
+                is_control=control,
+                control_sources=sources,
             )
-            role = {"110505": "CASH", "111005": "BANK", "130505": "AR", "413595": "SALES_REVENUE",
-                    "519595": "EXPENSE", "510506": "PAYROLL_EXPENSE", "529595": "SELLING_EXPENSE",
-                    "429581": "ROUNDING"}[code]
-            AccountDetermination.objects.create(tenant_id=ctx.tenant_id, company_id=company, role_code=role, account=acc)
+            role = {
+                "110505": "CASH",
+                "111005": "BANK",
+                "130505": "AR",
+                "413595": "SALES_REVENUE",
+                "519595": "EXPENSE",
+                "510506": "PAYROLL_EXPENSE",
+                "529595": "SELLING_EXPENSE",
+                "429581": "ROUNDING",
+            }[code]
+            AccountDetermination.objects.create(
+                tenant_id=ctx.tenant_id, company_id=company, role_code=role, account=acc
+            )
+            if role == "ROUNDING":
+                AccountDetermination.objects.create(
+                    tenant_id=ctx.tenant_id, company_id=company, role_code="FX_ROUNDING", account=acc
+                )
 
     run_in_unit_of_work(fn, ctx)
 

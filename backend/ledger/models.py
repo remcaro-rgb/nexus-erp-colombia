@@ -184,9 +184,7 @@ class DimensionNode(CompanyModel, AuditedModel):
     class Meta:
         db_table = "ledger_dimension_node"
         constraints = [
-            models.UniqueConstraint(
-                "company_id", "dimension", Lower("code"), name="ledger_dim_code_ci_uq"
-            ),
+            models.UniqueConstraint("company_id", "dimension", Lower("code"), name="ledger_dim_code_ci_uq"),
             models.UniqueConstraint(fields=["company_id", "id"], name="ledger_dim_company_id_uq"),
             models.UniqueConstraint(fields=["company_id", "dimension", "id"], name="ledger_dim_company_dim_id_uq"),
             models.CheckConstraint(
@@ -363,7 +361,9 @@ class JournalEntry(CompanyModel):
                 fields=["tenant_id", "company_id", "book", "source_type", "source_id", "purpose"],
                 name="ledger_entry_source_uq",
             ),
-            models.UniqueConstraint(fields=["tenant_id", "company_id", "book", "number"], name="ledger_entry_number_uq"),
+            models.UniqueConstraint(
+                fields=["tenant_id", "company_id", "book", "number"], name="ledger_entry_number_uq"
+            ),
             models.CheckConstraint(
                 condition=models.Q(total_debit=models.F("total_credit")), name="ledger_entry_balanced_ck"
             ),
@@ -409,9 +409,7 @@ class JournalLine(CompanyModel):
             models.CheckConstraint(
                 condition=models.Q(debit__gte=0) & models.Q(credit__gte=0), name="ledger_line_nonneg_ck"
             ),
-            models.CheckConstraint(
-                condition=models.Q(debit=0) | models.Q(credit=0), name="ledger_line_one_side_ck"
-            ),
+            models.CheckConstraint(condition=models.Q(debit=0) | models.Q(credit=0), name="ledger_line_one_side_ck"),
         ]
         indexes = [
             models.Index(fields=["tenant_id", "company_id", "account", "posting_date"], name="ledger_line_acct_ix"),

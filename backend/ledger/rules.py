@@ -112,7 +112,9 @@ def validate_rules(raw: Any) -> list[Rule]:
             raise ValidationFailed("rule must be an object", pointer=f"/rules/{i}", reason="type")
         extra = set(item) - {"dimension", "scope_type", "scope_ref", "mode", "priority"}
         if extra:
-            raise ValidationFailed("unknown rule field", pointer=f"/rules/{i}/{sorted(extra)[0]}", reason="additional_property")
+            raise ValidationFailed(
+                "unknown rule field", pointer=f"/rules/{i}/{sorted(extra)[0]}", reason="additional_property"
+            )
         dim, scope, ref, mode = item.get("dimension"), item.get("scope_type"), item.get("scope_ref"), item.get("mode")
         if dim not in DIMENSIONS:
             raise ValidationFailed("unknown dimension", pointer=f"/rules/{i}/dimension", reason="enum")
