@@ -109,12 +109,18 @@ only in the script; setup (checkout, services, uv/node, ephemeral key) stays in 
 
 ## Results in this session (exit codes only)
 * `make ci` exit=0 (P01 suite incl. the 8 new `FIX_D_W01_1` tests; 142 passed).
-* `ci-parity.sh` → see the report (`CI-PARITY-OK 4/4` was required).
+* `bash scripts/ci/ci-parity.sh` → `CI-PARITY-OK 4/4` (policy, p03-tests, make-ci, compose-startup all exit=0) on 586a368.
 * `make dev-up && make dev-seed && make dev-health` exit=0. Migrations ran in the one-shot job; live/ready/environment
   were PASSED on 127.0.0.1:8080. The seed was SKIPPED by design (the P21 command doesn't exist yet).
 * Secret files: mode 600. `git ls-files deploy/dev/secrets` lists only `.gitkeep` and `README.md`.
 * GitHub Actions on this branch (run 56, sha 5cf7c99): `policy` success, `make ci` success, `P03 tests` success. In the
   compose job, steps dev-up / dev-seed / dev-health succeeded. **The DR-drill step failed** (see Residual).
+
+## Status
+Reported **BLOCKED**, not DONE. All four causes are fixed and green on GitHub. The compose job's own conclusion is
+still `failure` because of Residual 1, and the report checker correctly refuses DONE while an observed job is red. To
+unblock: apply CCR P04-4 item 1 (kernel migration enabling forced RLS on the kernel tenant tables, after P04 merges),
+or have the operator accept this branch with that DR-drill failure tracked as a new defect.
 
 ## Residual issues (not fixed here — need an owner decision)
 1. **DR drill T-P03-03 fails `rls_forced_on_tenant_tables`** for `kernel_dead_letter`, `kernel_feature_flag`,
