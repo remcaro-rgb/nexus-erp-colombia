@@ -5,7 +5,8 @@ Sources:
 * pytest tests marked ``@pytest.mark.req("UR-07", ...)`` (function, class, or module ``pytestmark``),
   found statically with ``ast`` under ``backend/`` and ``tests/``;
 * Playwright tests whose title contains ``@UR-07`` (``*.spec.ts`` / ``*.spec.js``);
-* outcomes: every JUnit XML under ``reports/junit/`` (+ ``reports/playwright/*.json``) joined by test name.
+* outcomes: every JUnit XML under ``reports/junit/`` (+ ``reports/playwright/*.json``) joined by test name;
+  status PASSED | FAILED | XFAIL (open P22 defect) | SKIPPED | NOT_RUN | MISSING (UR without any test) | UNKNOWN_UR.
 
 Usage::
 
@@ -146,7 +147,7 @@ def scan_playwright(roots: Iterable[Path]) -> list[TracedTest]:
 
 def junit_outcomes(report_dir: Path) -> dict[tuple[str, str], str]:
     """``(classname, base test name) -> PASSED|FAILED|SKIPPED`` (worst outcome wins)."""
-    rank = {"PASSED": 0, "SKIPPED": 1, "FAILED": 2}
+    rank = {"PASSED": 0, "SKIPPED": 1, "XFAIL": 2, "FAILED": 3}
     out: dict[tuple[str, str], str] = {}
     for xml in sorted(report_dir.glob("*.xml")) if report_dir.exists() else []:
         try:
@@ -159,7 +160,8 @@ def junit_outcomes(report_dir: Path) -> dict[tuple[str, str], str]:
             if tc.find("failure") is not None or tc.find("error") is not None:
                 st = "FAILED"
             elif tc.find("skipped") is not None:
-                st = "SKIPPED"
+                skipped = tc.find("skipped")
+                st = "XFAIL" if skipped is not None and skipped.get("type") == "pytest.xfail" else "SKIPPED"
             else:
                 st = "PASSED"
             key = (cls, base)
@@ -200,7 +202,10 @@ def status_of(t: TracedTest, junit: dict[tuple[str, str], str], pw: dict[str, st
     ]
     if not hits:
         return "NOT_RUN"
-    return "FAILED" if "FAILED" in hits else ("PASSED" if "PASSED" in hits else "SKIPPED")
+    for st in ("FAILED", "XFAIL", "PASSED"):
+        if st in hits:
+            return st
+    return "SKIPPED"
 
 
 def build_rows(

@@ -11,6 +11,7 @@ JUNIT = """<?xml version="1.0"?><testsuites><testsuite name="pytest" tests="3">
 <testcase classname="tests.demo.test_demo" name="test_a"/>
 <testcase classname="tests.demo.test_demo.TestK" name="test_b[x]"><failure message="boom"/></testcase>
 <testcase classname="tests.demo.test_demo" name="test_c"/>
+<testcase classname="tests.demo.test_demo" name="test_d"><skipped type="pytest.xfail" message="DEF-1"/></testcase>
 </testsuite></testsuites>"""
 
 
@@ -34,6 +35,10 @@ def _tree(tmp_path):
             @pytest.mark.req("UR-08")
             def test_b(self):
                 pass
+
+        @pytest.mark.req("UR-13")
+        def test_d():
+            pass
 
         def helper():
             pass
@@ -65,6 +70,7 @@ def test_p22a_markers_junit_and_playwright_are_joined(tmp_path, monkeypatch):
     assert got[("UR-99", "test_b")] == "UNKNOWN_UR"
     assert got[("UR-09", "venta completa @UR-09 @UR-11")] == "NOT_RUN"
     assert got[("UR-02", "")] == "MISSING"
+    assert got[("UR-13", "test_d")] == "XFAIL", "open defects are not PASSED"
     missing = tr.uncovered(rows)
     assert "UR-07" not in missing and "UR-08" in missing and "UR-02" in missing
     assert tr.uncovered(rows, gate="G0") == ["UR-19"]

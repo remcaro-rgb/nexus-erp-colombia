@@ -1,0 +1,28 @@
+ur,requirement,gates,kind,test_file,test_name,status
+UR-01,"SaaS, multi-tenant, multi-company","G1, G2",,,,MISSING
+UR-02,AI-first,G3,,,,MISSING
+UR-03,ERP + CRM,G2,,,,MISSING
+UR-04,Complies with Colombian regulation,G4 + EG-1..EG-8,,,,MISSING
+UR-05,Research local regulation constraints and guidelines,G4,,,,MISSING
+UR-06,"ERP best practices, security, features; top ERP practices",G4,,,,MISSING
+UR-07,Module 1: Accounting and finance,"G1, G2",,,,MISSING
+UR-08,Module 2: Inventory and costs,G2,,,,MISSING
+UR-09,Module 3: Invoicing (incl. DIAN e-invoicing),"G2, EG-1",,,,MISSING
+UR-10,Module 4: Purchases,G2,,,,MISSING
+UR-11,Module 5: POS,G2,,,,MISSING
+UR-12,"Module 6: HR, payroll, time keeping","G2, EG-4, EG-7",,,,MISSING
+UR-13,Module 7: Fixed assets (depreciation),G2,,,,MISSING
+UR-14,All money processes post in-line to the ledger,G2,,,,MISSING
+UR-15,All stock processes update inventory in-line,G2,,,,MISSING
+UR-16,Bulk import/export,G3,,,,MISSING
+UR-17,"Model-agnostic AI agent: query data, perform processes, schedule tasks, custom reports/documents, simulations/what-if",G3,,,,MISSING
+UR-18,Onboarding AI agent incl. existing data,G3,,,,MISSING
+UR-19,"Tech stack with the best maintenance cost-benefit, container deploy","G0, G4",,,,MISSING
+UR-20,Best UI/UX practices,"G1, G4",,,,MISSING
+UR-21,Granular data access: row and field level,"G1, G3",,,,MISSING
+UR-22,All processes available via API,G3,pytest,tests/security/test_sec_route_conformance.py,test_p22a_documented_routes_resolve_to_contract_operations,PASSED
+UR-22,All processes available via API,G3,pytest,tests/security/test_sec_route_conformance.py,test_p22a_every_implemented_api_route_is_in_the_contract,XFAIL
+UR-22,All processes available via API,G3,pytest,tests/security/test_sec_route_conformance.py,test_p22a_no_new_undocumented_api_route,PASSED
+UR-23,MCP so agents can connect,"G3, EG-10",,,,MISSING
+UR-24,Prompts for the highest parallelism,—,,,,MISSING
+UR-25,Done in one shot with the prompts,G4,,,,MISSING
