@@ -1,0 +1,27 @@
+{
+  "cases": 18207,
+  "by_status": {
+    "NOT_IMPLEMENTED": 18207
+  },
+  "by_channel": {
+    "ai": {
+      "NOT_IMPLEMENTED": 291
+    },
+    "detail": {
+      "NOT_IMPLEMENTED": 3399
+    },
+    "export": {
+      "NOT_IMPLEMENTED": 301
+    },
+    "list": {
+      "NOT_IMPLEMENTED": 3441
+    },
+    "report": {
+      "NOT_IMPLEMENTED": 297
+    },
+    "write": {
+      "NOT_IMPLEMENTED": 10478
+    }
+  },
+  "failed": []
+}

@@ -1,0 +1,11 @@
+{
+  "_source": "prompt P22 §9 (performance targets); integer milliseconds; DEV reference profile 4 vCPU / 16 GB",
+  "concurrent_users": 200,
+  "p95_ms": {
+    "api_read": 400,
+    "api_posting_le_50_lines": 800,
+    "pos_checkout": 300,
+    "report_query_5m_lines": 3000,
+    "outbox_lag": 5000
+  }
+}

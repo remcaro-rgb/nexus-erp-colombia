@@ -1,0 +1,57 @@
+{
+  "gate": "G1",
+  "label": "P22a",
+  "environment": "dev",
+  "synthetic_data": true,
+  "commit": "3208ba8d02752cb7aa4694594c02f8aecf6ad57e",
+  "collected_at_utc": "2026-11-09T17:45:57Z",
+  "junit": {
+    "tests": 310,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3
+  },
+  "files": [
+    {
+      "path": "junit/ci-backend.xml",
+      "sha256": "c638ad4d944eda5f17247a743f22c6a9ae7e83bf88f7ed5b75192e0b75123067",
+      "bytes": 12929
+    },
+    {
+      "path": "junit/ci-contract.xml",
+      "sha256": "bd5f30c00f756dd216e884af4962d707c3d07e812379d6b12ca0d8aaa97b18f6",
+      "bytes": 20946
+    },
+    {
+      "path": "junit/ci-qa.xml",
+      "sha256": "d439f332fc374fb25a91a0ed48fee8365396d0e6692802b5fd87b5e9feab86b0",
+      "bytes": 10997
+    },
+    {
+      "path": "coverage/backend.xml",
+      "sha256": "b990ffbf983a45c7d4427c338d41b55a2fbfc00f541830f664ba73329f77693b",
+      "bytes": 114210
+    },
+    {
+      "path": "leak/leak-matrix-live.csv",
+      "sha256": "2d548e7e726b022e52b19d1e054dc731e3bc5705f88971b51d02339e0a617b30",
+      "bytes": 82
+    },
+    {
+      "path": "leak/leak-summary-live.json",
+      "sha256": "43427ba76d5084dc07199cc31cf12591a2e8718acbd5d506f67301a27fe15078",
+      "bytes": 419
+    },
+    {
+      "path": "perf/p22a-health-live.json",
+      "sha256": "a46101526f2d56c878490412342bc275e3137c194728d4bd7ba5ee52bc37ce9a",
+      "bytes": 290
+    },
+    {
+      "path": "traceability/traceability.csv",
+      "sha256": "d42134373297723f15aa5fe231cee17341b7e202a59118934c4d80684a9c39ea",
+      "bytes": 1984
+    }
+  ],
+  "note": "DEV build with synthetic data; not evidence of DIAN/UGPP/PILA or any legal compliance."
+}
