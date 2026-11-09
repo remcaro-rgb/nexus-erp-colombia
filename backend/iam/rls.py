@@ -11,9 +11,12 @@ a ``tenant_id`` column.
 
 from __future__ import annotations
 
+import uuid
+from typing import Any
+
 from django.db import connection, migrations
 
-from kernel.db import rls_policy_sql
+from kernel.db import _ident, rls_policy_sql
 
 TENANT_PRED = "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
 
@@ -65,3 +68,39 @@ def tables_without_rls(prefix: str = "") -> list[str]:
             [prefix + "%"],
         )
         return [r[0] for r in cur.fetchall()]
+
+
+# --------------------------------------------------------------------- cross-module reference lookups
+# Raw SQL is confined to this allow-listed module (scripts/ci/static_checks_allowlist.json). These read
+# tables registered by other modules (P09 warehouses, P12 POS configs) whose models IAM cannot import;
+# identifiers are validated with kernel.db._ident, values are bound parameters, RLS still applies.
+
+
+def reference_rows(
+    table: str,
+    branch_column: str,
+    label_column: str,
+    active_sql: str,
+    tenant_id: uuid.UUID,
+    company_id: uuid.UUID,
+    branch_id: uuid.UUID,
+) -> list[tuple[Any, Any]]:
+    t, b, label = _ident(table), _ident(branch_column), _ident(label_column)
+    sql = (
+        f"SELECT id, {label} FROM {t} "  # noqa: S608 - identifiers validated by _ident; active_sql is module code
+        f"WHERE tenant_id = %s AND company_id = %s AND {b} = %s AND ({active_sql}) ORDER BY 2 LIMIT 50"
+    )
+    with connection.cursor() as cur:
+        cur.execute(sql, [str(tenant_id), str(company_id), str(branch_id)])
+        return [(r[0], r[1]) for r in cur.fetchall()]
+
+
+def reference_company(table: str, tenant_id: uuid.UUID, row_id: uuid.UUID) -> uuid.UUID | None:
+    t = _ident(table)
+    with connection.cursor() as cur:
+        cur.execute(
+            f"SELECT company_id FROM {t} WHERE tenant_id = %s AND id = %s",  # noqa: S608 - validated identifier
+            [str(tenant_id), str(row_id)],
+        )
+        row = cur.fetchone()
+    return uuid.UUID(str(row[0])) if row else None

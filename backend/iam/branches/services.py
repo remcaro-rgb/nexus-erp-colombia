@@ -17,9 +17,10 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from django.db import IntegrityError, connection, transaction
+from django.db import IntegrityError, transaction
 from django.db.models.functions import Lower
 
+from iam import rls
 from iam.errors import BranchCodeDuplicate, BranchCrossCompany, BranchHeadOfficeRequired, BranchInUse
 from iam.models import Branch, Company
 from kernel import clock, services
@@ -78,14 +79,16 @@ def unregister_reference(name: str) -> None:
 def active_references(branch: Branch) -> list[dict[str, str]]:
     out: list[dict[str, str]] = []
     for ref in sorted(_REFERENCES.values(), key=lambda r: r.name):
-        sql = (
-            f"SELECT id, {ref.label_column} FROM {ref.table} "  # noqa: S608 - identifiers validated by _ident
-            f"WHERE tenant_id = %s AND company_id = %s AND {ref.branch_column} = %s AND ({ref.active_sql}) "
-            "ORDER BY 2 LIMIT 50"
+        rows = rls.reference_rows(
+            ref.table,
+            ref.branch_column,
+            ref.label_column,
+            ref.active_sql,
+            branch.tenant_id,
+            branch.company_id,
+            branch.id,
         )
-        with connection.cursor() as cur:
-            cur.execute(sql, [str(branch.tenant_id), str(branch.company_id), str(branch.id)])
-            out.extend({"type": ref.name, "id": str(r[0]), "label": str(r[1])} for r in cur.fetchall())
+        out.extend({"type": ref.name, "id": str(rid), "label": str(label)} for rid, label in rows)
     return out
 
 
@@ -93,15 +96,10 @@ def _referenced_company(ref_name: str, tenant_id: uuid.UUID, row_id: uuid.UUID) 
     ref = _REFERENCES.get(ref_name)
     if ref is None:
         raise ValidationFailed(f"{ref_name} is not available yet", code="validation_failed")
-    with connection.cursor() as cur:
-        cur.execute(
-            f"SELECT company_id FROM {ref.table} WHERE tenant_id = %s AND id = %s",  # noqa: S608 - validated identifier
-            [str(tenant_id), str(row_id)],
-        )
-        row = cur.fetchone()
-    if row is None:
+    company = rls.reference_company(ref.table, tenant_id, row_id)
+    if company is None:
         raise ValidationFailed(f"unknown {ref_name}")
-    return uuid.UUID(str(row[0]))
+    return company
 
 
 # ------------------------------------------------------------------------ validation helpers

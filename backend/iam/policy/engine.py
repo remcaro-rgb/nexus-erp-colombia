@@ -33,8 +33,7 @@ from typing import Any
 
 import structlog
 from django.core.cache import cache
-from django.db import connection
-from django.db.models import Q
+from django.db.models import F, Q
 
 from iam.errors import PolicyDenied
 from iam.policy import fields as field_registry
@@ -136,15 +135,16 @@ class PolicyEngine:
 
     @staticmethod
     def bump_version(tenant_id: uuid.UUID) -> int:
-        """Increment the tenant policy version (call inside the changing UoW)."""
-        with connection.cursor() as cur:
-            cur.execute(
-                "INSERT INTO iam_policy_version (tenant_id, version) VALUES (%s, 2) "
-                "ON CONFLICT (tenant_id) DO UPDATE SET version = iam_policy_version.version + 1 RETURNING version",
-                [str(tenant_id)],
-            )
-            row = cur.fetchone()
-        return int(row[0]) if row else 1
+        """Increment the tenant policy version (call inside the changing UoW; row-locked, no lost updates)."""
+        from iam.models import PolicyVersion
+
+        row, created = PolicyVersion.objects.select_for_update().get_or_create(
+            tenant_id=tenant_id, defaults={"version": 2}
+        )
+        if not created:
+            PolicyVersion.objects.filter(tenant_id=tenant_id).update(version=F("version") + 1)
+            row.refresh_from_db(fields=["version"])
+        return int(row.version)
 
     def effective(self, ctx: TenantContext) -> Effective:
         version = self.policy_version(ctx)
