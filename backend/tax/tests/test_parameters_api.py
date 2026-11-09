@@ -16,14 +16,25 @@ from tax.testing.fixtures import ApiClient, grant_all
 
 pytestmark = pytest.mark.django_db
 
-SOURCE = {"url": "https://normograma.dian.gov.co/dian/compilacion/docs/resolucion_dian_0238_2025.htm",
-          "title": "Res. UVT (synthetic test proposal)", "accessed_at": "2026-11-09T10:00:00-05:00"}  # fmt: skip
+SOURCE = {
+    "url": "https://normograma.dian.gov.co/dian/compilacion/docs/resolucion_dian_0238_2025.htm",
+    "title": "Res. UVT (synthetic test proposal)",
+    "accessed_at": "2026-11-09T10:00:00-05:00",
+}
 
 
 def _proposal_body(**over: Any) -> dict[str, Any]:
-    params = {"code": "uvt", "value_type": "decimal", "value": "60000", "valid_from": "2027-01-01",
-              "valid_to": "2027-12-31", "parameter_status": "VERIFIED-PRIMARY", "source": SOURCE,
-              "document_ref": "filestore:synthetic-test-doc", "synthetic": True}  # fmt: skip
+    params = {
+        "code": "uvt",
+        "value_type": "decimal",
+        "value": "60000",
+        "valid_from": "2027-01-01",
+        "valid_to": "2027-12-31",
+        "parameter_status": "VERIFIED-PRIMARY",
+        "source": SOURCE,
+        "document_ref": "filestore:synthetic-test-doc",
+        "synthetic": True,
+    }
     params.update(over)
     return {"reason": "load 2027 value (synthetic test)", "parameters": params}
 
@@ -58,8 +69,11 @@ def test_T_P06_09_parameter_approval_requires_two_people(seeded: Any, api: ApiCl
     approver = _second_person(seeded)
     grant_all(policy, approver, ("tax.parameter.approve", "tax.parameter.read"))
     api.use(approver)
-    ok = api.command("post", f"/api/v1/tax/parameters/{proposal['id']}:approve",
-                     {"reason": "checked against the official text", "parameters": {"legal_review": True}})  # fmt: skip
+    ok = api.command(
+        "post",
+        f"/api/v1/tax/parameters/{proposal['id']}:approve",
+        {"reason": "checked against the official text", "parameters": {"legal_review": True}},
+    )
     assert ok.status_code == 200, ok.json()
     body = ok.json()
     assert body["approval"] == "APPROVED" and body["legal_reviewed_by"] == str(approver.principal_id)
@@ -74,8 +88,12 @@ def test_T_P06_09_parameter_approval_requires_two_people(seeded: Any, api: ApiCl
     from kernel.models import OutboxMessage
 
     event = OutboxMessage.objects.get(event_type="tax.parameter.approved.v1", tenant_id=seeded.tenant_id)
-    assert event.envelope["payload"] == {"parameter_id": proposal["id"], "code": "uvt", "valid_from": "2027-01-01",
-                                         "status": "VERIFIED-PRIMARY"}  # fmt: skip
+    assert event.envelope["payload"] == {
+        "parameter_id": proposal["id"],
+        "code": "uvt",
+        "valid_from": "2027-01-01",
+        "status": "VERIFIED-PRIMARY",
+    }
     with tenancy.activate(seeded):
         assert DbParameterProvider().get("uvt", dt.date(2027, 3, 1), next(iter(seeded.company_ids))).synthetic
 
@@ -91,8 +109,15 @@ def test_T_P06_09_approval_log_is_append_only(seeded: Any) -> None:
 def test_T_P06_09_change_closes_previous_range(seeded: Any) -> None:
     current = Parameter.objects.get(tenant_id=seeded.tenant_id, code="iva.general")
     assert current.valid_to is None
-    data = workflow.ProposalInput(code="iva.general", value_type="percent", value="20", valid_from=dt.date(2026, 12, 1),
-                                  parameter_status="VERIFIED-SECONDARY", source_id=current.source_id, synthetic=True)  # fmt: skip
+    data = workflow.ProposalInput(
+        code="iva.general",
+        value_type="percent",
+        value="20",
+        valid_from=dt.date(2026, 12, 1),
+        parameter_status="VERIFIED-SECONDARY",
+        source_id=current.source_id,
+        synthetic=True,
+    )
     proposal = run_in_unit_of_work(lambda u: workflow.propose_change(u, current.id, data, reason="synthetic"), seeded)
     with pytest.raises(Exception) as exc:
         run_in_unit_of_work(lambda u: workflow.approve(u, proposal.id), seeded)
@@ -128,12 +153,28 @@ def test_T_P06_10_impact_preview_lists_affected_documents(seeded: Any, api: ApiC
         calls.append((code, valid_from))
         if code != "uvt":
             return []
-        return [{"document_type": "payroll.run", "document_id": "run-2027-01", "number": "NOM-2027-01",
-                 "reason": "open run uses UVT"}]  # fmt: skip
+        return [
+            {
+                "document_type": "payroll.run",
+                "document_id": "run-2027-01",
+                "number": "NOM-2027-01",
+                "reason": "open run uses UVT",
+            }
+        ]
 
     def open_invoices(ctx: Any, code: str, valid_from: dt.date, valid_to: Any, company: Any) -> list[dict[str, Any]]:
-        return [{"document_type": "purchase.invoice", "document_id": "fc-9", "number": "FC-9",
-                 "reason": "draft withholding"}] if code == "uvt" else []  # fmt: skip
+        return (
+            [
+                {
+                    "document_type": "purchase.invoice",
+                    "document_id": "fc-9",
+                    "number": "FC-9",
+                    "reason": "draft withholding",
+                }
+            ]
+            if code == "uvt"
+            else []
+        )
 
     workflow.register_impact_provider("payroll", payroll_runs)
     workflow.register_impact_provider("purchasing", open_invoices)
@@ -143,8 +184,10 @@ def test_T_P06_10_impact_preview_lists_affected_documents(seeded: Any, api: ApiC
         assert resp.status_code == 200
         impact = resp.json()
         assert impact["count"] == 2 and impact["providers"] == ["payroll", "purchasing"]
-        assert {(d["provider"], d["number"]) for d in impact["affected"]} == {("payroll", "NOM-2027-01"),
-                                                                             ("purchasing", "FC-9")}  # fmt: skip
+        assert {(d["provider"], d["number"]) for d in impact["affected"]} == {
+            ("payroll", "NOM-2027-01"),
+            ("purchasing", "FC-9"),
+        }
         assert calls == [("uvt", dt.date(2027, 1, 1))]
         iva = Parameter.objects.get(tenant_id=seeded.tenant_id, code="iva.general")
         assert api.get(f"/api/v1/tax/parameters/{iva.id}/impact").json()["count"] == 0
@@ -157,8 +200,13 @@ def test_T_P06_10_impact_preview_lists_affected_documents(seeded: Any, api: ApiC
 
 
 def test_P06_api_denies_by_default(seeded: Any, api: ApiClient, policy: Any) -> None:
-    for url in ("/api/v1/tax/parameters", "/api/v1/tax/tax-codes", "/api/v1/tax/localization/municipalities",
-                "/api/v1/tax/exogena/format-packs", "/api/v1/tax/sources"):  # fmt: skip
+    for url in (
+        "/api/v1/tax/parameters",
+        "/api/v1/tax/tax-codes",
+        "/api/v1/tax/localization/municipalities",
+        "/api/v1/tax/exogena/format-packs",
+        "/api/v1/tax/sources",
+    ):
         resp = api.get(url)
         assert resp.status_code == 403, url
     resp = api.command("post", "/api/v1/tax/compute", {"parameters": {"document_date": "2026-07-01", "lines": []}})
@@ -207,10 +255,15 @@ def test_P06_api_timeline_paging_and_filters(seeded: Any, api: ApiClient, policy
 
 def test_P06_api_compute_and_idempotent_replay(seeded: Any, api: ApiClient, policy: Any) -> None:
     grant_all(policy, seeded)
-    body = {"parameters": {"document_type": "purchase.invoice", "document_date": "2026-07-15",
-                           "seller": {"regime": "RESPONSABLE_IVA"},
-                           "buyer": {"regime": "RESPONSABLE_IVA", "vat_withholding_agent": True},
-                           "lines": [{"line_ref": "1", "base_amount": "1000000", "tax_codes": ["IVA19", "RETEIVA"]}]}}  # fmt: skip
+    body = {
+        "parameters": {
+            "document_type": "purchase.invoice",
+            "document_date": "2026-07-15",
+            "seller": {"regime": "RESPONSABLE_IVA"},
+            "buyer": {"regime": "RESPONSABLE_IVA", "vat_withholding_agent": True},
+            "lines": [{"line_ref": "1", "base_amount": "1000000", "tax_codes": ["IVA19", "RETEIVA"]}],
+        }
+    }
     first = api.command("post", "/api/v1/tax/compute", body, key="compute-key-0001")
     assert first.status_code == 200, first.json()
     data = first.json()["data"]
@@ -221,17 +274,25 @@ def test_P06_api_compute_and_idempotent_replay(seeded: Any, api: ApiClient, poli
     floaty = {"parameters": {**body["parameters"], "lines": [{"base_amount": 10.5, "tax_codes": ["IVA19"]}]}}
     assert api.command("post", "/api/v1/tax/compute", floaty).status_code == 422
     # statutory VAT rates are open-ended; the UVT-based withholding base has no 2027 row → fails closed
-    unknown = {"parameters": {**body["parameters"], "document_date": "2027-02-01",
-                              "buyer": {"regime": "RESPONSABLE_IVA", "withholding_agent": True},
-                              "lines": [{"base_amount": "500000", "concept": "RF-SERVICIOS"}]}}  # fmt: skip
+    unknown = {
+        "parameters": {
+            **body["parameters"],
+            "document_date": "2027-02-01",
+            "buyer": {"regime": "RESPONSABLE_IVA", "withholding_agent": True},
+            "lines": [{"base_amount": "500000", "concept": "RF-SERVICIOS"}],
+        }
+    }
     resp = api.command("post", "/api/v1/tax/compute", unknown)
     assert resp.status_code == 422 and resp.json()["code"] == "tax_parameter_unknown"
 
 
 def test_P06_api_master_data_crud_with_etag(seeded: Any, api: ApiClient, policy: Any) -> None:
     grant_all(policy, seeded)
-    created = api.command("post", "/api/v1/tax/tax-codes", {"code": "INC8", "name": "Impuesto al consumo",
-                                                              "tax_type": "INC", "rate_parameter_code": "inc.general"})  # fmt: skip
+    created = api.command(
+        "post",
+        "/api/v1/tax/tax-codes",
+        {"code": "INC8", "name": "Impuesto al consumo", "tax_type": "INC", "rate_parameter_code": "inc.general"},
+    )
     assert created.status_code == 201, created.json()
     tid, etag = created.json()["id"], created["ETag"]
     assert (
@@ -248,16 +309,34 @@ def test_P06_api_master_data_crud_with_etag(seeded: Any, api: ApiClient, policy:
     assert api.get(f"/api/v1/tax/tax-codes/{tid}").json()["status"] == "ARCHIVED"  # archived, never deleted
     bad = api.command("post", "/api/v1/tax/tax-codes", {"code": "X", "name": "y", "tax_type": "VAT", "z": 1})
     assert bad.status_code == 422
-    profile = api.command("post", "/api/v1/tax/party-tax-profiles",
-                          {"party": {"id": str(uuid.uuid4()), "kind": "vendor"}, "regime": "RESPONSABLE_IVA",
-                           "withholding_agent": True, "responsibilities": ["O-13"]})  # fmt: skip
+    profile = api.command(
+        "post",
+        "/api/v1/tax/party-tax-profiles",
+        {
+            "party": {"id": str(uuid.uuid4()), "kind": "vendor"},
+            "regime": "RESPONSABLE_IVA",
+            "withholding_agent": True,
+            "responsibilities": ["O-13"],
+        },
+    )
     assert profile.status_code == 201 and profile.json()["party"]["kind"] == "vendor"
-    ica = api.command("post", "/api/v1/tax/ica-tariffs", {"code": "ICA-X", "name": "t", "municipality_code": "999",
-                                                           "activity_code": "4711"})  # fmt: skip
+    ica = api.command(
+        "post",
+        "/api/v1/tax/ica-tariffs",
+        {"code": "ICA-X", "name": "t", "municipality_code": "999", "activity_code": "4711"},
+    )
     assert ica.status_code == 422
-    cal = api.command("post", "/api/v1/tax/calendars", {"code": "RF", "name": "Retención", "obligation": "retefuente",
-                                                         "year": 2026, "due_dates": {"periods": [
-                                                             {"period": "2026-01", "by_digit": {"1": "2026-02-10"}}]}})  # fmt: skip
+    cal = api.command(
+        "post",
+        "/api/v1/tax/calendars",
+        {
+            "code": "RF",
+            "name": "Retención",
+            "obligation": "retefuente",
+            "year": 2026,
+            "due_dates": {"periods": [{"period": "2026-01", "by_digit": {"1": "2026-02-10"}}]},
+        },
+    )
     assert cal.status_code == 201, cal.json()
 
 

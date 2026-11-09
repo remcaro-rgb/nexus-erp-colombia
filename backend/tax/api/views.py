@@ -406,6 +406,7 @@ class ExogenaPackImport(base.TaxAPIView):
     def post(self, request: Request) -> Response:
         ctx = base.context(request)
         base.authorize(ctx, "tax.exogena_format_pack.create")
+        base.idempotency_key(request)
         upload = request.FILES.get("file")
         if upload is None:
             raise ValidationFailed("multipart field 'file' is required", field="file")
@@ -427,4 +428,4 @@ class ExogenaPackImport(base.TaxAPIView):
                   "progress": "100", "result": serializers.exogena_pack(obj)}  # fmt: skip
             return op, 202, {"Location": f"/api/v1/tax/exogena/format-packs/{obj.id}"}
 
-        return base.command(request, ctx, "tax.exogena_format_pack.import", run)
+        return base.command(request, ctx, "tax.exogena_format_pack.import", run, payload=pack)

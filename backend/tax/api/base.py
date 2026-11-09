@@ -76,8 +76,12 @@ def command(
     ctx: TenantContext,
     scope: str,
     fn: Callable[[UnitOfWork], tuple[Any, int, dict[str, str]]],
+    payload: Any = None,
 ) -> Response:
-    """Run ``fn`` in a unit of work keyed by ``Idempotency-Key``; replays return the stored response."""
+    """Run ``fn`` in a unit of work keyed by ``Idempotency-Key``; replays return the stored response.
+
+    ``payload`` replaces ``request.data`` for the idempotency hash (e.g. the parsed content of an upload).
+    """
     key = idempotency_key(request)
     headers_box: dict[str, str] = {}
 
@@ -87,7 +91,8 @@ def command(
         uow.set_response({"body": body, "headers": headers}, status)
         return body, status
 
-    result = run_in_unit_of_work(run, ctx, idempotency_key=key, request=request.data, scope=scope)
+    body = request.data if payload is None else payload
+    result = run_in_unit_of_work(run, ctx, idempotency_key=key, request=body, scope=scope)
     if isinstance(result, StoredResponse):
         stored = result.body or {}
         response = Response(stored.get("body"), status=result.status_code)
