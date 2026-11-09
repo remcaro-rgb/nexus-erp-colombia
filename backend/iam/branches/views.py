@@ -8,15 +8,14 @@ from typing import Any
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from kernel import tenancy
-from kernel.errors import NotFound
-from kernel.uow import UnitOfWork
-
 from iam.api.base import SecuredView, check_if_match, parse_uuid
 from iam.branches import services
 from iam.models import Branch
 from iam.policy import fields as field_registry
 from iam.policy.engine import get_engine
+from kernel import tenancy
+from kernel.errors import NotFound
+from kernel.uow import UnitOfWork
 
 RESOURCE = "iam.branch"
 field_registry.register(

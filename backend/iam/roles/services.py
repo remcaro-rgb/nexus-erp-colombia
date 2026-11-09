@@ -17,16 +17,15 @@ from typing import Any
 
 from django.db import DatabaseError, transaction
 
+from iam.errors import BranchCrossCompany, ExternalRoleForbidden
+from iam.models import Branch, ExternalAccount, Membership, Role, RoleAssignment, User
+from iam.policy.engine import SCOPE_KEYS, PolicyEngine
+from iam.policy.patterns import CLASSIFICATIONS
 from kernel import services
 from kernel.errors import NotFound, ValidationFailed
 from kernel.interfaces.audit import AuditEntry, AuditService
 from kernel.interfaces.dimensions import Dimensions
 from kernel.uow import UnitOfWork
-
-from iam.errors import BranchCrossCompany, ExternalRoleForbidden
-from iam.models import Branch, ExternalAccount, Membership, Role, RoleAssignment, User
-from iam.policy.engine import SCOPE_KEYS, PolicyEngine
-from iam.policy.patterns import CLASSIFICATIONS
 
 
 def _uuid(value: Any, field: str) -> uuid.UUID:

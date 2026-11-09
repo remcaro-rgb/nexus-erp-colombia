@@ -11,18 +11,19 @@ from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from kernel import tenancy
-from kernel.errors import NotFound
-
 from iam import dimensions
 from iam.api.base import SecuredView, parse_uuid
 from iam.models import Membership
 from iam.policy import fields as field_registry
 from iam.policy.engine import get_engine
+from kernel import tenancy
+from kernel.errors import NotFound
 
 field_registry.register(
     "iam.cost_center_scope",
-    dict.fromkeys(("tenant_id", "company_id", "status", "code", "description", "path", "node_type", "parent_id"), "internal")
+    dict.fromkeys(
+        ("tenant_id", "company_id", "status", "code", "description", "path", "node_type", "parent_id"), "internal"
+    )
     | {"id": "public"},
 )
 
@@ -30,7 +31,9 @@ field_registry.register(
 @functools.cache
 def catalog_codes() -> tuple[str, ...]:
     """Permission codes of ``contracts/permissions/catalog.yaml`` (empty when not shipped)."""
-    path = Path(getattr(settings, "REPO_DIR", Path(__file__).resolve().parents[3])) / "contracts/permissions/catalog.yaml"
+    path = (
+        Path(getattr(settings, "REPO_DIR", Path(__file__).resolve().parents[3])) / "contracts/permissions/catalog.yaml"
+    )
     if not path.exists():
         return ()
     doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
@@ -48,7 +51,8 @@ class MeView(SecuredView):
         user_id = ctx.on_behalf_of or ctx.principal_id
         with tenancy.scope(ctx):
             companies = sorted(
-                str(c) for c in Membership.objects.filter(tenant_id=ctx.tenant_id, user_id=user_id).values_list(
+                str(c)
+                for c in Membership.objects.filter(tenant_id=ctx.tenant_id, user_id=user_id).values_list(
                     "company_id", flat=True
                 )
             )
@@ -93,7 +97,9 @@ class CostCentersView(SecuredView):
             self.ctx, "iam.cost_center_scope.read", dimensions.all_nodes(company), request.query_params.get("q", "")
         )
         if request.query_params.get("view") == "tree":
-            return Response({"items": dimensions.secure_tree(self.ctx, "iam.cost_center_scope.read", nodes), "next_cursor": None})
+            return Response(
+                {"items": dimensions.secure_tree(self.ctx, "iam.cost_center_scope.read", nodes), "next_cursor": None}
+            )
         items = [self.serialize(node_dict(n)) for n in sorted(nodes, key=lambda n: n.code)]
         return Response({"items": items, "next_cursor": None})
 

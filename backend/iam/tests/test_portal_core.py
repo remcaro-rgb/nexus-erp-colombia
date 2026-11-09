@@ -10,12 +10,11 @@ import pytest
 from django.db import DatabaseError, connection, transaction
 from django.urls import URLPattern, URLResolver, clear_url_caches, get_resolver, path
 
-from kernel import clock, ids, tenancy
-from kernel.tenancy import PrincipalType, TenantContext
-
 from iam.external import portal as portal_base
 from iam.models import ExternalAccount, RoleAssignment, User
 from iam.policy.engine import get_engine
+from kernel import clock, ids, tenancy
+from kernel.tenancy import PrincipalType, TenantContext
 
 from .conftest import Api
 from .portal_support import PASSWORD, invite, onboard, token_of
@@ -163,9 +162,9 @@ def _portal_routes() -> list[str]:
 def test_T_PORTAL_CORE_02_idor_suite_party_a_cannot_read_party_b(world, admin, login, issuer, notifications, probe):
     admin_api = login(admin, "ALFA")
     party_a, party_b, party_c = ids.new_id(), ids.new_id(), ids.new_id()
-    api_a, acc_a = onboard(world, issuer, admin_api, notifications, "supplier", party_a, "prov-a")
+    api_a, _acc_a = onboard(world, issuer, admin_api, notifications, "supplier", party_a, "prov-a")
     api_b, acc_b = onboard(world, issuer, admin_api, notifications, "supplier", party_b, "prov-b")
-    api_c, acc_c = onboard(world, issuer, admin_api, notifications, "customer", party_c, "cli-c")
+    api_c, _acc_c = onboard(world, issuer, admin_api, notifications, "customer", party_c, "cli-c")
 
     docs: dict[str, list[uuid.UUID]] = {"A": [], "B": [], "C": []}
     with tenancy.scope(world.ctx()):
@@ -182,8 +181,12 @@ def test_T_PORTAL_CORE_02_idor_suite_party_a_cannot_read_party_b(world, admin, l
                 docs[owner].append(d.id)
         # a document of party A's id but in another company must stay invisible too
         foreign = probe.PortalProbeDoc.objects.create(
-            tenant_id=world.tenant_id, company_id=world.companies["BETA"], party_id=party_a, number="A-BETA",
-            amount=Decimal("1"), internal_cost=Decimal("1"),
+            tenant_id=world.tenant_id,
+            company_id=world.companies["BETA"],
+            party_id=party_a,
+            number="A-BETA",
+            amount=Decimal("1"),
+            internal_cost=Decimal("1"),
         )
 
     b_secrets = {str(party_b), acc_b["id"], acc_b["email"], *map(str, docs["B"]), str(foreign.id)}
@@ -214,8 +217,11 @@ def test_T_PORTAL_CORE_02_idor_suite_party_a_cannot_read_party_b(world, admin, l
             body = r.content.decode().replace(url, "")  # `instance` echoes the caller's own URL
             assert not any(s in body for s in b_secrets), (url, body)
             # 2. ids in the query string → refused
-            for name, value in (("party_id", party_b), ("company_id", world.companies["BETA"]),
-                                ("external_account_id", acc_b["id"])):
+            for name, value in (
+                ("party_id", party_b),
+                ("company_id", world.companies["BETA"]),
+                ("external_account_id", acc_b["id"]),
+            ):
                 r = api_a.get(url, **{name: str(value)})
                 other_kind = "/customer/" in url or "/employee/" in url
                 expected = {"external_account_scope_violation"} | ({"portal_kind_mismatch"} if other_kind else set())
@@ -236,14 +242,30 @@ def test_T_PORTAL_CORE_02_idor_suite_party_a_cannot_read_party_b(world, admin, l
     assert api_b.get(f"/api/portal/v1/supplier/probe-docs/{docs['B'][0]}").status_code == 200
 
     # repository layer: scope_queryset applies the token scope even without any view
-    me_a = TenantContext(world.tenant_id, frozenset({world.companies["ALFA"]}), uuid.UUID(api_a.get("/api/portal/v1/me").json()["id"]))
+    me_a = TenantContext(
+        world.tenant_id, frozenset({world.companies["ALFA"]}), uuid.UUID(api_a.get("/api/portal/v1/me").json()["id"])
+    )
     with tenancy.scope(me_a):
         qs = get_engine().scope_queryset(me_a, "portal.supplier_invoice.read", probe.PortalProbeDoc.objects.all())
         assert sorted(qs.values_list("number", flat=True)) == ["A-0", "A-1", "A-2"]
         assert get_engine().scope_queryset(me_a, "sales.invoice.read", probe.PortalProbeDoc.objects.all()).count() == 0
-        assert not get_engine().authorize(me_a, "portal.supplier_invoice.read", {"company_id": world.companies["ALFA"], "party_id": party_b}).allowed
-        assert get_engine().authorize(me_a, "portal.supplier_invoice.read", {"company_id": world.companies["ALFA"], "party_id": party_a}).allowed
-    assert issubclass(probe.ProbeSupplierDocs, portal_base.PortalView) and probe.ProbeSupplierDocs in portal_base.REGISTRY
+        assert (
+            not get_engine()
+            .authorize(
+                me_a, "portal.supplier_invoice.read", {"company_id": world.companies["ALFA"], "party_id": party_b}
+            )
+            .allowed
+        )
+        assert (
+            get_engine()
+            .authorize(
+                me_a, "portal.supplier_invoice.read", {"company_id": world.companies["ALFA"], "party_id": party_a}
+            )
+            .allowed
+        )
+    assert (
+        issubclass(probe.ProbeSupplierDocs, portal_base.PortalView) and probe.ProbeSupplierDocs in portal_base.REGISTRY
+    )
 
 
 # --------------------------------------------------------------------------- separation
@@ -273,7 +295,12 @@ def test_T_PORTAL_CORE_03_external_users_get_no_internal_roles_and_internal_api_
     assert r.status_code == 201, r.content
 
     # the internal API rejects portal tokens on every internal endpoint
-    for url in ("/api/v1/iam/me", "/api/v1/iam/branches", "/api/v1/iam/external-accounts", "/api/v1/iam/role-assignments"):
+    for url in (
+        "/api/v1/iam/me",
+        "/api/v1/iam/branches",
+        "/api/v1/iam/external-accounts",
+        "/api/v1/iam/role-assignments",
+    ):
         r = portal.get(url)
         assert r.status_code == 401 and r.json()["code"] == "unauthenticated", url
     # a token for the external subject minted for an internal client is still refused (user kind EXTERNAL)

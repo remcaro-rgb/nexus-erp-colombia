@@ -7,20 +7,30 @@ from typing import Any
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from kernel import tenancy
-from kernel.uow import UnitOfWork
-
 from iam.api.base import SecuredView, check_if_match
 from iam.models import Role, RoleAssignment
 from iam.policy import fields as field_registry
 from iam.policy.engine import get_engine
 from iam.roles import services
+from kernel import tenancy
+from kernel.uow import UnitOfWork
 
 _AUDIT = "internal"
 field_registry.register(
     "iam.role",
     dict.fromkeys(
-        ("tenant_id", "code", "name", "status", "template_key", "grants", "denies", "max_classification", "version", "audit"),
+        (
+            "tenant_id",
+            "code",
+            "name",
+            "status",
+            "template_key",
+            "grants",
+            "denies",
+            "max_classification",
+            "version",
+            "audit",
+        ),
         _AUDIT,
     )
     | {"id": "public"},
@@ -28,7 +38,18 @@ field_registry.register(
 field_registry.register(
     "iam.role_assignment",
     dict.fromkeys(
-        ("tenant_id", "company_id", "active", "user_id", "role_id", "scope", "valid_from", "valid_to", "version", "audit"),
+        (
+            "tenant_id",
+            "company_id",
+            "active",
+            "user_id",
+            "role_id",
+            "scope",
+            "valid_from",
+            "valid_to",
+            "version",
+            "audit",
+        ),
         _AUDIT,
     )
     | {"id": "public"},

@@ -10,9 +10,8 @@ class IamConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
 
     def ready(self) -> None:
+        from iam.policy import engine
         from kernel import services
         from kernel.interfaces import PolicyService
-
-        from iam.policy import engine
 
         services.register(PolicyService, engine.get_engine(), replace=True)

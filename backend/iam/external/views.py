@@ -9,10 +9,6 @@ from typing import Any, ClassVar
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from kernel import tenancy
-from kernel.errors import NotFound
-from kernel.uow import UnitOfWork, run_in_unit_of_work
-
 from iam.api.base import PrincipalThrottle, SecuredView, check_if_match
 from iam.authn import PortalAcceptAuthentication
 from iam.errors import IdempotencyKeyRequired, Unauthenticated
@@ -21,6 +17,9 @@ from iam.external.portal import PortalView, own_account_id
 from iam.models import Company, ExternalAccount
 from iam.policy import fields as field_registry
 from iam.policy.engine import get_engine
+from kernel import tenancy
+from kernel.errors import NotFound
+from kernel.uow import UnitOfWork, run_in_unit_of_work
 
 RESOURCE = "iam.external_account"
 field_registry.register(
@@ -249,4 +248,3 @@ class PortalAcceptInvitationView(SecuredView):
         result = run_in_unit_of_work(run, ctx, idempotency_key=key, request={"token_hash": services._hash(token)})
         body = result if isinstance(result, dict) else result.body
         return Response(body, status=200)
-

@@ -105,7 +105,11 @@ def _current() -> tuple[KeyProvider, str]:
     with _lock:
         issuer = _issuer_override or default_issuer()
         if _provider is None:
-            internal = (getattr(settings, "ERP_OIDC_INTERNAL_ISSUER", None) or os.environ.get("ERP_OIDC_INTERNAL_ISSUER") or issuer)
+            internal = (
+                getattr(settings, "ERP_OIDC_INTERNAL_ISSUER", None)
+                or os.environ.get("ERP_OIDC_INTERNAL_ISSUER")
+                or issuer
+            )
             _provider = JwksKeyProvider(internal.rstrip("/") + "/protocol/openid-connect/certs")
         return _provider, issuer
 

@@ -10,14 +10,13 @@ import pytest
 from django.core.cache import cache
 from rest_framework.test import APIClient
 
+from iam.oidc import verifier
+from iam.oidc.local import LocalIssuer
+from iam.testing.world import ADMIN_GRANTS, World, make_world
 from kernel import services
 from kernel.interfaces.audit import AuditService
 from kernel.interfaces.notifications import NotificationService
 from kernel.testing.fakes import FakeAuditService, FakeNotificationService
-
-from iam.oidc import verifier
-from iam.oidc.local import LocalIssuer
-from iam.testing.world import ADMIN_GRANTS, World, make_world
 
 ISSUER = "http://127.0.0.1:8080/auth/realms/erp-dev"
 

@@ -6,12 +6,11 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
+from iam.models import Company, Membership, Role, RoleAssignment, Tenant, User
+from iam.policy.engine import PolicyEngine
 from kernel import ids
 from kernel.tenancy import PrincipalType, TenantContext
 from kernel.uow import unit_of_work
-
-from iam.models import Company, Membership, Role, RoleAssignment, Tenant, User
-from iam.policy.engine import PolicyEngine
 
 ADMIN_GRANTS = ["iam.*.*", "ledger.dimension.*", "*.*.read", "*.*.export"]
 
@@ -48,7 +47,12 @@ class World:
     def add_role(self, key: str, grants: list[str], denies: list[str] | None = None, max_cls: str = "internal") -> Role:
         with self.seed():
             role = Role.objects.create(
-                tenant_id=self.tenant_id, key=key, name=key, grants=grants, denies=denies or [], max_classification=max_cls
+                tenant_id=self.tenant_id,
+                key=key,
+                name=key,
+                grants=grants,
+                denies=denies or [],
+                max_classification=max_cls,
             )
             PolicyEngine.bump_version(self.tenant_id)
         self.roles[key] = role

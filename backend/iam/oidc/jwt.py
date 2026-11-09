@@ -60,7 +60,14 @@ class RSAPublicKey:
         return (self.n.bit_length() + 7) // 8
 
     def to_jwk(self) -> dict[str, str]:
-        return {"kty": "RSA", "alg": "RS256", "use": "sig", "kid": self.kid, "n": _int_to_b64(self.n), "e": _int_to_b64(self.e)}
+        return {
+            "kty": "RSA",
+            "alg": "RS256",
+            "use": "sig",
+            "kid": self.kid,
+            "n": _int_to_b64(self.n),
+            "e": _int_to_b64(self.e),
+        }
 
     @classmethod
     def from_jwk(cls, jwk: dict[str, Any]) -> RSAPublicKey:

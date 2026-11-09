@@ -31,25 +31,27 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+import structlog
 from django.core.cache import cache
 from django.db import connection
 from django.db.models import Q
-
-from kernel import clock, services, tenancy
-from kernel.dates import effective_q
-from kernel.interfaces.dimensions import Dimensions
-from kernel.interfaces.policy import Decision, FieldMask
-from kernel.tenancy import PrincipalType, TenantContext
 
 from iam.errors import PolicyDenied
 from iam.policy import fields as field_registry
 from iam.policy import rules
 from iam.policy.patterns import classification_rank, matches, role_allows
+from kernel import clock, services, tenancy
+from kernel.dates import effective_q
+from kernel.errors import DomainError
+from kernel.interfaces.dimensions import Dimensions
+from kernel.interfaces.policy import Decision, FieldMask
+from kernel.tenancy import PrincipalType, TenantContext
 
 SCOPE_KEYS = ("branch_ids", "warehouse_ids", "cost_center_ids")
 SCOPE_ATTR = {"branch_ids": "branch_id", "warehouse_ids": "warehouse_id", "cost_center_ids": "cost_center_id"}
 READ_ONLY_DELEGATION = ("*.*.read",)
 CACHE_SECONDS = 300
+log = structlog.get_logger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -148,7 +150,9 @@ class PolicyEngine:
         version = self.policy_version(ctx)
         today = clock.business_date()
         companies = ",".join(sorted(str(c) for c in ctx.company_ids))
-        raw = f"{ctx.tenant_id}|{ctx.principal_id}|{ctx.principal_type}|{ctx.on_behalf_of}|{companies}|{version}|{today}"
+        raw = (
+            f"{ctx.tenant_id}|{ctx.principal_id}|{ctx.principal_type}|{ctx.on_behalf_of}|{companies}|{version}|{today}"
+        )
         key = "iam:eff:" + hashlib.sha256(raw.encode()).hexdigest()
         hit = cache.get(key)
         if isinstance(hit, Effective):
@@ -241,8 +245,8 @@ class PolicyEngine:
         for root in roots:
             try:
                 out.update(dims.subtree(company_id, "cost_center", root, today))
-            except Exception:  # noqa: BLE001 - unknown/foreign node → grants nothing (fail closed)
-                continue
+            except DomainError:
+                log.warning("iam.scope.unknown_cost_center", company_id=str(company_id), node_id=str(root))
         return out
 
     # ------------------------------------------------------------ PolicyService
@@ -283,9 +287,7 @@ class PolicyEngine:
         portal = eff.portal
         if portal is None:
             return Decision(False, "deny_by_default")
-        allowed = action in ("portal.me.read", "portal.context.read") or matches(
-            (f"portal.{portal.kind}_*.*",), action
-        )
+        allowed = action in ("portal.me.read", "portal.context.read") or matches((f"portal.{portal.kind}_*.*",), action)
         if not allowed:
             return Decision(False, "external_principal")
         if resource is not None and not self.portal_owns(eff, resource):
@@ -347,7 +349,9 @@ class PolicyEngine:
         candidates = eff.allowing(action)
         if eff.principal_kind == "none" or not candidates:
             return qs.none()
-        company_attr = "company_id" if "company_id" in names else ("id" if model._meta.db_table == "iam_company" else None)
+        company_attr = (
+            "company_id" if "company_id" in names else ("id" if model._meta.db_table == "iam_company" else None)
+        )
         overrides: dict[str, str] = getattr(model, "IAM_SCOPE_FIELDS", {})
         combined = Q(pk__in=[])
         for g in candidates:
@@ -381,7 +385,9 @@ class PolicyEngine:
 
     def _scope_portal(self, eff: Effective, action: str, qs: Any, names: set[str]) -> Any:
         portal = eff.portal
-        if portal is None or not matches((f"portal.{portal.kind}_*.*", "portal.me.read", "portal.context.read"), action):
+        if portal is None or not matches(
+            (f"portal.{portal.kind}_*.*", "portal.me.read", "portal.context.read"), action
+        ):
             return qs.none()
         if "company_id" not in names:
             return qs.none()
@@ -449,9 +455,7 @@ class PolicyEngine:
         for row in rows:
             if not self.authorize(ctx, action, row).allowed:
                 continue
-            out.append(
-                {k: field_registry.apply_mask(masks.get(k, "none"), v) for k, v in row.items() if k in readable}
-            )
+            out.append({k: field_registry.apply_mask(masks.get(k, "none"), v) for k, v in row.items() if k in readable})
         return out
 
 

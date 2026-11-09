@@ -18,11 +18,10 @@ import uuid
 from collections.abc import Iterable
 from typing import Any
 
+from iam.policy.engine import get_engine
 from kernel import services
 from kernel.interfaces.dimensions import DimensionNode, Dimensions
 from kernel.tenancy import TenantContext
-
-from iam.policy.engine import get_engine
 
 
 def visible_ids(ctx: TenantContext, action: str, company_id: uuid.UUID) -> frozenset[uuid.UUID] | None:

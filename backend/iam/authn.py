@@ -22,12 +22,11 @@ from typing import Any
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.request import Request
 
-from kernel import clock, tenancy
-from kernel.tenancy import Channel, PrincipalType, TenantContext
-
 from iam.errors import CompanyNotAllowed, Unauthenticated
 from iam.oidc import verifier
 from iam.oidc.verifier import Claims
+from kernel import clock, tenancy
+from kernel.tenancy import Channel, PrincipalType, TenantContext
 
 RESOLVER_PRINCIPAL = uuid.UUID("00000000-0000-7000-8000-00000000a001")
 
@@ -160,9 +159,7 @@ class PortalAuthentication(BaseAuthentication):
             ):
                 raise Unauthenticated("portal account is not active")
             iat = claims.raw.get("iat")
-            if isinstance(iat, int) and (
-                account.last_login_at is None or account.last_login_at.timestamp() < iat
-            ):
+            if isinstance(iat, int) and (account.last_login_at is None or account.last_login_at.timestamp() < iat):
                 ExternalAccount.objects.filter(pk=account.pk).update(last_login_at=clock.now())
         ctx = TenantContext(claims.tenant_id, frozenset({account.company_id}), user.id, PrincipalType.USER)
         request._request.erp_context = ctx  # type: ignore[attr-defined]

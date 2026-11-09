@@ -260,9 +260,7 @@ class ExternalAccount(CompanyModel, AuditedModel):
     party_kind = models.CharField(max_length=16, blank=True, default="")
     employee_id = models.UUIDField(null=True, blank=True)
     email = models.EmailField(max_length=254)
-    external_status = models.CharField(
-        max_length=16, choices=ExternalStatus.choices, default=ExternalStatus.INVITED
-    )
+    external_status = models.CharField(max_length=16, choices=ExternalStatus.choices, default=ExternalStatus.INVITED)
     invited_by = models.UUIDField(null=True)
     invited_at = models.DateTimeField(default=clock.now)
     last_login_at = models.DateTimeField(null=True, blank=True)
@@ -272,7 +270,9 @@ class ExternalAccount(CompanyModel, AuditedModel):
         constraints = [
             # exactly one of party / employee (D-018)
             models.CheckConstraint(
-                condition=(Q(party_id__isnull=False, employee_id__isnull=True, portal_kind__in=["supplier", "customer"]))
+                condition=(
+                    Q(party_id__isnull=False, employee_id__isnull=True, portal_kind__in=["supplier", "customer"])
+                )
                 | Q(party_id__isnull=True, employee_id__isnull=False, portal_kind="employee"),
                 name="iam_external_account_one_subject_ck",
             ),

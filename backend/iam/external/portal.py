@@ -24,13 +24,12 @@ from typing import Any, ClassVar
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from kernel import tenancy
-from kernel.errors import NotFound
-
 from iam.api.base import SecuredView, parse_uuid
 from iam.authn import PortalAuthentication
 from iam.errors import ExternalAccountScopeViolation, PortalKindMismatch
 from iam.policy.engine import Effective, get_engine
+from kernel import tenancy
+from kernel.errors import NotFound
 
 SCOPE_PARAMS = ("party_id", "company_id", "employee_id", "tenant_id", "external_account_id", "party")
 REGISTRY: list[type[PortalView]] = []

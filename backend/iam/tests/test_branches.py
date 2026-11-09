@@ -7,11 +7,10 @@ import uuid
 import pytest
 from django.db import DatabaseError, IntegrityError, connection, transaction
 
-from kernel import ids, tenancy
-
 from iam.branches import db as branch_db
 from iam.branches import services as branch_services
 from iam.models import Branch
+from kernel import ids, tenancy
 
 pytestmark = pytest.mark.django_db
 
@@ -34,7 +33,11 @@ def test_T_ACC_BRANCH_01_crud_code_unique_per_company_and_one_head_office(world,
     r = _create(alfa, world, "ALFA", "BOG", head=True, municipality_code="11001", phone="+57 601 0000000")
     assert r.status_code == 201, r.content
     bog = r.json()
-    assert bog["is_head_office"] is True and bog["status"] == "ACTIVE" and bog["company_id"] == str(world.companies["ALFA"])
+    assert (
+        bog["is_head_office"] is True
+        and bog["status"] == "ACTIVE"
+        and bog["company_id"] == str(world.companies["ALFA"])
+    )
     assert r["Location"] == f"/api/v1/iam/branches/{bog['id']}"
 
     # code unique per company, case-insensitive
@@ -50,12 +53,17 @@ def test_T_ACC_BRANCH_01_crud_code_unique_per_company_and_one_head_office(world,
     assert med["is_head_office"] is False
     detail = alfa.get(f"/api/v1/iam/branches/{med['id']}")
     assert detail.status_code == 200
-    r = alfa.patch(f"/api/v1/iam/branches/{med['id']}", {"is_head_office": True, "name": "Medellín"},
-                   HTTP_IF_MATCH=detail["ETag"])
+    r = alfa.patch(
+        f"/api/v1/iam/branches/{med['id']}", {"is_head_office": True, "name": "Medellín"}, HTTP_IF_MATCH=detail["ETag"]
+    )
     assert r.status_code == 200, r.content
     assert r.json()["is_head_office"] is True and r.json()["name"] == "Medellín"
     with tenancy.scope(world.ctx(["ALFA"])):
-        heads = list(Branch.objects.filter(company_id=world.companies["ALFA"], is_head_office=True).values_list("code", flat=True))
+        heads = list(
+            Branch.objects.filter(company_id=world.companies["ALFA"], is_head_office=True).values_list(
+                "code", flat=True
+            )
+        )
     assert heads == ["MED"]
 
     # un-flagging the only head office is refused
@@ -77,7 +85,9 @@ def test_T_ACC_BRANCH_01_crud_code_unique_per_company_and_one_head_office(world,
     r = alfa.get("/api/v1/iam/branches", sort="code")
     assert [b["code"] for b in r.json()["items"]] == ["BOG", "MED"]
     assert alfa.get("/api/v1/iam/branches", q="medell").json()["items"][0]["code"] == "MED"
-    assert alfa.get("/api/v1/iam/branches", **{"filter[is_head_office][eq]": "true"}).json()["items"][0]["code"] == "MED"
+    assert (
+        alfa.get("/api/v1/iam/branches", **{"filter[is_head_office][eq]": "true"}).json()["items"][0]["code"] == "MED"
+    )
     assert alfa.get("/api/v1/iam/branches", **{"filter[nope][eq]": "1"}).status_code == 400
     assert [b["code"] for b in beta.get("/api/v1/iam/branches").json()["items"]] == ["BOG"]
     # other company's branch → 404 (no enumeration)
@@ -115,7 +125,9 @@ def test_T_ACC_BRANCH_01_db_enforces_uniqueness_and_exactly_one_head_office(worl
     ctx = world.ctx(["ALFA"])
     company = world.companies["ALFA"]
     with tenancy.scope(ctx):
-        Branch.objects.create(tenant_id=world.tenant_id, company_id=company, code="BOG", name="Bogotá", is_head_office=True)
+        Branch.objects.create(
+            tenant_id=world.tenant_id, company_id=company, code="BOG", name="Bogotá", is_head_office=True
+        )
         with pytest.raises(IntegrityError), transaction.atomic():
             Branch.objects.create(tenant_id=world.tenant_id, company_id=company, code="Bog", name="dup")
         with pytest.raises(IntegrityError), transaction.atomic():
@@ -135,7 +147,7 @@ def test_T_ACC_BRANCH_01_db_enforces_uniqueness_and_exactly_one_head_office(worl
 @pytest.fixture
 def warehouse_table(world):
     """A stand-in for P09's warehouse table, wired exactly as P09 must wire it."""
-    forward, reverse = branch_db.branch_fk_sql("p04probe_warehouse")
+    forward, _reverse = branch_db.branch_fk_sql("p04probe_warehouse")
     with connection.cursor() as cur:
         cur.execute(
             "CREATE TABLE p04probe_warehouse (id uuid PRIMARY KEY, tenant_id uuid NOT NULL, company_id uuid NOT NULL,"
@@ -143,7 +155,9 @@ def warehouse_table(world):
         )
         cur.execute(forward)
     branch_services.register_reference(
-        branch_services.BranchReference(branch_services.WAREHOUSE_REFERENCE, "p04probe_warehouse", active_sql="status = 'ACTIVE'")
+        branch_services.BranchReference(
+            branch_services.WAREHOUSE_REFERENCE, "p04probe_warehouse", active_sql="status = 'ACTIVE'"
+        )
     )
     branch_services.register_reference(
         branch_services.BranchReference(branch_services.POS_REFERENCE, "p04probe_warehouse", active_sql="FALSE")
@@ -179,11 +193,13 @@ def test_T_ACC_BRANCH_02_cross_company_links_rejected_and_archive_blocked_while_
 
     # API: default_warehouse_id of another company is rejected; same company accepted
     detail = alfa.get(f"/api/v1/iam/branches/{a_med['id']}")
-    r = alfa.patch(f"/api/v1/iam/branches/{a_med['id']}", {"default_warehouse_id": str(wh_beta)},
-                   HTTP_IF_MATCH=detail["ETag"])
+    r = alfa.patch(
+        f"/api/v1/iam/branches/{a_med['id']}", {"default_warehouse_id": str(wh_beta)}, HTTP_IF_MATCH=detail["ETag"]
+    )
     assert r.status_code == 422 and r.json()["code"] == "branch_cross_company"
-    r = alfa.patch(f"/api/v1/iam/branches/{a_med['id']}", {"default_warehouse_id": str(wh_alfa)},
-                   HTTP_IF_MATCH=detail["ETag"])
+    r = alfa.patch(
+        f"/api/v1/iam/branches/{a_med['id']}", {"default_warehouse_id": str(wh_alfa)}, HTTP_IF_MATCH=detail["ETag"]
+    )
     assert r.status_code == 200 and r.json()["default_warehouse_id"] == str(wh_alfa)
     # create with a foreign warehouse is rejected too
     r = _create(alfa, world, "ALFA", "CAL", default_warehouse_id=str(wh_beta))
@@ -194,9 +210,12 @@ def test_T_ACC_BRANCH_02_cross_company_links_rejected_and_archive_blocked_while_
         with pytest.raises(Exception) as exc:
             branch_services.validate_branch_link(world.ctx(["ALFA"]), world.companies["ALFA"], uuid.UUID(b_head["id"]))
         assert getattr(exc.value, "code", "") == "branch_cross_company"
-        assert branch_services.validate_branch_link(
-            world.ctx(["ALFA"]), world.companies["ALFA"], uuid.UUID(a_med["id"])
-        ).code == "MED"
+        assert (
+            branch_services.validate_branch_link(
+                world.ctx(["ALFA"]), world.companies["ALFA"], uuid.UUID(a_med["id"])
+            ).code
+            == "MED"
+        )
 
     # archive blocked while an ACTIVE warehouse references the branch, with the dependency list
     r = alfa.post(f"/api/v1/iam/branches/{a_med['id']}:archive")

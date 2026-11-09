@@ -22,17 +22,16 @@ import uuid
 from collections.abc import Mapping
 from typing import Any
 
+from iam.errors import InvalidStateTransition, InvitationExpired, Unauthenticated
+from iam.models import ExternalAccount, PortalInvitation, User
+from iam.oidc.verifier import Claims
+from iam.policy.engine import PolicyEngine
 from kernel import clock, services
 from kernel.errors import NotFound, ValidationFailed
 from kernel.interfaces.audit import AuditEntry, AuditService
 from kernel.interfaces.notifications import NotificationRequest, NotificationService
 from kernel.tenancy import PrincipalType, TenantContext
 from kernel.uow import UnitOfWork
-
-from iam.errors import InvalidStateTransition, InvitationExpired, Unauthenticated
-from iam.models import ExternalAccount, PortalInvitation, User
-from iam.oidc.verifier import Claims
-from iam.policy.engine import PolicyEngine
 
 INVITATION_TTL = dt.timedelta(hours=72)
 _EMAIL = re.compile(r"^[^@\s]{1,64}@[^@\s]{1,189}\.[A-Za-z]{2,}$")

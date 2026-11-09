@@ -20,6 +20,8 @@ from typing import Any
 from django.db import IntegrityError, connection, transaction
 from django.db.models.functions import Lower
 
+from iam.errors import BranchCodeDuplicate, BranchCrossCompany, BranchHeadOfficeRequired, BranchInUse
+from iam.models import Branch, Company
 from kernel import clock, services
 from kernel.db import _ident
 from kernel.errors import NotFound, ValidationFailed
@@ -27,9 +29,6 @@ from kernel.interfaces.audit import AuditEntry, AuditService
 from kernel.interfaces.dimensions import Dimensions
 from kernel.tenancy import TenantContext
 from kernel.uow import UnitOfWork
-
-from iam.errors import BranchCodeDuplicate, BranchCrossCompany, BranchHeadOfficeRequired, BranchInUse
-from iam.models import Branch, Company
 
 EDITABLE = (
     "code",
