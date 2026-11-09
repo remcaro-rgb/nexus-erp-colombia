@@ -1,0 +1,80 @@
+# Default role templates (P02 seed; P04 implements them as tenant-level role templates; tenants copy and adjust).
+# grants / denies are fnmatch patterns over permission codes `<module>.<resource>.<action>`; deny wins.
+# Field visibility is decided by field policies (x-classification): `max_classification` is the most sensitive class readable by default.
+# SoD (P07/P04) still applies on top: the requester never approves (D-023).
+roles:
+  - key: administrador
+    name_es: Administrador
+    description: Configuración de la empresa, usuarios y parámetros; no contabiliza documentos ni aprueba lo que solicita.
+    grants: ['iam.*.*', 'workflow.*.*', 'kernel.*.*', 'tax.*.read', 'einvoice.*.admin', 'einvoice.*.read', 'dataio.*.*', 'onboarding.*.*', 'ai.*.admin', 'ai.*.read', '*.*.read']
+    denies: ['*.*.post', 'iam.break_glass.*']
+    max_classification: confidential
+  - key: contador
+    name_es: Contador
+    grants: ['ledger.*.*', 'tax.*.*', 'reporting.*.*', 'documents.*.*', 'assets.*.*', 'treasury.*.read', 'treasury.*.approve', 'treasury.*.post',
+             'consolidation.*.*', 'intercompany.*.*', 'sales.*.read', 'purchasing.*.read', 'inventory.*.read', 'payroll.*.read', 'einvoice.*.read', '*.*.export']
+    denies: ['ledger.period.admin']
+    max_classification: confidential
+  - key: auxiliar_contable
+    name_es: Auxiliar contable
+    grants: ['ledger.*.read', 'ledger.*.create', 'ledger.*.update', 'ledger.dimension.*', 'tax.*.read', 'treasury.*.read', 'treasury.*.create', 'treasury.*.update',
+             'reporting.*.read', 'sales.*.read', 'purchasing.*.read']
+    denies: ['*.*.approve', '*.*.post', '*.*.void', '*.*.admin']
+    max_classification: internal
+  - key: vendedor
+    name_es: Vendedor
+    grants: ['crm.*.*', 'sales.party.read', 'sales.party.create', 'sales.party.update', 'sales.quote.*', 'sales.order.read', 'sales.order.create', 'sales.order.update',
+             'sales.price_list.read', 'sales.pricing.read', 'inventory.item.read', 'inventory.availability.read']
+    denies: ['*.*.approve', '*.*.post', '*.*.admin', 'sales.quote.void']
+    max_classification: confidential
+  - key: cajero_pos
+    name_es: Cajero POS
+    grants: ['pos.session.*', 'pos.ticket.*', 'pos.return.create', 'pos.return.read', 'pos.cash_movement.create', 'pos.cash_movement.read', 'pos.catalog_snapshot.read',
+             'inventory.item.read', 'inventory.availability.read', 'sales.party.read', 'sales.party.create']
+    denies: ['pos.config.*', '*.*.admin', 'pos.return.post']
+    max_classification: internal
+  - key: jefe_bodega
+    name_es: Jefe de bodega
+    grants: ['inventory.*.*', 'purchasing.receipt.*', 'purchasing.internal_requisition.read', 'purchasing.internal_requisition.approve', 'sales.delivery.*']
+    denies: ['inventory.*.admin', 'inventory.valuation.*']
+    max_classification: internal
+  - key: comprador
+    name_es: Comprador
+    grants: ['purchasing.*.read', 'purchasing.requisition.*', 'purchasing.internal_requisition.*', 'purchasing.consolidation.*', 'purchasing.rfq.*', 'purchasing.quote.*',
+             'purchasing.order.*', 'purchasing.receipt.read', 'purchasing.vendor_invoice.read', 'inventory.item.read', 'inventory.availability.read', 'sales.party.read']
+    denies: ['purchasing.rfq.approve', 'purchasing.payment.*', 'purchasing.payment_proposal.*', '*.*.admin']
+    max_classification: confidential
+  - key: analista_nomina
+    name_es: Analista de nómina
+    grants: ['hr.*.*', 'timekeeping.*.*', 'payroll.*.read', 'payroll.*.create', 'payroll.*.update', 'payroll.run.post', 'payroll.*.export']
+    denies: ['payroll.run.approve', '*.*.admin']
+    max_classification: sensitive-pii
+  - key: empleado
+    name_es: Empleado (autoservicio)
+    description: Solo autoservicio propio (portal de empleados y /hr/self-service); el alcance de fila viene del token, nunca del cuerpo (D-033).
+    grants: ['portal.employee_*.read', 'portal.employee_*.create', 'hr.self_service.*', 'timekeeping.clock_event.create', 'timekeeping.clock_event.read']
+    denies: ['*.*.admin', '*.*.approve', '*.*.post', '*.*.export']
+    max_classification: restricted-pii
+    external: false
+  - key: gerente
+    name_es: Gerente
+    grants: ['*.*.read', '*.*.approve', '*.*.export', 'reporting.*.*', 'ai.conversation.*', 'ai.plan.*']
+    denies: ['iam.*.admin', '*.*.delete']
+    max_classification: confidential
+  - key: auditor
+    name_es: Auditor (solo lectura)
+    description: Solo lectura de toda la información de la empresa, incluido el log de auditoría; nunca crea, modifica, aprueba ni contabiliza.
+    grants: ['*.*.read']
+    denies: ['*.*.create', '*.*.update', '*.*.delete', '*.*.approve', '*.*.post', '*.*.void', '*.*.export', '*.*.admin']
+    max_classification: confidential
+    read_only: true
+  - key: agente_ia
+    name_es: Agente IA (solo delegado)
+    description: |
+      No tiene permisos propios. Actúa solo con un token delegado (RFC 8693) y sus permisos efectivos son la intersección de los del usuario delegante y
+      de esta plantilla; toda acción con efecto requiere confirmación del usuario (ai_action_requires_confirmation).
+    grants: []
+    delegated_only: true
+    delegation_ceiling: ['*.*.read', '*.*.create', '*.*.update', 'ai.*.*']
+    denies: ['*.*.post', '*.*.approve', '*.*.void', '*.*.delete', '*.*.admin', 'iam.*.*']
+    max_classification: confidential

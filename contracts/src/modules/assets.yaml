@@ -1,0 +1,21 @@
+module: assets
+title: Activos fijos
+owner: P14
+resources:
+  - {path: categories, kind: master, schema: AssetCategory, fields: {useful_life_months: int internal req, method: 'enum(STRAIGHT_LINE|DECLINING|UNITS) internal req', account_role: string internal}}
+  - {path: assets, kind: master, schema: FixedAsset, fields: {category_id: ref internal req, acquisition_cost: money confidential req, acquisition_date: date internal req, location: string internal null, custodian_employee_id: ref restricted-pii null, dimensions: dims internal},
+     actions: [activate, transfer, dispose], coll_actions: [bulk], errors: [asset_already_disposed]}
+  - {path: books, kind: master, schema: AssetBook, fields: {framework: 'enum(NIIF|FISCAL) internal req'}}
+  - {path: depreciation-runs, kind: document, fields: {party: null, period_id: ref internal req, book_id: ref internal req}, actions: [preview, post], errors: [depreciation_run_exists]}
+  - {path: revaluations, kind: document, fields: {party: null, asset_id: ref internal req}, actions: [post, simulate]}
+  - {path: impairments, kind: document, fields: {party: null, asset_id: ref internal req}, actions: [post, simulate]}
+  - {path: physical-counts, kind: document, fields: {party: null}, actions: [submit, approve]}
+  - {path: reports/register, kind: report, perm: asset_register, params: [as_of, book_id]}
+  - {path: reports/depreciation-schedule, kind: report, perm: depreciation_schedule, params: [asset_id, book_id]}
+  - {path: reports/movement, kind: report, perm: asset_movement, params: [period_from, period_to, book_id]}
+events:
+  - {type: assets.depreciation_run.posted.v1, description: Depreciación contabilizada, payload: {run_id: ref internal req, period_id: ref internal req, total: money confidential req, journal_entry_id: ref internal req}}
+  - {type: assets.asset.disposed.v1, description: Activo dado de baja, payload: {asset_id: ref internal req, proceeds: money confidential}}
+dataio:
+  - {entity: fixed-assets, schema: FixedAsset, key: [code], permission: assets.asset.create}
+  - {entity: asset-categories, schema: AssetCategory, key: [code], permission: assets.category.create}

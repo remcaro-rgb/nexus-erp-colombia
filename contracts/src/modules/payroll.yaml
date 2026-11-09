@@ -1,0 +1,39 @@
+module: payroll
+title: Nómina
+owner: P13
+description: Períodos, conceptos formulados (F-PAY-FORMULA), novedades, liquidación, desprendibles, PILA (simulada) y nómina electrónica (simulador).
+resources:
+  - {path: periods, kind: master, schema: PayrollPeriod, fields: {start_date: date internal req, end_date: date internal req, frequency: 'enum(MONTHLY|BIWEEKLY|WEEKLY) internal req'}}
+  # ---------------------------------------------------------------- F-PAY-FORMULA
+  - path: concepts
+    kind: master
+    schema: PayrollConcept
+    label: conceptos de nómina (devengos y deducciones)
+    fields: {concept_type: 'enum(DEVENGO|DEDUCCION|APORTE|PROVISION) internal req', formula_id: ref internal null, depends_on: 'array(code) internal', account_role: string internal, salary_base: bool internal,
+             electronic_payroll_code: string internal null}
+    coll_actions:
+      - validate-graph: {perm: read, returns: result, summary: 'Validar el grafo de dependencias (orden topológico, D-025)', errors: [formula_dependency_cycle]}
+    errors: [formula_dependency_cycle, formula_not_approved, formula_syntax_error, formula_unknown_identifier, payroll_parameter_unknown]
+    features: [F-PAY-FORMULA]
+  - {path: novelties, kind: record, fields: {employee_id: ref restricted-pii req, concept_id: ref internal req, quantity: decimal internal, amount: money confidential null, period_id: ref internal req}, coll_actions: [bulk]}
+  - path: runs
+    kind: document
+    schema: PayrollRun
+    fields: {party: null, period_id: ref internal req, employees: 'array(ref) restricted-pii'}
+    actions: [calculate, approve, post, simulate, pay]
+    errors: [payroll_parameter_unknown, payroll_run_locked, formula_dependency_cycle, formula_budget_exceeded, formula_division_by_zero]
+    features: [F-PAY-FORMULA]
+  - {path: payslips, kind: readonly, fields: {employee_id: ref restricted-pii ro, run_id: ref internal ro, earnings: money confidential ro, deductions: money confidential ro, net_pay: money confidential ro},
+     extra: [{path: '{id}/pdf', method: GET, op: pdf, perm: export, returns: 'file:pdf'}]}
+  - {path: liquidations, kind: document, fields: {party: null, employee_id: ref restricted-pii req, termination_date: date internal req}, actions: [calculate, post, simulate], errors: [payroll_parameter_unknown]}
+  - {path: pila-files, kind: record, schema: PilaFile, label: planillas PILA (simuladas, FIXTURE_NOT_CERTIFIED), fields: {period_id: ref internal req}, actions: [generate], extra: [{path: '{id}/file', method: GET, op: file, perm: export, returns: 'file:txt'}]}
+  - {path: electronic-payroll, kind: record, schema: ElectronicPayroll, label: nómina electrónica (simulador DIAN), fields: {period_id: ref internal req, cune: string internal ro null}, actions: [generate, adjust]}
+  - {path: reports/payroll-summary, kind: report, perm: payroll_report, params: [period_id]}
+  - {path: reports/provisions, kind: report, perm: payroll_report, params: [as_of]}
+  - {path: reports/social-security, kind: report, perm: payroll_report, params: [period_id]}
+events:
+  - {type: payroll.run.posted.v1, description: Nómina contabilizada, features: [F-PAY-FORMULA], payload: {run_id: ref internal req, period_id: ref internal req, total_earnings: money confidential req, journal_entry_id: ref internal req}}
+  - {type: payroll.concept.changed.v1, description: Concepto de nómina creado o modificado, features: [F-PAY-FORMULA], payload: {concept_id: ref internal req, code: code internal req}}
+dataio:
+  - {entity: payroll-concepts, schema: PayrollConcept, key: [code], permission: payroll.concept.create, features: [F-PAY-FORMULA]}
+  - {entity: novelties, schema: Novelty, key: [employee_document, concept_code, period_code], permission: payroll.novelty.create}

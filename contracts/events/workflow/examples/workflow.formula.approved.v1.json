@@ -1,0 +1,20 @@
+{
+  "event_id": "0190f000-0000-7000-8000-00000000e001",
+  "event_type": "workflow.formula.approved.v1",
+  "occurred_at": "2026-11-09T15:00:00Z",
+  "tenant_id": "0190f000-0000-7000-8000-0000000000a1",
+  "company_id": "0190f000-0000-7000-8000-0000000000c1",
+  "actor": {
+    "type": "user",
+    "id": "0190f000-0000-7000-8000-0000000000b1",
+    "on_behalf_of": null
+  },
+  "correlation_id": "corr-SINTETICO-1",
+  "causation_id": null,
+  "payload": {
+    "formula_id": "0190f000-0000-7000-8000-000000000002",
+    "code": "SYN-001",
+    "version_no": 1
+  },
+  "schema_version": "1.0.0"
+}

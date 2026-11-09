@@ -1,0 +1,122 @@
+module: ledger
+title: Contabilidad
+owner: P05
+description: Plan de cuentas, diarios, asientos, períodos, FX, presupuestos, dimensiones analíticas (F-ACC-DIM) e informes contables base.
+resources:
+  - {path: accounts, kind: master, label: cuentas (PUC sintético),
+     fields: {nature: 'enum(DEBIT|CREDIT) internal req', postable: bool internal, parent_id: ref internal null, level: int internal, requires_party: bool internal,
+              requires_dimension: bool internal, currency: currency public null, cash_flow_line: string internal null},
+     actions: [archive, unarchive], coll_actions: [bulk], errors: [account_not_postable]}
+  - {path: account-roles, kind: config, fields: {role: code internal req, account_id: ref internal req}}
+  - {path: account-determinations, kind: config, fields: {rule_key: string internal req, item_category: string internal null, tax_code: string internal null,
+       warehouse_id: ref internal null, party_group: string internal null, account_id: ref internal req, priority: int internal}}
+  - {path: books, kind: master, fields: {framework: 'enum(NIIF_PLENAS|NIIF_PYMES|FISCAL|OTHER) internal req'}}
+  - {path: journals, kind: master, fields: {journal_type: 'enum(GENERAL|SALES|PURCHASES|CASH|BANK|PAYROLL|ASSETS|INVENTORY|CLOSING) internal req', sequence_code: code internal}}
+  - path: entries
+    kind: document
+    label: asientos contables
+    schema: JournalEntry
+    fields: {journal_id: ref internal req, book_id: ref internal null, reversal_of: docref internal ro null, source_document: docref internal ro null}
+    lines: {account_id: ref internal req, debit: money internal, credit: money internal, party: partyref confidential, functional_debit: money internal ro, functional_credit: money internal ro}
+    actions: [post, reverse, simulate]
+    errors: [entry_unbalanced, account_not_postable, period_closed, period_locked, fx_rate_missing, dimension_node_not_postable, dimension_required, dimension_forbidden, dimension_cross_company, dimension_archived]
+    features: [F-ACC-DIM]
+  - path: journal-entries
+    kind: process
+    perm: entry
+    label: simulación de asientos (validación de dimensiones)
+    coll_actions:
+      - simulate: {summary: Simular un asiento ad-hoc y devolver los errores de dimensión sin persistir, features: [F-ACC-DIM]}
+    errors: [entry_unbalanced, dimension_node_not_postable, dimension_required, dimension_forbidden, dimension_cross_company, dimension_archived]
+    features: [F-ACC-DIM]
+  - path: periods
+    kind: master
+    ops: list create get update
+    fields: {fiscal_year: int internal req, period_no: int internal req, start_date: date internal req, end_date: date internal req,
+             period_status: 'enum(OPEN|SOFT_CLOSED|CLOSED|REOPEN_REQUESTED) internal ro'}
+    actions: [soft-close, close, request-reopen, approve-reopen]
+    errors: [reopen_requires_approval, period_closed]
+  - {path: exchange-rates, kind: record, fields: {rate: rate internal req, source: string internal}, ops: list create get}
+  - {path: fx-revaluations, kind: document, schema: FxRevaluation, actions: [run, post, simulate], errors: [fx_rate_missing]}
+  - {path: recurring-templates, kind: config, fields: {schedule: string internal req, template: json internal}}
+  - {path: accruals, kind: document, actions: [post, reverse, simulate]}
+  - {path: budgets, kind: master, fields: {fiscal_year: int internal req, book_id: ref internal null, amounts: json internal}, coll_actions: [import]}
+  - {path: reports/trial-balance, kind: report, perm: trial_balance, params: [period_from, period_to, book_id, cost_center_id, business_unit_id, include_zero, dimension_subtree], features: [F-ACC-DIM]}
+  - {path: reports/general-ledger, kind: report, perm: general_ledger, params: [account_from, account_to, period_from, period_to]}
+  - {path: reports/party-ledger, kind: report, perm: party_ledger, params: [party_id, period_from, period_to]}
+  - {path: reconciliations, kind: document, actions: [post]}
+  - path: year-end-close
+    kind: process
+    coll_actions: [run]
+  - {path: tax-differences, kind: record, fields: {account_id: ref internal req, fiscal_amount: money internal, book_amount: money internal, difference_type: 'enum(TEMPORARY|PERMANENT) internal'}}
+  # ---------------------------------------------------------------- F-ACC-DIM — four dimension masters (same contract)
+  - &dim
+    path: dimensions/cost-centers
+    schema: CostCenter
+    perm: dimension
+    kind: master
+    label: centros de costo
+    params: [node_type, status, parent_id, valid_on]
+    fields: &dimfields
+      name: null
+      code: code internal req
+      description: name internal req
+      node_type: 'enum(AGRUPADOR|DETALLE) internal req'
+      parent_id: ref internal null
+      valid_from: date internal
+      valid_to: date internal null
+      sort_key: string internal null
+      external_ref: string internal null
+      path: string internal ro
+      depth: int internal ro
+    actions: [archive, unarchive, move]
+    coll_actions:
+      - import: {}
+      - export: {ext: csv}
+    extra:
+      - {path: tree, method: GET, op: tree, perm: read, returns: tree, params: [root, depth, valid_on]}
+      - {path: '{id}/usage', method: GET, op: usage, perm: read, returns: usage}
+    errors: [dimension_cycle, dimension_depth_exceeded, dimension_in_use, dimension_archived, dimension_code_duplicate, dimension_cross_company, dimension_node_not_postable]
+    features: [F-ACC-DIM]
+  - {<<: *dim, path: dimensions/business-units, schema: BusinessUnit, label: unidades de negocio}
+  - {<<: *dim, path: dimensions/aux-abierto, schema: AuxAbierto, label: auxiliares abiertos}
+  - {<<: *dim, path: dimensions/item-contable, schema: ItemContable, label: ítems contables}
+  - path: dimension-rules
+    kind: singleton
+    schema: DimensionRuleSet
+    perm: dimension_rule
+    fields:
+      rules: 'array(@DimensionRule) internal req'
+    features: [F-ACC-DIM]
+    errors: [dimension_required, dimension_forbidden]
+  - path: dimension-settings
+    kind: singleton
+    perm: dimension_rule
+    fields: {max_depth: 'int internal req', dimension: 'enum(cost_center|business_unit|aux_abierto|item_contable) internal req'}
+    features: [F-ACC-DIM]
+extra_schemas:
+  - DimensionRule:
+      dimension: 'enum(cost_center|business_unit|aux_abierto|item_contable) internal req'
+      scope_type: 'enum(account|account_range|document_type|concept|journal|stock_document) internal req'
+      scope_ref: string internal req
+      mode: 'enum(REQUIRED|ALLOWED|FORBIDDEN) internal req'
+      priority: int internal
+events:
+  - {type: ledger.entry.posted.v1, description: Asiento contabilizado, payload: {entry_id: ref internal req, number: string internal req, journal: code internal, posting_date: date internal req, total_debit: money internal req, source: docref internal}}
+  - {type: ledger.entry.reversed.v1, description: Asiento reversado, payload: {entry_id: ref internal req, reversal_entry_id: ref internal req, reason: text internal}}
+  - {type: ledger.period.status_changed.v1, description: Cambio de estado de período, payload: {period_id: ref internal req, from_status: string internal req, to_status: string internal req}}
+  - {type: ledger.dimension.changed.v1, description: 'Nodo de dimensión creado, movido, archivado o reactivado (F-ACC-DIM)', features: [F-ACC-DIM],
+     payload: {node_id: ref internal req, dimension: 'enum(cost_center|business_unit|aux_abierto|item_contable) internal req', change: 'enum(created|updated|moved|archived|unarchived) internal req', parent_id: ref internal}}
+dataio:
+  - {entity: chart-of-accounts, schema: Account, key: [code], permission: ledger.account.create}
+  - {entity: opening-balances, key: [account_code, party_nit], permission: ledger.entry.create,
+     columns: {account_code: code internal req, party_nit: string confidential, cost_center_code: code internal, debit: decimal internal, credit: decimal internal, currency: currency public req},
+     rules: ['Σdebit = Σcredit per currency (opening_balance_unbalanced)', 'posted as one opening journal entry in one transaction']}
+  - {entity: budgets, schema: Budget, key: [code, fiscal_year], permission: ledger.budget.create}
+  - entity: dimensions
+    key: [dimension, code]
+    permission: ledger.dimension.create
+    features: [F-ACC-DIM]
+    columns: {dimension: 'enum(cost_center|business_unit|aux_abierto|item_contable) internal req', code: code internal req, description: name internal req,
+              node_type: 'enum(AGRUPADOR|DETALLE) internal req', parent_code: code internal, valid_from: date internal, valid_to: date internal, status: 'enum(ACTIVE|ARCHIVED) internal'}
+    rules: ['two-pass parent resolution (children before parents allowed)', 'cycles and cross-company parents rejected atomically (zero rows applied)', 'export → import is a no-op']

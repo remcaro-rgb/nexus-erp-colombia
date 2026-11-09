@@ -1,0 +1,17 @@
+module: onboarding
+title: Puesta en marcha asistida
+owner: P21
+resources:
+  - path: sessions
+    kind: record
+    schema: OnboardingSession
+    fields: {current_step: string internal ro, answers: json confidential}
+    actions: [{resume: {perm: update, returns: schema}}]
+    extra: [{path: '{id}/steps', method: GET, op: steps, perm: read, returns: page}, {path: '{id}/steps/{step}', method: PUT, op: save_step, perm: update}]
+  - {path: checklist, kind: report, perm: checklist}
+  - {path: templates, kind: readonly, schema: OnboardingTemplate, fields: {template_type: 'enum(coa|roles|documents) internal ro', content: json internal ro}}
+  - {path: rut, kind: process, perm: rut, coll_actions: [{extract: {perm: create, summary: 'Extraer datos del RUT (archivo sintético en DEV)'}}]}
+  - {path: opening-balances, kind: document, schema: OpeningBalanceSet, fields: {party: null}, actions: [prepare, validate, commit], errors: [opening_balance_unbalanced]}
+  - {path: go-live-check, kind: report, perm: go_live_check, report_errors: [go_live_check_failed]}
+events:
+  - {type: onboarding.session.completed.v1, description: Puesta en marcha completada, payload: {session_id: ref internal req}}

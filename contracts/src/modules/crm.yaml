@@ -1,0 +1,19 @@
+module: crm
+title: CRM
+owner: P10
+description: Prospectos, contactos, oportunidades, actividades, embudos y pronóstico.
+resources:
+  - {path: leads, kind: master, fields: {code: null, name: name confidential req, email: email restricted-pii null, phone: phone restricted-pii null, source: string internal, owner_id: ref internal null, lead_status: 'enum(NEW|QUALIFIED|CONVERTED|LOST) internal ro'},
+     actions: [convert], coll_actions: [bulk]}
+  - {path: contacts, kind: master, fields: {code: null, name: name restricted-pii req, email: email restricted-pii null, phone: phone restricted-pii null, party: partyref confidential null, position: string internal null}}
+  - {path: opportunities, kind: master, fields: {code: null, name: name internal req, party: partyref confidential null, amount: money confidential, stage: string internal, close_date: date internal, probability: percent internal, pipeline_id: ref internal req},
+     actions: [win, lose]}
+  - {path: activities, kind: record, fields: {activity_type: 'enum(CALL|MEETING|EMAIL|TASK|NOTE) internal req', subject: string internal req, due_at: datetime internal null, related: docref internal null, body: text confidential}}
+  - {path: pipelines, kind: master, fields: {stages: json internal req}}
+  - {path: forecast, kind: report, perm: forecast, params: [period_from, period_to, owner_id, pipeline_id]}
+events:
+  - {type: crm.lead.converted.v1, description: Prospecto convertido, payload: {lead_id: ref internal req, party_id: ref internal req, opportunity_id: ref internal}}
+  - {type: crm.opportunity.won.v1, description: Oportunidad ganada, payload: {opportunity_id: ref internal req, amount: money confidential req}}
+dataio:
+  - {entity: leads, schema: Lead, key: [email], permission: crm.lead.create}
+  - {entity: contacts, schema: Contact, key: [email], permission: crm.contact.create}

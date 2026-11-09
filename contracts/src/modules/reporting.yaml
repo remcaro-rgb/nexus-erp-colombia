@@ -1,0 +1,73 @@
+module: reporting
+title: Informes y capa semántica
+owner: P17
+description: Modelo semántico filtrado por permisos, consultas, informes guardados, estados financieros estándar (F-ACC-REPORTS), motor de exógena (F-ACC-EXO) y certificados.
+resources:
+  - {path: semantic-model, kind: report, perm: semantic_model, label: introspección del modelo semántico (filtrada por permisos)}
+  - path: query
+    kind: process
+    perm: query
+    extra:
+      - {path: '', method: POST, op: query, perm: read, returns: report, summary: Ejecutar consulta semántica (siempre vía iam.policy), errors: [semantic_query_invalid]}
+    coll_actions: [{explain: {perm: read, returns: result, errors: [semantic_query_invalid]}}]
+  - {path: reports, kind: master, schema: SavedReport, fields: {definition: json internal req, schedule: string internal null, recipients: 'array(ref) internal'}, actions: [run, {schedule: {perm: update}}]}
+  # ---------------------------------------------------------------- F-ACC-REPORTS
+  - &std
+    path: standard/balance-general
+    kind: report
+    perm: standard_report
+    label: Estado de situación financiera
+    params: [company, branch, period_from, period_to, comparison_from, comparison_to, book, dimension, dimension_subtree, currency, include_zero]
+    report_errors: [report_period_open_warning]
+    features: [F-ACC-REPORTS]
+  - &drill
+    path: standard/balance-general/drill
+    kind: report
+    perm: standard_report
+    label: drill-down a líneas de diario y documento fuente
+    params: [line, period_from, period_to]
+    features: [F-ACC-REPORTS]
+  - {<<: *std, path: standard/estado-resultados, label: Estado de resultados}
+  - {<<: *drill, path: standard/estado-resultados/drill}
+  - {<<: *std, path: standard/flujo-efectivo, label: Estado de flujos de efectivo (método indirecto, D-006), report_errors: [report_period_open_warning, report_mapping_incomplete]}
+  - {<<: *drill, path: standard/flujo-efectivo/drill}
+  - {<<: *std, path: standard/estados-financieros, label: Estados financieros (paquete)}
+  - {<<: *drill, path: standard/estados-financieros/drill}
+  - {<<: *std, path: standard/auxiliar-cuenta, label: Auxiliar por cuenta}
+  - {<<: *drill, path: standard/auxiliar-cuenta/drill}
+  - {<<: *std, path: standard/auxiliar-centro-costo, label: Auxiliar por centro de costo, features: [F-ACC-REPORTS, F-ACC-DIM]}
+  - {<<: *drill, path: standard/auxiliar-centro-costo/drill}
+  # ---------------------------------------------------------------- F-ACC-EXO
+  - path: exogena/mappings
+    kind: singleton
+    schema: ExogenaMapping
+    perm: exogena_mapping
+    fields: {status: null, pack_id: ref internal req, mappings: json internal req}
+    errors: [exogena_mapping_incomplete]
+    features: [F-ACC-EXO]
+  - path: exogena/runs
+    kind: record
+    schema: ExogenaRun
+    perm: exogena_run
+    fields: {pack_id: ref internal req, year: int internal req, run_status: 'enum(DRAFT|VALIDATED|GENERATED|FAILED) internal ro', synthetic: bool public ro, label: string public ro}
+    actions:
+      - validate: {perm: read, returns: result, errors: [exogena_mapping_incomplete, exogena_party_data_missing, exogena_pack_not_verified]}
+      - generate: {perm: export, errors: [exogena_mapping_incomplete, exogena_party_data_missing, exogena_pack_not_verified]}
+    extra:
+      - {path: '{id}/file', method: GET, op: file, perm: export, returns: 'file:zip'}
+      - {path: '{id}/report', method: GET, op: report, perm: read, returns: report}
+    errors: [exogena_pack_invalid]
+    features: [F-ACC-EXO]
+  - path: exogena
+    kind: process
+    perm: exogena_run
+    extra:
+      - {path: '{format}:generate', method: POST, op: generate_format, perm: export, returns: operation, summary: 'Generar un formato del paquete activo (P17 prompt `/exogena/<format>:generate`)',
+         errors: [exogena_mapping_incomplete, exogena_party_data_missing, exogena_pack_not_verified], features: [F-ACC-EXO]}
+  - {path: certificates, kind: process, perm: tax_certificate, coll_actions: [{generate: {perm: export}}]}
+events:
+  - {type: reporting.exogena_run.generated.v1, description: Archivos de exógena generados (SINTÉTICO si el paquete no está verificado), features: [F-ACC-EXO], payload: {run_id: ref internal req, year: int internal req, synthetic: bool public req}}
+  - {type: reporting.report.scheduled_run_completed.v1, description: Informe programado ejecutado, payload: {report_id: ref internal req, operation_id: ref internal req}}
+dataio:
+  - {entity: exogena-mappings, key: [pack_code, concept], permission: reporting.exogena_mapping.update, features: [F-ACC-EXO],
+     columns: {pack_code: code internal req, format_code: string internal req, concept: string internal req, account_from: code internal req, account_to: code internal, column: string internal req}}

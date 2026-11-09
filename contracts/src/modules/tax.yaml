@@ -1,0 +1,47 @@
+module: tax
+title: Impuestos y localización
+owner: P06
+description: Almacén de parámetros regulatorios con fuente y estado (C1-9), impuestos, retenciones, ICA, calendarios, localización CO, paquetes de formatos de exógena (F-ACC-EXO).
+resources:
+  - path: parameters
+    kind: master
+    label: parámetros regulatorios
+    fields: {name: null, code: code internal req, value: json internal req, valid_from: date internal req, valid_to: date internal null, source_id: ref internal req,
+             parameter_status: 'enum(VERIFIED-PRIMARY|VERIFIED-SEARCH|VERIFIED-SECONDARY|UNKNOWN|DISPUTED) internal ro', legal_reviewed_by: ref internal ro null, legal_reviewed_at: datetime internal ro null,
+             synthetic: bool public ro}
+    ops: list get
+    actions: [propose, approve]
+    coll_actions: [{propose: {perm: create, summary: Proponer un nuevo valor de parámetro}}]
+    errors: [parameter_source_required, parameter_unknown]
+  - {path: sources, kind: record, fields: {url: url internal req, title: string internal req, accessed_at: datetime internal req, method: string internal, excerpt_hash: string internal}}
+  - {path: tax-codes, kind: master, fields: {tax_type: 'enum(IVA|INC|RETEFUENTE|RETEIVA|RETEICA|ICA|OTHER) internal req', rate_parameter_code: code internal, account_role: string internal}, errors: [tax_code_inactive]}
+  - {path: withholding-concepts, kind: master, fields: {tax_type: 'enum(RETEFUENTE|RETEIVA|RETEICA) internal req', base_parameter_code: code internal, rate_parameter_code: code internal}}
+  - {path: ica-tariffs, kind: master, fields: {municipality_code: string internal req, activity_code: string internal req, rate_parameter_code: code internal}}
+  - {path: party-tax-profiles, kind: config, fields: {name: null, party: partyref confidential req, regime: string internal, responsibilities: 'array(string) internal', withholding_agent: bool internal}}
+  - {path: compute, kind: process, perm: computation, coll_actions: [], extra: [{path: '', method: POST, op: compute, perm: read, returns: json, summary: Cálculo de impuestos sin estado (también usado por la IA)}],
+     errors: [tax_parameter_unknown, parameter_not_verified]}
+  - {path: calendars, kind: master, fields: {obligation: string internal req, year: int internal req, due_dates: json internal}}
+  - {path: localization/municipalities, kind: readonly, perm: municipality, fields: {code: code public ro, name: name public ro, department: string public ro}}
+  - {path: localization/holidays, kind: readonly, perm: holiday, fields: {date: date public ro, name: name public ro}}
+  - {path: localization/nit, kind: process, perm: nit, coll_actions: [{validate: {perm: read, returns: result, errors: [nit_invalid]}}]}
+  # ---------------------------------------------------------------- F-ACC-EXO (format packs live in tax)
+  - path: exogena/format-packs
+    kind: master
+    schema: ExogenaFormatPack
+    perm: exogena_format_pack
+    label: paquetes de formatos de exógena
+    ops: list create get
+    fields: {name: null, code: code internal req, year: int internal req, pack: json internal req, verified: bool internal ro, synthetic: bool public ro,
+             label: string public ro}
+    coll_actions: [import]
+    errors: [exogena_pack_invalid, exogena_pack_not_verified]
+    features: [F-ACC-EXO]
+events:
+  - {type: tax.parameter.approved.v1, description: Valor de parámetro aprobado, payload: {parameter_id: ref internal req, code: code internal req, valid_from: date internal req, status: string internal req}}
+dataio:
+  - {entity: tax-profiles, schema: PartyTaxProfile, key: [party_nit], permission: tax.party_tax_profile.create}
+  - {entity: ica-tariffs, schema: IcaTariff, key: [municipality_code, activity_code], permission: tax.ica_tariff.create}
+  - {entity: withholding-concepts, schema: WithholdingConcept, key: [code], permission: tax.withholding_concept.create}
+  - {entity: exogena-format-packs, key: [code, year], permission: tax.exogena_format_pack.create, features: [F-ACC-EXO],
+     columns: {code: code internal req, year: int internal req, pack_json: json internal req},
+     rules: ['JSON pack validated against the pack schema (exogena_pack_invalid)', 'real DIAN yearly packs are EXTERNAL (B-14); only SYN-EXO-1001 ships (D-019)']}

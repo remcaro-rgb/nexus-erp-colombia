@@ -1,0 +1,23 @@
+module: hr
+title: Talento humano
+owner: P13
+description: Empleados, contratos, cargos, unidades organizacionales y autoservicio interno.
+resources:
+  - path: employees
+    kind: master
+    fields: {name: null, full_name: name restricted-pii req, document: nit restricted-pii req, email: email restricted-pii null, phone: phone restricted-pii null, address: string restricted-pii null,
+             birth_date: date restricted-pii null, health_entity: string sensitive-pii null, pension_entity: string sensitive-pii null, bank_account: string confidential null, position_id: ref internal null, org_unit_id: ref internal null}
+    coll_actions: [bulk]
+    errors: [consent_required]
+  - {path: contracts, kind: document, schema: EmploymentContract, fields: {party: null, employee_id: ref restricted-pii req, contract_type: string internal req, start_date: date internal req, end_date: date internal null, salary: money confidential req},
+     actions: [amend, terminate], errors: [contract_overlap]}
+  - {path: positions, kind: master, fields: {org_unit_id: ref internal null}}
+  - {path: org-units, kind: master, fields: {parent_id: ref internal null, manager_employee_id: ref internal null}}
+  - {path: self-service/profile, kind: singleton, ops: getone, perm: self_service, schema: SelfServiceProfile, fields: {status: null, full_name: name restricted-pii ro, email: email restricted-pii ro}}
+  - {path: self-service/payslips, kind: readonly, perm: self_service, schema: SelfServicePayslip, fields: {period: string internal ro, net_pay: money confidential ro}, extra: [{path: '{id}/pdf', method: GET, op: pdf, perm: read, returns: 'file:pdf'}]}
+  - {path: self-service/requests, kind: record, perm: self_service, schema: SelfServiceRequest, fields: {request_type: string internal req, payload: json restricted-pii}}
+events:
+  - {type: hr.contract.changed.v1, description: Contrato creado, modificado o terminado, payload: {contract_id: ref internal req, employee_id: ref restricted-pii req, change: 'enum(created|amended|terminated) internal req'}}
+dataio:
+  - {entity: employees, schema: Employee, key: [document_number], permission: hr.employee.create, rules: ['Ley 1581 consent recorded (consent_required)', 'sensitive-pii columns masked on export unless permitted']}
+  - {entity: contracts, schema: EmploymentContract, key: [employee_document, start_date], permission: hr.contract.create}

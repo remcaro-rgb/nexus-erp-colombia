@@ -1,0 +1,44 @@
+module: workflow
+title: Flujos, auditoría y programador
+owner: P07
+description: Políticas de aprobación, aprobaciones, log de auditoría encadenado, tareas programadas, notificaciones, adjuntos, webhooks, solicitudes de titulares (DSR) y motor de fórmulas (F-FORMULA-ENGINE).
+resources:
+  - {path: approval-policies, kind: config, fields: {resource_type: string internal req, condition: json internal, steps: json internal req}}
+  - {path: approvals, kind: readonly, fields: {resource: docref internal ro, requested_by: ref internal ro, assignee: ref internal ro, step: int internal ro, due_at: datetime internal ro null},
+     actions: [approve, reject, delegate], errors: [approver_is_requester, sod_violation]}
+  - {path: audit-events, kind: readonly, perm: audit_event, params: [resource, principal, channel, date_from, date_to],
+     fields: {occurred_at: datetime internal ro, principal: ref internal ro, channel: string internal ro, action: string internal ro, resource: docref internal ro, diff: json confidential ro, hash: string internal ro, prev_hash: string internal ro}}
+  - {path: audit, kind: process, perm: audit_event, coll_actions: [{verify: {perm: read, errors: [audit_chain_broken]}}]}
+  - {path: scheduled-jobs, kind: config, fields: {cron: string internal req, timezone: string internal, job_type: string internal req, job_status: 'enum(ACTIVE|PAUSED) internal ro'},
+     actions: [pause, {resume: {perm: admin, returns: schema}}, run-now]}
+  - {path: notifications, kind: readonly, fields: {channel: string internal ro, subject: string internal ro, body: text confidential ro, read_at: datetime internal null}, actions: [{mark-read: {perm: read}}]}
+  - path: attachments
+    kind: record
+    fields: {resource: docref internal req, filename: string internal req, content_type: string internal req, size: int internal ro, sha256: string internal ro, scan_status: string internal ro}
+    coll_actions: [{presign: {perm: create, returns: result, summary: Obtener URL prefirmada de carga (MinIO local)}}]
+    extra: [{path: '{id}/content', method: GET, op: content, perm: read, returns: 'file:bin'}]
+    errors: [attachment_rejected]
+  - {path: webhooks, kind: config, fields: {url: url internal req, event_types: 'array(string) internal req', signing_secret_ref: string secret wo, active: bool internal},
+     actions: [test], extra: [{path: '{id}/deliveries', method: GET, op: deliveries, perm: read, returns: page}, {path: '{id}/deliveries/{delivery_id}:replay', method: POST, op: replay, perm: update}],
+     errors: [webhook_url_forbidden]}
+  - {path: dsr-requests, kind: document, schema: DsrRequest, fields: {party: null, subject: partyref restricted-pii req, request_type: 'enum(ACCESS|RECTIFICATION|DELETION|REVOCATION) internal req'},
+     actions: [submit, approve, reject, {fulfil: {perm: post}}]}
+  # ---------------------------------------------------------------- F-FORMULA-ENGINE
+  - path: formulas
+    kind: master
+    label: fórmulas
+    fields: {name: null, code: code internal req, description: string internal, expression: text internal req, result_type: 'enum(decimal|money|quantity|percent|boolean|date) internal req',
+             inputs: json internal req, tests: json internal, formula_status: 'enum(DRAFT|SUBMITTED|APPROVED|RETIRED) internal ro', version_no: int internal ro, consumers: 'array(string) internal'}
+    actions: [submit, approve, retire]
+    coll_actions:
+      - validate: {perm: read, returns: result, summary: Validar sintaxis, tipos e identificadores (posición del error)}
+      - simulate: {perm: read, summary: 'Evaluar con entradas → resultado + explicación'}
+    extra: [{path: '{id}/versions', method: GET, op: versions, perm: read, returns: page}]
+    errors: [formula_syntax_error, formula_unknown_identifier, formula_type_error, formula_budget_exceeded, formula_dependency_cycle, formula_test_case_failed, formula_division_by_zero, formula_not_approved]
+    features: [F-FORMULA-ENGINE]
+events:
+  - {type: workflow.approval.decided.v1, description: Aprobación decidida, payload: {approval_id: ref internal req, resource: docref internal req, decision: 'enum(APPROVED|REJECTED|DELEGATED) internal req'}}
+  - {type: workflow.formula.approved.v1, description: Versión de fórmula aprobada, features: [F-FORMULA-ENGINE], payload: {formula_id: ref internal req, code: code internal req, version_no: int internal req}}
+  - {type: workflow.webhook.delivery_failed.v1, description: Entrega de webhook fallida (dead-letter), payload: {webhook_id: ref internal req, event_id: uuid internal req, attempts: int internal req}}
+dataio:
+  - {entity: formulas, schema: Formula, key: [code], permission: workflow.formula.create, features: [F-FORMULA-ENGINE], rules: ['JSON with test cases; imported as DRAFT; must pass its tests before submit']}

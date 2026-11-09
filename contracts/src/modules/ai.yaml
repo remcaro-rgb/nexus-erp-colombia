@@ -1,0 +1,36 @@
+module: ai
+title: Agente de IA
+owner: P19
+description: 'Agente de negocio con proveedor fijo de prueba por defecto (D-020). Herramientas = mismas APIs y permisos (token delegado). Acciones con efecto requieren confirmación.'
+resources:
+  - path: conversations
+    kind: record
+    fields: {title: string internal, channel: string internal ro}
+    extra:
+      - {path: '{id}/messages', method: GET, op: messages, perm: read, returns: page}
+      - {path: '{id}/messages', method: POST, op: send_message, perm: create, summary: Enviar mensaje, errors: [ai_provider_unavailable, ai_budget_exceeded, prompt_injection_blocked]}
+      - {path: '{id}/stream', method: GET, op: stream, perm: read, returns: sse, summary: Respuesta en streaming (SSE)}
+  - path: plans
+    kind: readonly
+    schema: AiPlan
+    fields: {conversation_id: ref internal ro, steps: json internal ro, plan_status: 'enum(PROPOSED|CONFIRMED|CANCELLED|EXECUTED|FAILED) internal ro'}
+    actions:
+      - confirm: {perm: update, summary: Confirmar plan propuesto (el usuario; nunca automático, D-011), errors: [ai_action_requires_confirmation]}
+      - cancel
+    errors: [ai_action_requires_confirmation]
+    features: [F-X-AI-MCP]
+  - {path: scenarios, kind: master, schema: AiScenario, fields: {definition: json internal req}, actions: [run], coll_actions: [{compare: {perm: read, returns: result}}]}
+  - path: tools
+    kind: readonly
+    schema: AiTool
+    label: herramientas visibles para el usuario (mismas que expone MCP)
+    fields: {name: string internal ro, module: string internal ro, permission: string internal ro, mutating: bool internal ro, requires_confirmation: bool internal ro, mcp_scope: string internal ro}
+    errors: [mcp_scope_insufficient]
+    features: [F-X-AI-MCP]
+  - {path: providers, kind: config, schema: AiProvider, fields: {adapter: string internal req, base_url: url internal null, credentials_ref: string secret wo, data_retention: text internal, fixture: bool public}, errors: [production_endpoint_refused]}
+  - {path: routing-policies, kind: config, fields: {rules: json internal req}}
+  - {path: usage, kind: report, perm: usage, params: [period_from, period_to, user_id]}
+  - {path: knowledge-base/documents, kind: record, schema: KbDocument, perm: knowledge_document, fields: {title: string internal req, source: string internal, content_ref: string confidential}}
+  - {path: evals, kind: process, perm: eval, coll_actions: [{run: {perm: admin}}]}
+events:
+  - {type: ai.plan.confirmed.v1, description: Plan de IA confirmado por el usuario, features: [F-X-AI-MCP], payload: {plan_id: ref internal req, conversation_id: ref internal req, confirmed_by: ref internal req}}

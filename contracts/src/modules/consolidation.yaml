@@ -1,0 +1,12 @@
+module: consolidation
+title: Consolidación
+owner: P16
+tenant_level: true
+resources:
+  - {path: groups, kind: master, schema: ConsolidationGroup, fields: {companies: 'array(ref) internal req', presentation_currency: currency public req}}
+  - {path: runs, kind: document, schema: ConsolidationRun, fields: {party: null, group_id: ref internal req, period: string internal req}, actions: [preview, post]}
+  - {path: reports/balance, kind: report, perm: consolidation_report, params: [run_id]}
+  - {path: reports/income-statement, kind: report, perm: consolidation_report, params: [run_id]}
+  - {path: reports/eliminations, kind: report, perm: consolidation_report, params: [run_id]}
+events:
+  - {type: consolidation.run.posted.v1, description: Consolidación contabilizada, payload: {run_id: ref internal req, group_id: ref internal req}}
