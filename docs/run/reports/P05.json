@@ -6,7 +6,7 @@
   "reason": "",
   "branch": "claude/new-session-2o3i9s",
   "base_sha": "88910c7b2fdd8b96fa917a96120811568a168d0f",
-  "tested_sha": "f6870f99544b739fe8d03d914f2b5d4a9005ff44",
+  "tested_sha": "43a6cfc420690827bfda0a280c17db3c9333fac6",
   "changed_paths": [
     "backend/ledger/README.md",
     "backend/ledger/__init__.py",
@@ -21,6 +21,7 @@
     "backend/ledger/migrations/0001_initial.py",
     "backend/ledger/migrations/0002_db_guards.py",
     "backend/ledger/migrations/0003_rls.py",
+    "backend/ledger/migrations/0004_period_share_lock.py",
     "backend/ledger/migrations/__init__.py",
     "backend/ledger/models.py",
     "backend/ledger/periods.py",
@@ -48,6 +49,7 @@
     "contracts/change-requests/P05-3.md",
     "contracts/change-requests/P05-4.md",
     "contracts/change-requests/P05-5.md",
+    "contracts/change-requests/P05-6.md",
     "docs/handoffs/P05.md",
     "docs/run/progress/P05.md",
     "docs/run/reports/P05.json",
@@ -76,5 +78,5 @@
   },
   "missing_tests": [],
   "session_url": "https://claude.ai/code/session_01XNGgzMwQrfmBqkVez6fbnL",
-  "created_at": "2026-11-09T22:02:32Z"
+  "created_at": "2026-11-09T22:10:21Z"
 }
