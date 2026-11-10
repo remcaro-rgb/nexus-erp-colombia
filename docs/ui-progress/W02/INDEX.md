@@ -1,6 +1,6 @@
 # UI progress — after wave 02
 
-Integrated commit: `dce41660cfed` · captured 2026-11-10T01:00:11Z (UTC) · viewport 1440×900 · device scale 1 · 0.03 MB · browser: system Chrome via Playwright 1.65.0
+Integrated commit: `98c2c8614213` · captured 2026-11-10T03:46:10Z (UTC) · viewport 1440×900 · device scale 1 · 0.03 MB · browser: system Chrome via Playwright 1.65.0
 
 **Status: FAILED** — login form not found (no sign-in button, and /m/inicio did not redirect to the identity provider)
 
@@ -17,8 +17,6 @@ Signed in as: throwaway DEV user `ui-preview` of a synthetic tenant, bootstrappe
 
 | Page | Route | Why |
 |---|---|---|
-| Inicio | `/m/inicio` | not yet built (owner P08 not accepted) |
-| Contabilidad | `/m/contabilidad` | not yet built (owner P05 not accepted) |
 | Tesorería | `/m/tesoreria` | not yet built (owner P16 not accepted) |
 | Activos fijos | `/m/activos` | not yet built (owner P14 not accepted) |
 | Ventas y CRM | `/m/ventas` | not yet built (owner P10 not accepted) |
