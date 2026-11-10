@@ -7,9 +7,7 @@ to roles that may read confidential fields (same field policy as UI, export, AI 
 
 from __future__ import annotations
 
-import csv
 import datetime as dt
-import io
 import uuid
 from decimal import Decimal
 from typing import Any
@@ -25,6 +23,7 @@ from kernel import clock, services, tenancy
 from kernel.errors import NotFound, ValidationFailed
 from kernel.interfaces.documents import DocumentRenderer, RenderedDocument
 from kernel.uow import UnitOfWork, run_in_unit_of_work
+from ledger.dimensions import csv_export
 
 WATERMARK = "SINTÉTICO — documento interno de inventario (DEV)"
 
@@ -424,16 +423,16 @@ class IssueExportView(IssueView):
         if status:
             qs = qs.filter(status=status)
         with_cost = self.can_see_cost()
-        out = io.StringIO()
-        w = csv.writer(out)
         header = ["numero", "fecha", "estado", "concepto", "bodega_id", "centro_costo_id", "motivo"]
-        w.writerow([*header, "valor_cop"] if with_cost else header)
         codes = dict(IssueConcept.objects.filter(company_id=company).values_list("id", "code"))
+        rows: list[list[object]] = []
         for i in qs[:50000]:
-            row = [i.number, i.document_date.isoformat(), i.status, codes.get(i.concept_id, ""), str(i.warehouse_id),
-                   str(i.cost_center_id or ""), i.reason or ""]  # fmt: skip
-            w.writerow([*row, format(i.total or Decimal(0), "f")] if with_cost else row)
-        resp = HttpResponse(out.getvalue(), content_type="text/csv; charset=utf-8")
+            row: list[object] = [i.number, i.document_date.isoformat(), i.status, codes.get(i.concept_id, ""),
+                                 str(i.warehouse_id), str(i.cost_center_id or ""), i.reason or ""]  # fmt: skip
+            rows.append([*row, format(i.total or Decimal(0), "f")] if with_cost else row)
+        # every cell is neutralised against spreadsheet formula injection (CWE-1236): free-text reasons are user input
+        text = csv_export.render([*header, "valor_cop"] if with_cost else header, rows)
+        resp = HttpResponse(text, content_type="text/csv; charset=utf-8")
         resp["Content-Disposition"] = 'attachment; filename="salidas-inventario.csv"'
         return resp
 

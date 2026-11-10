@@ -210,6 +210,12 @@ def test_T_INV_ISSUE_02_required_dims_reason_and_approval_threshold_routes_to_wo
     csv_body = sales.get(f"{BASE}/issues:export").content.decode()
     assert "valor_cop" not in csv_body.splitlines()[0] and big["number"] in csv_body
     assert "valor_cop" in api.get(f"{BASE}/issues:export").content.decode().splitlines()[0]
+    # a free-text reason that looks like a spreadsheet formula is neutralised in the CSV (CWE-1236)
+    r = _issue(api, iw, "MUESTRA", wh, [{**line, "quantity": "1"}], reason='=HYPERLINK("http://x","y")')
+    assert r.status_code == 201, r.content
+    evil = r.json()
+    exported = api.get(f"{BASE}/issues:export").content.decode()
+    assert evil["number"] in exported and "'=HYPERLINK" in exported and ",=HYPERLINK" not in exported
     # the :simulate cost preview is confidential too
     draft = _issue(api, iw, "MUESTRA", wh, [{**line, "quantity": "1"}]).json()
     r = sales.post(f"{BASE}/issues/{draft['id']}:simulate")
