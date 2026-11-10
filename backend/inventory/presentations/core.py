@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation
+from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal, InvalidOperation
 
 from inventory.errors import error
 
@@ -118,8 +118,8 @@ def unpack_plan(canonical: Decimal, packaged: Sequence[Packaged], loose_needed: 
         free = p.packages - p.reserved_packages
         if free <= 0:
             continue
-        need = -(-deficit // p.factor)  # ceil for positive Decimals
-        take = min(free.to_integral_value(rounding="ROUND_FLOOR"), need)
+        need = (deficit / p.factor).to_integral_value(rounding=ROUND_CEILING)
+        take = min(free.to_integral_value(rounding=ROUND_FLOOR), need)
         if take <= 0:
             continue
         plan.append((p.key, take))

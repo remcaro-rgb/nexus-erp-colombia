@@ -34,6 +34,7 @@ from inventory.transfers import service as transfers
 from kernel import clock, ids
 from kernel.errors import NotFound, ValidationFailed
 from kernel.interfaces.common import DocumentRef
+from kernel.money import q_qty
 from kernel.uow import UnitOfWork
 
 
@@ -159,7 +160,7 @@ class ItemDetailView(InventoryView):
 def presentation_dict(p: Presentation) -> dict[str, Any]:
     return {
         "id": s(p.id), "tenant_id": s(p.tenant_id), "company_id": s(p.company_id), "item_id": s(p.item_id), "code": p.code,
-        "name": p.name, "status": p.status, "factor": s(p.factor), "uom": p.uom, "barcode": p.barcode,
+        "name": p.name, "status": p.status, "factor": s(q_qty(p.factor)), "uom": p.uom, "barcode": p.barcode,
         "precision": p.precision, "is_default_purchase": p.is_default_purchase, "is_default_sale": p.is_default_sale,
         "version": p.version,
     }  # fmt: skip

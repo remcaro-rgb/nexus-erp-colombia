@@ -507,7 +507,9 @@ class InventoryStockService:
                 raise ValidationFailed("quantity must be positive", pointer=f"/lines/{line.line_ref}", reason="positive")
             wh = self._warehouse(company_id, line.warehouse_id)
             item = self._item(company_id, line.item_id)
-            lot = self._lot(item, line.lot_id) if line.lot_id or item.tracking == Item.Tracking.LOT else None
+            lot = self._lot(item, line.lot_id) if line.lot_id else None
+            if lot is None and line.location_id and item.tracking == Item.Tracking.LOT:
+                raise error("lot_required", f"item {item.code} is lot-tracked: name the lot of the bin")
             presentation = self._presentation(item, line.presentation_id)
             self._packages(item, presentation, line.quantity)
             own = self._own_reservation(c, source, line.line_ref)
@@ -637,8 +639,8 @@ class InventoryStockService:
             out.append(
                 BinAvailability(
                     q.item_id, q.warehouse_id, q.location_id, q.location.code, q.location.location_type, q.lot_id,
-                    q.on_hand, q.reserved, (q.on_hand - q.reserved) if internal else ZERO, base,
-                    q.on_hand - total_packaged, pk,
+                    q.on_hand, q.reserved, q_qty((q.on_hand - q.reserved) if internal else ZERO), q_qty(base),
+                    q_qty(q.on_hand - total_packaged), pk,
                 )  # fmt: skip
             )
         return out
@@ -665,7 +667,9 @@ class InventoryStockService:
                 raise ValidationFailed("quantity must be positive", pointer=f"/lines/{line.line_ref}", reason="positive")
             wh = self._warehouse(company_id, line.warehouse_id)
             item = self._item(company_id, line.item_id)
-            lot = self._lot(item, line.lot_id) if line.lot_id or item.tracking == Item.Tracking.LOT else None
+            lot = self._lot(item, line.lot_id) if line.lot_id else None
+            if lot is None and line.location_id and item.tracking == Item.Tracking.LOT:
+                raise error("lot_required", f"item {item.code} is lot-tracked: name the lot of the bin")
             presentation = self._presentation(item, line.presentation_id)
             self._packages(item, presentation, line.quantity)
             if line.location_id:
