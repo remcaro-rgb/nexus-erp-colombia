@@ -97,7 +97,7 @@ def test_order_to_cash_api(o2c: tuple[World, dict[str, Any], ApiClient]) -> None
 
 
 def test_security_deny_by_default_and_company_isolation(o2c: tuple[World, dict[str, Any], ApiClient]) -> None:
-    world, env, api = o2c
+    _world, env, api = o2c
     assert api.as_("outsider").get("quotes").status_code == 403
     party = env["customer"]
     other = api.as_("other_admin").get(f"parties/{party.id}")
