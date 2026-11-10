@@ -8,9 +8,7 @@ applies to list, tree, get, usage and export alike.
 from __future__ import annotations
 
 import base64
-import csv
 import datetime as dt
-import io
 import uuid
 from typing import Any
 
@@ -24,7 +22,7 @@ from kernel.errors import NotFound, ValidationFailed
 from kernel.tenancy import TenantContext
 from kernel.uow import UnitOfWork
 from ledger.api import LedgerAPIView, command, require, respond, scoped
-from ledger.dimensions import service
+from ledger.dimensions import csv_export, service
 from ledger.models import DimensionNode
 
 SLUGS = {
@@ -198,25 +196,23 @@ class DimensionExportView(LedgerAPIView):
             require(ctx, READ)
             nodes = list(_visible(ctx, company, dimension, EXPORT).order_by("depth", "path"))
             codes = {n.id: n.code for n in service.nodes_qs(ctx, company, dimension)}
-        buf = io.StringIO()
-        writer = csv.writer(buf)
-        writer.writerow(self.FIELDS)
-        for n in nodes:
-            writer.writerow(
-                [
-                    n.dimension,
-                    n.code,
-                    n.description,
-                    n.node_type,
-                    codes.get(n.parent_id, "") if n.parent_id else "",
-                    n.valid_from.isoformat() if n.valid_from else "",
-                    n.valid_to.isoformat() if n.valid_to else "",
-                    n.status,
-                    n.sort_key or "",
-                    n.external_ref or "",
-                ]
-            )
-        resp = HttpResponse(buf.getvalue(), content_type="text/csv; charset=utf-8")
+        rows = [
+            [
+                n.dimension,
+                n.code,
+                n.description,
+                n.node_type,
+                codes.get(n.parent_id, "") if n.parent_id else "",
+                n.valid_from.isoformat() if n.valid_from else "",
+                n.valid_to.isoformat() if n.valid_to else "",
+                n.status,
+                n.sort_key or "",
+                n.external_ref or "",
+            ]
+            for n in nodes
+        ]
+        body = csv_export.render(self.FIELDS, rows)
+        resp = HttpResponse(body, content_type="text/csv; charset=utf-8")
         resp["Content-Disposition"] = f'attachment; filename="{slug}.csv"'
         return resp
 

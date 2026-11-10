@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from kernel import services
 from kernel.interfaces.dimensions import Dimensions
 from kernel.interfaces.periods import PeriodService
 from kernel.interfaces.posting import PostingService
 
 
-def implementations() -> dict[object, object]:
+def implementations() -> dict[Any, object]:
     from ledger.dimensions.interface import LedgerDimensions
     from ledger.periods import LedgerPeriodService
     from ledger.posting import LedgerPostingService
@@ -22,5 +24,5 @@ def implementations() -> dict[object, object]:
 
 def register_services() -> None:
     for interface, impl in implementations().items():
-        if services.optional(interface) is None:  # type: ignore[call-overload]
-            services.register(interface, impl)  # type: ignore[call-overload]
+        if services.optional(interface) is None:
+            services.register(interface, impl)

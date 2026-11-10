@@ -10,6 +10,8 @@ company's node (DIM-R04).
 
 from __future__ import annotations
 
+from typing import ClassVar, Self
+
 from django.db import models
 from django.db.models.functions import Lower
 
@@ -201,50 +203,50 @@ class DimensionNode(CompanyModel, AuditedModel):
         ]
 
 
-class CostCenterManager(models.Manager["DimensionNode"]):
+class CostCenterManager[M: "DimensionNode"](models.Manager[M]):
     dimension = "cost_center"
 
-    def get_queryset(self) -> models.QuerySet[DimensionNode]:
+    def get_queryset(self) -> models.QuerySet[M]:
         return super().get_queryset().filter(dimension=self.dimension)
 
 
-class _BusinessUnitManager(CostCenterManager):
+class _BusinessUnitManager[M: "DimensionNode"](CostCenterManager[M]):
     dimension = "business_unit"
 
 
-class _AuxAbiertoManager(CostCenterManager):
+class _AuxAbiertoManager[M: "DimensionNode"](CostCenterManager[M]):
     dimension = "aux_abierto"
 
 
-class _ItemContableManager(CostCenterManager):
+class _ItemContableManager[M: "DimensionNode"](CostCenterManager[M]):
     dimension = "item_contable"
 
 
 class CostCenter(DimensionNode):
     """``kernel.dimensions`` FK target ``ledger.CostCenter`` (proxy of DimensionNode)."""
 
-    objects = CostCenterManager()
+    objects: ClassVar[CostCenterManager[Self]] = CostCenterManager()
 
     class Meta:
         proxy = True
 
 
 class BusinessUnit(DimensionNode):
-    objects = _BusinessUnitManager()
+    objects: ClassVar[_BusinessUnitManager[Self]] = _BusinessUnitManager()
 
     class Meta:
         proxy = True
 
 
 class AuxAbierto(DimensionNode):
-    objects = _AuxAbiertoManager()
+    objects: ClassVar[_AuxAbiertoManager[Self]] = _AuxAbiertoManager()
 
     class Meta:
         proxy = True
 
 
 class ItemContable(DimensionNode):
-    objects = _ItemContableManager()
+    objects: ClassVar[_ItemContableManager[Self]] = _ItemContableManager()
 
     class Meta:
         proxy = True

@@ -430,7 +430,7 @@ class LedgerPostingService:
             raise ledger_error("entry_unbalanced", f"the entry is not balanced (difference {residual} COP)")
         role = ROUNDING_ROLE if currencies == [FUNCTIONAL_CURRENCY] else FX_ROUNDING_ROLE
         account = self._account_for(ctx, plan.request, plan.journal, PostingLine(role, "DEBIT", abs(residual)), {})
-        empty = {slot: None for slot in SLOT_BY_DIMENSION.values()}
+        empty: dict[str, uuid.UUID | None] = {slot: None for slot in SLOT_BY_DIMENSION.values()}
         plan.lines.append(
             PlannedLine(
                 account=account,

@@ -227,7 +227,8 @@ class JournalEntrySimulateView(LedgerAPIView):
         ctx, company = self.ctx_company(request)
         require(ctx, "ledger.entry.read")
         body = _body(request)
-        params = body.get("parameters") if isinstance(body.get("parameters"), dict) else body
+        raw_params = body.get("parameters")
+        params: dict[str, Any] = raw_params if isinstance(raw_params, dict) else body
         posting = services.get(PostingService)
 
         def fn(uow: UnitOfWork) -> tuple[Any, int, str | None]:

@@ -405,7 +405,16 @@ class NodeInput:
         for required in ("code", "description", "node_type"):
             if required not in data:
                 raise ValidationFailed(f"{required} is required", pointer=f"/{required}", reason="required")
-        return cls(**{k: data.get(k) for k in EDITABLE_FIELDS})
+        return cls(
+            code=data["code"],
+            description=data["description"],
+            node_type=data["node_type"],
+            parent_id=data.get("parent_id"),
+            valid_from=data.get("valid_from"),
+            valid_to=data.get("valid_to"),
+            sort_key=data.get("sort_key"),
+            external_ref=data.get("external_ref"),
+        )
 
 
 def create_node(uow: UnitOfWork, company_id: uuid.UUID, dimension: str, data: NodeInput) -> DimensionNode:
@@ -601,9 +610,9 @@ def update_node(uow: UnitOfWork, node: DimensionNode, data: dict[str, Any], if_m
         raise ValidationFailed("valid_to before valid_from", pointer="/valid_to", reason="range")
     for name in ("sort_key", "external_ref"):
         if name in data:
-            value = _short(data[name], f"/{name}")
-            if value != getattr(node, name):
-                setattr(node, name, value)
+            text_value = _short(data[name], f"/{name}")
+            if text_value != getattr(node, name):
+                setattr(node, name, text_value)
                 fields.append(name)
     if fields:
         try:

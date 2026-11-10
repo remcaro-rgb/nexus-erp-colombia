@@ -9,7 +9,7 @@ from kernel import tenancy
 from kernel.errors import NotFound
 from kernel.interfaces.dimensions import DimensionNode as NodeInfo
 from ledger.dimensions import service
-from ledger.models import DimensionNode
+from ledger.models import DIMENSIONS, DimensionNode
 
 
 def _info(n: DimensionNode) -> NodeInfo:
@@ -19,9 +19,9 @@ def _info(n: DimensionNode) -> NodeInfo:
         n.dimension,
         n.code,
         n.description,
-        n.node_type,
+        "AGRUPADOR" if n.node_type == "AGRUPADOR" else "DETALLE",
         n.parent_id,
-        n.status == "ACTIVE",  # type: ignore[arg-type]
+        n.status == "ACTIVE",
     )
 
 
@@ -40,7 +40,7 @@ class LedgerDimensions:
     def assert_postable(self, company_id: uuid.UUID, dimension: str, node_id: uuid.UUID, on: dt.date) -> None:
         ctx = tenancy.require_current()
         ctx.require_company(company_id)
-        if dimension not in service.DIMENSIONS:
+        if dimension not in DIMENSIONS:
             raise NotFound("unknown dimension")
         service.check_line_reference(ctx, company_id, dimension, node_id, on)
 

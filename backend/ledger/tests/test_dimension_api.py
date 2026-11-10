@@ -11,6 +11,7 @@ from rest_framework.test import APIClient
 from kernel import ids
 from kernel.testing.tenancy import make_context
 from ledger.models import JournalEntry, JournalLine
+from ledger.testing import context as test_context
 from ledger.tests.conftest import line
 
 pytestmark = pytest.mark.django_db
@@ -41,13 +42,17 @@ class _User:
 @pytest.fixture
 def api(world, settings, ledger_services):
     settings.ROOT_URLCONF = "ledger.testing.urls"
+    settings.ERP_TENANT_CONTEXT_RESOLVER = "ledger.testing.context.resolve_context"
     for perm in ALL:
         ledger_services["policy"].grant(world.ctx.principal_id, perm)
 
     def client(company=None, ctx=None):
         c = APIClient()
         c.force_authenticate(user=_User((ctx or world.ctx).principal_id), token=ctx or world.ctx)
-        c.credentials(HTTP_X_COMPANY_ID=str(company or world.company))
+        c.credentials(
+            HTTP_X_COMPANY_ID=str(company or world.company),
+            HTTP_X_TEST_CONTEXT=test_context.register(ctx or world.ctx),
+        )
         return c
 
     return client

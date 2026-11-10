@@ -15,11 +15,10 @@ from collections.abc import Callable
 from typing import Any
 
 from django.db.models import QuerySet
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
+from iam.api.base import ModuleSecuredView
 from kernel import services, tenancy
 from kernel.errors import NotAuthenticated, PermissionDenied, ValidationFailed
 from kernel.idempotency import StoredResponse, validate_key
@@ -67,7 +66,8 @@ def require(ctx: TenantContext, action: str, resource: Any = None) -> None:
 
 def scoped(ctx: TenantContext, action: str, qs: QuerySet[Any]) -> QuerySet[Any]:
     require(ctx, action)
-    return policy().scope_queryset(ctx, action, qs)
+    scoped_qs: QuerySet[Any] = policy().scope_queryset(ctx, action, qs)
+    return scoped_qs
 
 
 def idempotency_key(request: Request) -> str:
@@ -110,9 +110,10 @@ def command(
     return respond(body, status, holder.get("etag"))
 
 
-class LedgerAPIView(APIView):  # type: ignore[misc]
-    permission_classes = [IsAuthenticated]
+class LedgerAPIView(ModuleSecuredView):
+    """Secured base for every ledger endpoint (ADR-004 SEC-VIEW): IAM authentication, throttling, the request's
+    tenant context bound for the whole handler (forced RLS); each handler authorizes its own permission code."""
 
     def ctx_company(self, request: Request) -> tuple[TenantContext, uuid.UUID]:
-        ctx = request_context(request)
+        ctx = self.ctx
         return ctx, request_company(request, ctx)
