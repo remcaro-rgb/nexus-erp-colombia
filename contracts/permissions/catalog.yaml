@@ -2599,6 +2599,12 @@ codes:
   operations:
   - inventory_transformations_by_reverse
   source: P02
+- code: inventory.transformation_manual.create
+  module: inventory
+  owner: P09
+  description: Crear transformaciones manuales (varias entradas y salidas libres; requieren aprobación sobre el umbral)
+  operations: []
+  source: P09c
 - code: inventory.uom.create
   module: inventory
   owner: P09
