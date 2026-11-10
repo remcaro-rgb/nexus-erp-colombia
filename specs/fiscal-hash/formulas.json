@@ -1,0 +1,298 @@
+{
+  "algorithm": "SHA-384",
+  "output": "lowercase hex",
+  "amount_format": "dot decimal separator, 2 decimals truncated (ROUND_DOWN), no thousands separator",
+  "formulas": {
+    "CUFE": {
+      "scheme_name": "CUFE-SHA384",
+      "status": "OFFICIAL_FILE_PRIOR_VERSION",
+      "source": "DIAN Anexo Técnico FE v1.8 (Res. 000012/2021) §11.1.2",
+      "fields": [
+        {
+          "name": "NumFac",
+          "kind": "text"
+        },
+        {
+          "name": "FecFac",
+          "kind": "text"
+        },
+        {
+          "name": "HorFac",
+          "kind": "text"
+        },
+        {
+          "name": "ValFac",
+          "kind": "amount"
+        },
+        {
+          "name": "CodImp1",
+          "kind": "fixed",
+          "value": "01"
+        },
+        {
+          "name": "ValImp1",
+          "kind": "amount"
+        },
+        {
+          "name": "CodImp2",
+          "kind": "fixed",
+          "value": "04"
+        },
+        {
+          "name": "ValImp2",
+          "kind": "amount"
+        },
+        {
+          "name": "CodImp3",
+          "kind": "fixed",
+          "value": "03"
+        },
+        {
+          "name": "ValImp3",
+          "kind": "amount"
+        },
+        {
+          "name": "ValTot",
+          "kind": "amount"
+        },
+        {
+          "name": "NitOFE",
+          "kind": "text"
+        },
+        {
+          "name": "NumAdq",
+          "kind": "text"
+        },
+        {
+          "name": "ClTec",
+          "kind": "text",
+          "secret": true
+        },
+        {
+          "name": "TipoAmbiente",
+          "kind": "text"
+        }
+      ]
+    },
+    "CUDE": {
+      "scheme_name": "CUDE-SHA384",
+      "status": "OFFICIAL_FILE_PRIOR_VERSION",
+      "source": "DIAN Anexo Técnico FE v1.8 (Res. 000012/2021) §11.1.4",
+      "fields": [
+        {
+          "name": "NumFac",
+          "kind": "text"
+        },
+        {
+          "name": "FecFac",
+          "kind": "text"
+        },
+        {
+          "name": "HorFac",
+          "kind": "text"
+        },
+        {
+          "name": "ValFac",
+          "kind": "amount"
+        },
+        {
+          "name": "CodImp1",
+          "kind": "fixed",
+          "value": "01"
+        },
+        {
+          "name": "ValImp1",
+          "kind": "amount"
+        },
+        {
+          "name": "CodImp2",
+          "kind": "fixed",
+          "value": "04"
+        },
+        {
+          "name": "ValImp2",
+          "kind": "amount"
+        },
+        {
+          "name": "CodImp3",
+          "kind": "fixed",
+          "value": "03"
+        },
+        {
+          "name": "ValImp3",
+          "kind": "amount"
+        },
+        {
+          "name": "ValTot",
+          "kind": "amount"
+        },
+        {
+          "name": "NitOFE",
+          "kind": "text"
+        },
+        {
+          "name": "NumAdq",
+          "kind": "text"
+        },
+        {
+          "name": "SoftwarePIN",
+          "kind": "text",
+          "secret": true
+        },
+        {
+          "name": "TipoAmbiente",
+          "kind": "text"
+        }
+      ]
+    },
+    "CUDE_AR": {
+      "scheme_name": "CUDE-SHA384",
+      "status": "OFFICIAL_FILE_PRIOR_VERSION",
+      "source": "DIAN Anexo Técnico FE v1.8 (Res. 000012/2021) §11.1.5",
+      "fields": [
+        {
+          "name": "NumDE",
+          "kind": "text"
+        },
+        {
+          "name": "FecEmi",
+          "kind": "text"
+        },
+        {
+          "name": "HorEmi",
+          "kind": "text"
+        },
+        {
+          "name": "NitFE",
+          "kind": "text"
+        },
+        {
+          "name": "DocAdq",
+          "kind": "text"
+        },
+        {
+          "name": "ResponseCode",
+          "kind": "text"
+        },
+        {
+          "name": "ID",
+          "kind": "text"
+        },
+        {
+          "name": "DocumentTypeCode",
+          "kind": "text"
+        },
+        {
+          "name": "SoftwarePIN",
+          "kind": "text",
+          "secret": true
+        }
+      ]
+    },
+    "CUDS": {
+      "scheme_name": "CUDS-SHA384",
+      "status": "SYNTHETIC_NOT_LEGALLY_VERIFIED",
+      "source": "DS annex v1.1 not obtained (B-06)",
+      "fields": [
+        {
+          "name": "NumDS",
+          "kind": "text"
+        },
+        {
+          "name": "FecDS",
+          "kind": "text"
+        },
+        {
+          "name": "HorDS",
+          "kind": "text"
+        },
+        {
+          "name": "ValDS",
+          "kind": "amount"
+        },
+        {
+          "name": "CodImp",
+          "kind": "fixed",
+          "value": "01"
+        },
+        {
+          "name": "ValImp",
+          "kind": "amount"
+        },
+        {
+          "name": "ValTol",
+          "kind": "amount"
+        },
+        {
+          "name": "NumSNO",
+          "kind": "text"
+        },
+        {
+          "name": "NITABS",
+          "kind": "text"
+        },
+        {
+          "name": "SoftwarePIN",
+          "kind": "text",
+          "secret": true
+        },
+        {
+          "name": "TipoAmbiente",
+          "kind": "text"
+        }
+      ]
+    },
+    "CUNE": {
+      "scheme_name": "CUNE-SHA384",
+      "status": "SYNTHETIC_NOT_LEGALLY_VERIFIED",
+      "source": "Nómina annex v1.0 not obtained (B-06)",
+      "fields": [
+        {
+          "name": "NumNE",
+          "kind": "text"
+        },
+        {
+          "name": "FecNE",
+          "kind": "text"
+        },
+        {
+          "name": "HorNE",
+          "kind": "text"
+        },
+        {
+          "name": "ValDev",
+          "kind": "amount"
+        },
+        {
+          "name": "ValDed",
+          "kind": "amount"
+        },
+        {
+          "name": "ValTolNE",
+          "kind": "amount"
+        },
+        {
+          "name": "NitNE",
+          "kind": "text"
+        },
+        {
+          "name": "DocEmp",
+          "kind": "text"
+        },
+        {
+          "name": "TipoXML",
+          "kind": "text"
+        },
+        {
+          "name": "SoftwarePIN",
+          "kind": "text",
+          "secret": true
+        },
+        {
+          "name": "TipoAmbiente",
+          "kind": "text"
+        }
+      ]
+    }
+  }
+}

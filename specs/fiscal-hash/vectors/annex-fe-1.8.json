@@ -1,0 +1,85 @@
+{
+  "origin": "DIAN Anexo Técnico de Factura Electrónica de Venta v1.8 (Res. 000012/2021) §11.1 worked examples, transcribed; PDF sha256 0250d2833d5a38b03f2fde193e9276e2b18e3422742cd29a32581529485e99e1",
+  "status": "OFFICIAL_FILE_PRIOR_VERSION (adopted annex is v1.9; re-verify, B-06)",
+  "vectors": [
+    {
+      "id": "annex-1.8-11.1.2.1-fe",
+      "kind": "CUFE",
+      "inputs": {
+        "NumFac": "323200000129",
+        "FecFac": "2019-01-16",
+        "HorFac": "10:53:10-05:00",
+        "ValFac": "1500000.00",
+        "ValImp1": "285000.00",
+        "ValImp2": "0.00",
+        "ValImp3": "0.00",
+        "ValTot": "1785000.00",
+        "NitOFE": "700085371",
+        "NumAdq": "800199436",
+        "ClTec": "693ff6f2a553c3646a063436fd4dd9ded0311471",
+        "TipoAmbiente": "1"
+      },
+      "composition": "3232000001292019-01-1610:53:10-05:001500000.0001285000.00040.00030.001785000.00700085371800199436693ff6f2a553c3646a063436fd4dd9ded03114711",
+      "expected": "8bb918b19ba22a694f1da11c643b5e9de39adf60311cf179179e9b33381030bcd4c3c3f156c506ed5908f9276f5bd9b4"
+    },
+    {
+      "id": "annex-1.8-11.1.4.2-nc",
+      "kind": "CUDE",
+      "inputs": {
+        "NumFac": "8110007871",
+        "FecFac": "2019-01-12",
+        "HorFac": "07:00:00-05:00",
+        "ValFac": "5000.00",
+        "ValImp1": "950.00",
+        "ValImp2": "0.00",
+        "ValImp3": "0.00",
+        "ValTot": "5950.00",
+        "NitOFE": "900373076",
+        "NumAdq": "8355990",
+        "SoftwarePIN": "12301",
+        "TipoAmbiente": "1"
+      },
+      "composition": "81100078712019-01-1207:00:00-05:005000.0001950.00040.00030.005950.009003730768355990123011",
+      "expected": "907e4444decc9e59c160a2fb3b6659b33dc5b632a5008922b9a62f83f757b1c448e47f5867f2b50dbdb96f48c7681168"
+    },
+    {
+      "id": "annex-1.8-11.1.4.3-nd",
+      "kind": "CUDE",
+      "inputs": {
+        "NumFac": "ND1001",
+        "FecFac": "2019-01-18",
+        "HorFac": "10:58:00-05:00",
+        "ValFac": "30000.00",
+        "ValImp1": "0.00",
+        "ValImp2": "2400.00",
+        "ValImp3": "0.00",
+        "ValTot": "32400.00",
+        "NitOFE": "900197264",
+        "NumAdq": "10254102",
+        "SoftwarePIN": "10201",
+        "TipoAmbiente": "2"
+      },
+      "composition": "ND10012019-01-1810:58:00-05:0030000.00010.00042400.00030.0032400.0090019726410254102102012",
+      "expected": "3fa73a86d57d9341c536afde1f85c4efd9d4591c2c22bce4dfb0e6b0d2e83b8f047a8bde7098292e9d2493e60d1c31da",
+      "annex_published_hash": "b9483dc2a17167feedf37b6bd67c4204e7b601933e0e389cffbd545e4d0ec370b403cbb41ff656776cb6cb5d8348ecd4",
+      "erratum": "The annex prints this composition (with Software-PIN 10201) but its published hash is SHA-384 of the same string WITHOUT the PIN. 'expected' is SHA-384 of the printed composition (the formula); 'annex_published_hash' is kept as evidence and is reproduced by the test with the PIN removed."
+    },
+    {
+      "id": "annex-1.8-11.1.5.1-application-response",
+      "kind": "CUDE_AR",
+      "inputs": {
+        "NumDE": "1",
+        "FecEmi": "2019-04-30",
+        "HorEmi": "19:48:50-05:00",
+        "NitFE": "99998888",
+        "DocAdq": "800197268",
+        "ResponseCode": "030",
+        "ID": "FE123",
+        "DocumentTypeCode": "01",
+        "SoftwarePIN": "11111"
+      },
+      "composition": "12019-04-3019:48:50-05:0099998888800197268030FE1230111111",
+      "expected": "0d91ba25b01f5e7dbda870a11b274501d3a62a73e91932c473c86c93f12a142a2ac45876efcde3e679024a01c0be41f9"
+    }
+  ]
+}

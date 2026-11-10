@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ns0:NominaIndividual xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2" xmlns:ns0="dian:gov:co:facturaelectronica:NominaIndividual">
+ <ext:UBLExtensions>
+  <ext:UBLExtension>
+   <ext:ExtensionContent />
+  </ext:UBLExtension>
+ </ext:UBLExtensions>
+ <ns0:Novedad CUNENov="" />
+ <ns0:Periodo FechaLiquidacionInicio="2026-11-01" FechaLiquidacionFin="2026-11-30" FechaGen="2026-11-02" />
+ <ns0:NumeroSecuenciaXML Numero="NE1001" />
+ <ns0:InformacionGeneral Version="SINTETICO-NO-VERIFICADO" Ambiente="2" TipoXML="102" CUNE="5636d32ff396c7a78d69a3b4f7d399a7b564895d5d5cff4c4c3e98acca9f457c3f0391bf6dfbc2953eec9179ccd37785" EncripCUNE="CUNE-SHA384" FechaGen="2026-11-02" HoraGen="10:00:00-05:00" />
+ <ns0:Empleador NIT="900000001" DV="1" RazonSocial="EMPRESA SINTÉTICA S.A.S." />
+ <ns0:Trabajador NumeroDocumento="222222222222" TipoDocumento="13" />
+ <ns0:DevengadosTotal>3500000.00</ns0:DevengadosTotal>
+ <ns0:DeduccionesTotal>280000.00</ns0:DeduccionesTotal>
+ <ns0:ComprobanteTotal>3220000.00</ns0:ComprobanteTotal>
+ <ns0:Notas>DOCUMENTO SINTÉTICO — SIMULADO, NO CERTIFICADO (DEV)</ns0:Notas>
+</ns0:NominaIndividual>
