@@ -4,7 +4,7 @@
   "repo_url": "https://github.com/remcaro-rgb/nexus-erp-colombia",
   "plan_sha256": "593796320d7b832515b6c33e344d08904c9a24185528abcd51c8e09fe8ba089f",
   "registry_sha256": "a62fa1d937c13533ddc08f22b87a65d9bce24d662e6df7e8996f3aa7ee939ab4",
-  "updated_at": "2026-11-10T03:42:02Z",
+  "updated_at": "2026-11-10T03:45:00Z",
   "tasks": {
     "P01": {
       "status": "ACCEPTED",
@@ -85,15 +85,18 @@
       "accepted_at": "2026-11-10T03:42:02Z"
     },
     "G1": {
+      "status": "ACCEPTED",
+      "attempt": 1,
+      "accepted_sha": "2c1270715a4a2d72e07b36efd0519d495a549658",
+      "digest": "7567553fd9eb0c8226aa285ffc6ba86056dbc7ab1487e46fb941f2431602e09b",
+      "accepted_at": "2026-11-10T03:45:00Z"
+    },
+    "P22b": {
       "status": "READY",
       "attempt": 1
     },
-    "P22b": {
-      "status": "PENDING",
-      "attempt": 1
-    },
     "P09a": {
-      "status": "PENDING",
+      "status": "READY",
       "attempt": 1
     },
     "P09b": {
@@ -105,7 +108,7 @@
       "attempt": 1
     },
     "P11a": {
-      "status": "PENDING",
+      "status": "READY",
       "attempt": 1
     },
     "P11b": {
@@ -113,15 +116,15 @@
       "attempt": 1
     },
     "P13a": {
-      "status": "PENDING",
+      "status": "READY",
       "attempt": 1
     },
     "P13b": {
-      "status": "PENDING",
+      "status": "READY",
       "attempt": 1
     },
     "P15": {
-      "status": "PENDING",
+      "status": "READY",
       "attempt": 1
     },
     "P10a": {
@@ -133,7 +136,7 @@
       "attempt": 1
     },
     "P14": {
-      "status": "PENDING",
+      "status": "READY",
       "attempt": 1
     },
     "P16a": {
@@ -304,6 +307,13 @@
       "sha": "7efa8dc70c24ef347a8193c03e71f65e6bc984d7",
       "branch": "claude/new-session-h8hv60",
       "at": "2026-11-10T03:42:02Z"
+    },
+    {
+      "type": "gate_pass",
+      "task": "G1",
+      "sha": "2c1270715a4a2d72e07b36efd0519d495a549658",
+      "digest": "7567553fd9eb0c8226aa285ffc6ba86056dbc7ab1487e46fb941f2431602e09b",
+      "at": "2026-11-10T03:45:00Z"
     }
   ]
 }

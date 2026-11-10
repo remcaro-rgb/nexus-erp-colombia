@@ -1,6 +1,6 @@
 # STATUS — Nexus ERP (edition 3.0.0-claude-cloud)
 
-Updated: 2026-11-10T03:42:02Z (UTC). Repository: https://github.com/remcaro-rgb/nexus-erp-colombia.
+Updated: 2026-11-10T03:45:00Z (UTC). Repository: https://github.com/remcaro-rgb/nexus-erp-colombia.
 
 Written only by the integrator (`python3 tools/cloudctl.py status`). A task counts as working only when it is ACCEPTED with
 integrator-run test evidence under `docs/run/evidence/`.
@@ -8,7 +8,15 @@ integrator-run test evidence under `docs/run/evidence/`.
 ## What to paste next
 
 ```
-NEXT: no worker prompt is due; paste prompts/INTEGRATOR-after-W02.md into 1 NEW session.
+NEXT: wave 03 — open 7 NEW Claude Code cloud session(s) on remcaro-rgb/nexus-erp-colombia (at most 5 at the same time; start the next one when one finishes) and paste exactly one file into each:
+  prompts/W03-S1-P15-dian-einvoice-gateway.md
+  prompts/W03-S2-P09a-inventory-core.md
+  prompts/W03-S3-P13b-payroll-formulas.md
+  prompts/W03-S4-P11a-purchasing-ap-core.md
+  prompts/W03-S5-P13a-hr-timekeeping-employee-portal.md
+  prompts/W03-S6-P14-fixed-assets.md
+  prompts/W03-S7-P22b-qa-cross-module.md
+THEN: when every one of those sessions has ended (DONE or BLOCKED), paste prompts/INTEGRATOR-after-W03.md into 1 NEW session.
 ```
 
 ## Tasks
@@ -25,14 +33,14 @@ NEXT: no worker prompt is due; paste prompts/INTEGRATOR-after-W02.md into 1 NEW 
 | 02 | P08 | worker | ACCEPTED | 3 | 2026-11-10T03:42:02Z | attempt 2 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE  |
 | 02 | P06 | worker | ACCEPTED | 1 | 2026-11-09T21:19:50Z |  |
 | 02 | P22a | worker | ACCEPTED | 1 | 2026-11-09T21:19:50Z |  |
-| 02 | G1 | gate | READY | 1 |  |  |
-| 03 | P15 | worker | PENDING | 1 |  |  |
-| 03 | P09a | worker | PENDING | 1 |  |  |
-| 03 | P13b | worker | PENDING | 1 |  |  |
-| 03 | P11a | worker | PENDING | 1 |  |  |
-| 03 | P13a | worker | PENDING | 1 |  |  |
-| 03 | P14 | worker | PENDING | 1 |  |  |
-| 03 | P22b | worker | PENDING | 1 |  |  |
+| 02 | G1 | gate | ACCEPTED | 1 | 2026-11-10T03:45:00Z |  |
+| 03 | P15 | worker | READY | 1 |  |  |
+| 03 | P09a | worker | READY | 1 |  |  |
+| 03 | P13b | worker | READY | 1 |  |  |
+| 03 | P11a | worker | READY | 1 |  |  |
+| 03 | P13a | worker | READY | 1 |  |  |
+| 03 | P14 | worker | READY | 1 |  |  |
+| 03 | P22b | worker | READY | 1 |  |  |
 | 04 | P10a | worker | PENDING | 1 |  |  |
 | 04 | P11b | worker | PENDING | 1 |  |  |
 | 04 | P09c | worker | PENDING | 1 |  |  |
