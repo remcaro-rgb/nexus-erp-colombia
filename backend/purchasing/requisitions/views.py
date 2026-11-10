@@ -168,7 +168,9 @@ class ConsolidationList(PurchasingView):
 class ConsolidationDetail(PurchasingView):
     def get(self, request: Request, pk: uuid.UUID) -> Response:
         ctx, company = self.ctx_company(request)
-        obj = get_scoped(ctx, "purchasing.consolidation.read", ConsolidationBatch.objects.filter(company_id=company), pk)
+        obj = get_scoped(
+            ctx, "purchasing.consolidation.read", ConsolidationBatch.objects.filter(company_id=company), pk
+        )
         response = Response(ser.consolidation_json(obj))
         response["ETag"] = obj.etag
         return response
@@ -186,9 +188,7 @@ class ConsolidationRun(PurchasingView):
             started = clock.now()
             result = service.run_consolidation(uow, company, dry_run=dry_run)
             batch = result["batch"]
-            links = (
-                [{"rel": "consolidation", "href": f"/api/v1/purchasing/consolidations/{batch.id}"}] if batch else []
-            )
+            links = [{"rel": "consolidation", "href": f"/api/v1/purchasing/consolidations/{batch.id}"}] if batch else []
             return {
                 "id": str(batch.id if batch else ids.new_id()),
                 "kind": "purchasing_consolidations_run",

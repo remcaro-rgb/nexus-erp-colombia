@@ -69,6 +69,7 @@ ROLES: dict[str, list[str]] = {
     "aprobador_compras": [
         "purchasing.order.read",
         "purchasing.order.approve",
+        "purchasing.order.create",
         "purchasing.rfq.read",
         "purchasing.rfq.approve",
         "purchasing.quote.read",
@@ -236,7 +237,9 @@ def _bootstrap_ledger(w: P11bWorld, company: str) -> None:
                 is_control=control,
                 control_sources=sources,
             )
-            AccountDetermination.objects.create(tenant_id=w.world.tenant_id, company_id=cid, role_code=role, account=acc)
+            AccountDetermination.objects.create(
+                tenant_id=w.world.tenant_id, company_id=cid, role_code=role, account=acc
+            )
 
     w.run(fn, company)
 
@@ -259,7 +262,9 @@ def make_p11b_world(world: World, issuer: LocalIssuer) -> P11bWorld:
         w._branches[(company, "BOG")] = bid
         _bootstrap_ledger(w, company)
         w.run(
-            lambda u, c=company: masters.create_uom(u, world.companies[c], {"code": "UND", "name": "UND", "precision": 0}),
+            lambda u, c=company: masters.create_uom(
+                u, world.companies[c], {"code": "UND", "name": "UND", "precision": 0}
+            ),
             company,
         )
     for role, grants in ROLES.items():
@@ -270,3 +275,93 @@ def make_p11b_world(world: World, issuer: LocalIssuer) -> P11bWorld:
             world.assign(user, role, "ALFA")
             world.assign(user, role, "BETA")
     return w
+
+
+# --------------------------------------------------------------------------- P11a flows through its public API
+
+PUR = "/api/v1/purchasing"
+
+
+def rfq_sent(
+    w: P11bWorld, items: list[tuple[Any, str]], vendors: list[Any], *, deadline: dt.datetime | None = None
+) -> dict[str, Any]:
+    """A SENT RFQ (buyer ``comprador``) for ``items`` = [(item, qty)] inviting ``vendors``."""
+    api = w.api("comprador")
+    body = {
+        "document_date": clock.business_date().isoformat(),
+        "deadline": (deadline or clock.now() + dt.timedelta(days=2)).isoformat(),
+        "currency": "COP",
+        "invited_vendors": [str(v.id) for v in vendors],
+        "lines": [
+            {"line_no": n, "item_id": str(it.id), "description": it.name, "quantity": {"value": qty, "uom": "UND"}}
+            for n, (it, qty) in enumerate(items, start=1)
+        ],
+    }
+    r = api.post(f"{PUR}/rfqs", body)
+    assert r.status_code == 201, r.content
+    rfq = r.json()
+    r = api.post(f"{PUR}/rfqs/{rfq['id']}:send")
+    assert r.status_code == 200, r.content
+    return dict(r.json())
+
+
+def quote_lines(items: list[tuple[Any, str]], prices: list[str]) -> list[dict[str, Any]]:
+    return [
+        {"line_no": n, "quantity": {"value": qty, "uom": "UND"}, "unit_price": {"amount": p, "currency": "COP"}}
+        for n, ((_it, qty), p) in enumerate(zip(items, prices, strict=True), start=1)
+    ]
+
+
+def award_rfq(w: P11bWorld, rfq_id: str) -> dict[str, Any]:
+    """Close after the deadline, evaluate, award the recommendation (comprador) and approve (aprobador, SoD)."""
+    api = w.api("comprador")
+    advance(dt.datetime.fromisoformat(api.get(f"{PUR}/rfqs/{rfq_id}").json()["deadline"]) + dt.timedelta(minutes=1))
+    for action in ("close", "evaluate"):
+        r = api.post(f"{PUR}/rfqs/{rfq_id}:{action}")
+        assert r.status_code == 200, r.content
+    comparison = api.get(f"{PUR}/rfqs/{rfq_id}/comparison").json()
+    r = api.post(f"{PUR}/rfqs/{rfq_id}:award", {"parameters": {"quote_id": comparison["recommended_quote_id"]}})
+    assert r.status_code == 200, r.content
+    r = w.api("aprobador").post(f"{PUR}/rfqs/{rfq_id}:approve-award", {"reason": "ok"})
+    assert r.status_code == 200, r.content
+    return comparison
+
+
+def approved_price(w: P11bWorld, item: Any, vendor: Any, price: str) -> None:
+    """A valid D-011 vendor price: an approved award of ``vendor`` for ``item`` at ``price``."""
+    items = [(item, "1")]
+    rfq = rfq_sent(w, items, [vendor])
+    r = w.api("comprador").post(
+        f"{PUR}/rfqs/{rfq['id']}/quotes",
+        {"party": {"id": str(vendor.id)}, "currency": "COP", "lead_time_days": 3, "lines": quote_lines(items, [price])},
+    )
+    assert r.status_code == 201, r.content
+    award_rfq(w, rfq["id"])
+
+
+def order_sent(w: P11bWorld, order_id: str) -> dict[str, Any]:
+    """DRAFT → SUBMITTED (comprador) → APPROVED (aprobador) → SENT."""
+    r = w.api("comprador").post(f"{PUR}/orders/{order_id}:submit")
+    assert r.status_code == 200, r.content
+    if r.json()["status"] != "APPROVED":
+        r = w.api("aprobador").post(f"{PUR}/orders/{order_id}:approve", {"reason": "ok"})
+        assert r.status_code == 200, r.content
+    r = w.api("comprador").post(f"{PUR}/orders/{order_id}:send")
+    assert r.status_code == 200, r.content
+    return dict(r.json())
+
+
+def receive_order(w: P11bWorld, order: dict[str, Any], warehouse: Any, qty: str, line_no: int = 1) -> None:
+    api = w.api("bodega")
+    line = next(ln for ln in order["lines"] if ln["line_no"] == line_no)
+    r = api.post(
+        f"{PUR}/receipts",
+        {
+            "order": {"id": order["id"]},
+            "warehouse_id": str(warehouse.id),
+            "lines": [{"order_line_id": line["id"], "quantity": {"value": qty, "uom": "UND"}}],
+        },
+    )
+    assert r.status_code == 201, r.content
+    r = api.post(f"{PUR}/receipts/{r.json()['id']}:validate")
+    assert r.status_code == 200, r.content
