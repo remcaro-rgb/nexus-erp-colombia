@@ -2,11 +2,11 @@
   "schema": "nexus-cloud/report/v1",
   "task": "P08",
   "attempt": 3,
-  "status": "DONE",
-  "reason": "",
+  "status": "BLOCKED",
+  "reason": "All P08 work done and green locally (make ci OK, 3/3 mandatory tests PASSED, pnpm audit critical exit 0, parity_gate PARITY-GATE OK 4/4). Blocked only by GitHub CI 'T-P03-01 docker compose up' step image-scan: grype --fail-on critical finds zlib 1.3.2-r1 CVE-2026-4738 Critical in erp-web:dev's caddy:2.11.9-alpine base (deploy/docker/frontend.Dockerfile, owner P03), first built because P08 adds the lockfile. Reproduced locally. Unblock: P03 bumps CADDY_IMAGE or adds 'apk upgrade --no-cache zlib' in the web stage (CCR P08-7); then P08 is mergeable unchanged.",
   "branch": "claude/new-session-054ctn",
   "base_sha": "11c298f3c3840a84656639745baff78b49c15aa9",
-  "tested_sha": "2de02e65c127e007e534b3347a23d51a09ec9355",
+  "tested_sha": "7d66eb200fcee6c5f53e2e60b4854b1dbce0df02",
   "changed_paths": [
     "contracts/change-requests/P08-1.md",
     "contracts/change-requests/P08-2.md",
@@ -14,6 +14,7 @@
     "contracts/change-requests/P08-4.md",
     "contracts/change-requests/P08-5.md",
     "contracts/change-requests/P08-6.md",
+    "contracts/change-requests/P08-7.md",
     "docs/handoffs/P08.md",
     "docs/run/progress/P08.md",
     "docs/run/reports/P08.json",
@@ -148,5 +149,5 @@
   },
   "missing_tests": [],
   "session_url": "https://claude.ai/code/session_01XNGgzLmxZ4e9r8tCMpNtpx",
-  "created_at": "2026-11-10T01:55:41Z"
+  "created_at": "2026-11-10T02:05:13Z"
 }
