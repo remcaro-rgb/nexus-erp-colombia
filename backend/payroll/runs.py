@@ -59,11 +59,17 @@ def employee_source() -> PayrollEmployeeSource:
 
 def period_json(p: PayrollPeriod) -> dict[str, Any]:
     return {
-        "id": str(p.id), "tenant_id": str(p.tenant_id), "company_id": str(p.company_id), "code": p.code,
-        "name": p.name or p.code, "status": "ACTIVE" if p.status == PayrollPeriod.OPEN else "ARCHIVED",
-        "frequency": p.frequency, "start_date": p.start_date.isoformat(), "end_date": p.end_date.isoformat(),
+        "id": str(p.id),
+        "tenant_id": str(p.tenant_id),
+        "company_id": str(p.company_id),
+        "code": p.code,
+        "name": p.name or p.code,
+        "status": "ACTIVE" if p.status == PayrollPeriod.OPEN else "ARCHIVED",
+        "frequency": p.frequency,
+        "start_date": p.start_date.isoformat(),
+        "end_date": p.end_date.isoformat(),
         "version": p.version,
-    }  # fmt: skip
+    }
 
 
 def _date(raw: Any, field: str) -> dt.date:
@@ -91,11 +97,24 @@ def create_period(uow: UnitOfWork, company_id: uuid.UUID, data: Mapping[str, Any
     if PayrollPeriod.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, code=code).exists():
         raise Conflict(f"period {code} already exists", code="duplicate")
     period = PayrollPeriod.objects.create(
-        tenant_id=ctx.tenant_id, company_id=company_id, code=code, name=str(data.get("name") or code)[:200],
-        frequency=frequency, start_date=start, end_date=end, created_by=ctx.principal_id, updated_by=ctx.principal_id,
-    )  # fmt: skip
-    record_change("payroll.period.create", "payroll.period", period.id, company_id=company_id,
-                  after={"code": code, "start": start.isoformat(), "end": end.isoformat()}, uow=uow)  # fmt: skip
+        tenant_id=ctx.tenant_id,
+        company_id=company_id,
+        code=code,
+        name=str(data.get("name") or code)[:200],
+        frequency=frequency,
+        start_date=start,
+        end_date=end,
+        created_by=ctx.principal_id,
+        updated_by=ctx.principal_id,
+    )
+    record_change(
+        "payroll.period.create",
+        "payroll.period",
+        period.id,
+        company_id=company_id,
+        after={"code": code, "start": start.isoformat(), "end": end.isoformat()},
+        uow=uow,
+    )
     return period
 
 
@@ -111,12 +130,16 @@ def get_period(ctx: TenantContext, company_id: uuid.UUID, period_id: uuid.UUID) 
 
 def novelty_json(n: PayrollNovelty) -> dict[str, Any]:
     return {
-        "id": str(n.id), "tenant_id": str(n.tenant_id), "company_id": str(n.company_id),
-        "employee_id": str(n.employee_id), "concept_id": str(n.concept_id), "period_id": str(n.period_id),
+        "id": str(n.id),
+        "tenant_id": str(n.tenant_id),
+        "company_id": str(n.company_id),
+        "employee_id": str(n.employee_id),
+        "concept_id": str(n.concept_id),
+        "period_id": str(n.period_id),
         "quantity": None if n.quantity is None else str(n.quantity),
         "amount": None if n.amount is None else {"amount": str(q_amount(n.amount)), "currency": "COP"},
         "version": n.version,
-    }  # fmt: skip
+    }
 
 
 def _money(raw: Any, field: str) -> Decimal | None:
@@ -152,12 +175,26 @@ def create_novelty(uow: UnitOfWork, company_id: uuid.UUID, data: Mapping[str, An
     if PayrollRun.objects.filter(period=period, status__in=[PayrollRun.POSTED, PayrollRun.PAID]).exists():
         raise PayrollRunLocked("the period already has a posted run; novelties go to the next period")
     novelty = PayrollNovelty.objects.create(
-        tenant_id=ctx.tenant_id, company_id=company_id, period=period, concept=concept, employee_id=employee_id,
-        quantity=_money(data.get("quantity"), "quantity"), amount=_money(data.get("amount"), "amount"),
-        note=str(data.get("note") or "")[:255], created_by=ctx.principal_id, updated_by=ctx.principal_id,
-    )  # fmt: skip
-    record_change("payroll.novelty.create", "payroll.novelty", novelty.id, company_id=company_id,
-                  after={"concept": concept.code}, sensitive=("amount",), uow=uow)  # fmt: skip
+        tenant_id=ctx.tenant_id,
+        company_id=company_id,
+        period=period,
+        concept=concept,
+        employee_id=employee_id,
+        quantity=_money(data.get("quantity"), "quantity"),
+        amount=_money(data.get("amount"), "amount"),
+        note=str(data.get("note") or "")[:255],
+        created_by=ctx.principal_id,
+        updated_by=ctx.principal_id,
+    )
+    record_change(
+        "payroll.novelty.create",
+        "payroll.novelty",
+        novelty.id,
+        company_id=company_id,
+        after={"concept": concept.code},
+        sensitive=("amount",),
+        uow=uow,
+    )
     return novelty
 
 
@@ -178,16 +215,28 @@ def run_json(r: PayrollRun) -> dict[str, Any]:
         return {"amount": str(q_amount(v)), "currency": "COP"}
 
     return {
-        "id": str(r.id), "tenant_id": str(r.tenant_id), "company_id": str(r.company_id), "number": r.number or None,
-        "status": r.status, "period_id": str(r.period_id), "employees": list(r.employees or []),
+        "id": str(r.id),
+        "tenant_id": str(r.tenant_id),
+        "company_id": str(r.company_id),
+        "number": r.number or None,
+        "status": r.status,
+        "period_id": str(r.period_id),
+        "employees": list(r.employees or []),
         "calculation_date": r.calculation_date.isoformat() if r.calculation_date else None,
-        "graph_order": list(r.graph_order or []), "legally_verified": r.legally_verified,
+        "graph_order": list(r.graph_order or []),
+        "legally_verified": r.legally_verified,
         "legal_notice": "" if r.legally_verified else "NOT LEGALLY VERIFIED",
-        "parameter_snapshot": r.parameter_snapshot or {}, "warnings": list(r.warnings or []),
-        "totals": {"earnings": money(r.total_earnings), "deductions": money(r.total_deductions),
-                   "net_pay": money(r.total_net), "employer": money(r.total_employer)},
-        "journal_entry_id": str(r.journal_entry_id) if r.journal_entry_id else None, "version": r.version,
-    }  # fmt: skip
+        "parameter_snapshot": r.parameter_snapshot or {},
+        "warnings": list(r.warnings or []),
+        "totals": {
+            "earnings": money(r.total_earnings),
+            "deductions": money(r.total_deductions),
+            "net_pay": money(r.total_net),
+            "employer": money(r.total_employer),
+        },
+        "journal_entry_id": str(r.journal_entry_id) if r.journal_entry_id else None,
+        "version": r.version,
+    }
 
 
 def create_run(uow: UnitOfWork, company_id: uuid.UUID, data: Mapping[str, Any]) -> PayrollRun:
@@ -204,11 +253,22 @@ def create_run(uow: UnitOfWork, company_id: uuid.UUID, data: Mapping[str, Any]) 
         raise ValidationFailed("period_id and employees must be UUIDs") from exc
     count = PayrollRun.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, period=period).count()
     run = PayrollRun.objects.create(
-        tenant_id=ctx.tenant_id, company_id=company_id, period=period, employees=employees,
-        number=f"NOM-{period.code}-{count + 1}"[:40], created_by=ctx.principal_id, updated_by=ctx.principal_id,
-    )  # fmt: skip
-    record_change("payroll.run.create", "payroll.run", run.id, company_id=company_id,
-                  after={"period": period.code, "number": run.number}, uow=uow)  # fmt: skip
+        tenant_id=ctx.tenant_id,
+        company_id=company_id,
+        period=period,
+        employees=employees,
+        number=f"NOM-{period.code}-{count + 1}"[:40],
+        created_by=ctx.principal_id,
+        updated_by=ctx.principal_id,
+    )
+    record_change(
+        "payroll.run.create",
+        "payroll.run",
+        run.id,
+        company_id=company_id,
+        after={"period": period.code, "number": run.number},
+        uow=uow,
+    )
     return run
 
 
@@ -252,28 +312,45 @@ def calculate(uow: UnitOfWork, company_id: uuid.UUID, run_id: uuid.UUID) -> Payr
     results, params, order = compute(ctx, run)
     PayslipLine.objects.filter(payslip__run=run).delete()
     Payslip.objects.filter(run=run).delete()
-    concept_ids = {
-        c.code: c for c in PayrollConcept.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id)
-    }
+    concept_ids = {c.code: c for c in PayrollConcept.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id)}
     snapshot = params.snapshot()
     for r in results:
         slip = Payslip.objects.create(
-            tenant_id=ctx.tenant_id, company_id=company_id, run=run, employee_id=r.employee.employee_id,
-            employee_name=r.employee.full_name[:200], cost_center_id=r.employee.cost_center_id,
-            earnings=r.earnings, deductions=r.deductions, employer_cost=r.employer_cost, net_pay=r.net_pay,
-            parameter_snapshot=r.parameters, legally_verified=r.legally_verified, legal_notice=r.legal_notice,
-        )  # fmt: skip
+            tenant_id=ctx.tenant_id,
+            company_id=company_id,
+            run=run,
+            employee_id=r.employee.employee_id,
+            employee_name=r.employee.full_name[:200],
+            cost_center_id=r.employee.cost_center_id,
+            earnings=r.earnings,
+            deductions=r.deductions,
+            employer_cost=r.employer_cost,
+            net_pay=r.net_pay,
+            parameter_snapshot=r.parameters,
+            legally_verified=r.legally_verified,
+            legal_notice=r.legal_notice,
+        )
         PayslipLine.objects.bulk_create(
             [
                 PayslipLine(
-                    tenant_id=ctx.tenant_id, company_id=company_id, payslip=slip, concept=concept_ids[ln.concept_code],
-                    concept_code=ln.concept_code, concept_type=ln.concept_type, sequence=ln.sequence,
-                    amount=ln.amount, quantity=ln.quantity, formula_id=ln.formula_id,
-                    formula_version=ln.formula_version, formula_hash=ln.formula_hash, inputs=ln.inputs,
-                    trace=ln.trace, parameters=ln.parameters,
+                    tenant_id=ctx.tenant_id,
+                    company_id=company_id,
+                    payslip=slip,
+                    concept=concept_ids[ln.concept_code],
+                    concept_code=ln.concept_code,
+                    concept_type=ln.concept_type,
+                    sequence=ln.sequence,
+                    amount=ln.amount,
+                    quantity=ln.quantity,
+                    formula_id=ln.formula_id,
+                    formula_version=ln.formula_version,
+                    formula_hash=ln.formula_hash,
+                    inputs=ln.inputs,
+                    trace=ln.trace,
+                    parameters=ln.parameters,
                     account_role=concept_ids[ln.concept_code].account_role or DEFAULT_ROLE[ln.concept_type],
                     electronic_payroll_code=concept_ids[ln.concept_code].electronic_payroll_code,
-                )  # fmt: skip
+                )
                 for ln in r.lines
                 if ln.amount
             ]
@@ -283,26 +360,53 @@ def calculate(uow: UnitOfWork, company_id: uuid.UUID, run_id: uuid.UUID) -> Payr
     run.parameter_snapshot = snapshot
     run.graph_order = order
     run.legally_verified = params.all_verified
-    run.warnings = [] if params.all_verified else [
-        {"code": "parameters_not_legally_verified",
-         "detail": "NOT LEGALLY VERIFIED: legal parameters without a legal-review stamp (EG-7)",
-         "parameters": sorted(k for k, v in snapshot.items() if not v["legally_verified"])}
-    ]  # fmt: skip
+    run.warnings = (
+        []
+        if params.all_verified
+        else [
+            {
+                "code": "parameters_not_legally_verified",
+                "detail": "NOT LEGALLY VERIFIED: legal parameters without a legal-review stamp (EG-7)",
+                "parameters": sorted(k for k, v in snapshot.items() if not v["legally_verified"]),
+            }
+        ]
+    )
     run.total_earnings = sum((r.earnings for r in results), Decimal(0))
     run.total_deductions = sum((r.deductions for r in results), Decimal(0))
     run.total_net = sum((r.net_pay for r in results), Decimal(0))
     run.total_employer = sum((r.employer_cost for r in results), Decimal(0))
     run.calculated_by, run.calculated_at = ctx.on_behalf_of or ctx.principal_id, clock.now()
-    run.save_versioned(ctx.principal_id, ["status", "calculation_date", "parameter_snapshot", "graph_order",
-                       "legally_verified", "warnings", "total_earnings", "total_deductions", "total_net",
-                       "total_employer", "calculated_by", "calculated_at"])  # fmt: skip
-    record_change("payroll.run.calculate", "payroll.run", run.id, company_id=company_id,
-                  after={"status": run.status, "employees": len(results)}, uow=uow)  # fmt: skip
+    run.save_versioned(
+        ctx.principal_id,
+        [
+            "status",
+            "calculation_date",
+            "parameter_snapshot",
+            "graph_order",
+            "legally_verified",
+            "warnings",
+            "total_earnings",
+            "total_deductions",
+            "total_net",
+            "total_employer",
+            "calculated_by",
+            "calculated_at",
+        ],
+    )
+    record_change(
+        "payroll.run.calculate",
+        "payroll.run",
+        run.id,
+        company_id=company_id,
+        after={"status": run.status, "employees": len(results)},
+        uow=uow,
+    )
     return run
 
 
 def _posting_request(run: PayrollRun, slips: list[Payslip]) -> PostingRequest:
     acc: dict[tuple[str, str, str, str], Decimal] = {}
+
     def add(role: str, side: str, cc: str, party: str, amount: Decimal) -> None:
         if amount:
             key = (role, side, cc, party)
@@ -321,18 +425,23 @@ def _posting_request(run: PayrollRun, slips: list[Payslip]) -> PostingRequest:
         add(NET_PAY_ROLE, "CREDIT", cc, str(slip.employee_id), slip.net_pay)
     lines = tuple(
         PostingLine(
-            account_role=role, side="DEBIT" if side == "DEBIT" else "CREDIT", amount=q_amount(amount),
+            account_role=role,
+            side="DEBIT" if side == "DEBIT" else "CREDIT",
+            amount=q_amount(amount),
             party=PartyRef(uuid.UUID(party), "employee") if party else None,
             dimensions=DimensionValues(cost_center_id=uuid.UUID(cc) if cc else None),
             memo=f"Nómina {run.number}",
-        )  # fmt: skip
+        )
         for (role, side, cc, party), amount in sorted(acc.items())
     )
     return PostingRequest(
-        company_id=run.company_id, posting_date=run.period.end_date,
-        source=DocumentRef("payroll.run", run.id, run.number), purpose="payroll_run", lines=lines,
+        company_id=run.company_id,
+        posting_date=run.period.end_date,
+        source=DocumentRef("payroll.run", run.id, run.number),
+        purpose="payroll_run",
+        lines=lines,
         journal_code="PAYROLL",
-    )  # fmt: skip
+    )
 
 
 def approve(uow: UnitOfWork, company_id: uuid.UUID, run_id: uuid.UUID) -> PayrollRun:
@@ -344,10 +453,21 @@ def approve(uow: UnitOfWork, company_id: uuid.UUID, run_id: uuid.UUID) -> Payrol
         raise Conflict(f"only CALCULATED runs can be approved (status {run.status})")
     if (ctx.on_behalf_of or ctx.principal_id) == run.calculated_by:
         raise PermissionDenied("the person who calculated the run cannot approve it (SoD)", code="sod_violation")
-    run.status, run.approved_by, run.approved_at = PayrollRun.APPROVED, ctx.on_behalf_of or ctx.principal_id, clock.now()
+    run.status, run.approved_by, run.approved_at = (
+        PayrollRun.APPROVED,
+        ctx.on_behalf_of or ctx.principal_id,
+        clock.now(),
+    )
     run.save_versioned(ctx.principal_id, ["status", "approved_by", "approved_at"])
-    record_change("payroll.run.approve", "payroll.run", run.id, company_id=company_id,
-                  before={"status": PayrollRun.CALCULATED}, after={"status": run.status}, uow=uow)  # fmt: skip
+    record_change(
+        "payroll.run.approve",
+        "payroll.run",
+        run.id,
+        company_id=company_id,
+        before={"status": PayrollRun.CALCULATED},
+        after={"status": run.status},
+        uow=uow,
+    )
     return run
 
 
@@ -366,16 +486,28 @@ def post(uow: UnitOfWork, company_id: uuid.UUID, run_id: uuid.UUID) -> PayrollRu
     Payslip.objects.filter(run=run).update(posted=True)
     run.status, run.posted_by, run.posted_at = PayrollRun.POSTED, ctx.principal_id, clock.now()
     run.journal_entry_id, run.journal_entry_number = result.entry_id, result.entry_number
-    run.save_versioned(ctx.principal_id, ["status", "posted_by", "posted_at", "journal_entry_id",
-                                          "journal_entry_number"])  # fmt: skip
-    uow.emit("payroll.run.posted.v1", {
-        "run_id": str(run.id), "period_id": str(run.period_id),
-        "total_earnings": {"amount": str(q_amount(run.total_earnings)), "currency": "COP"},
-        "journal_entry_id": str(result.entry_id),
-    }, company_id=company_id)  # fmt: skip
-    record_change("payroll.run.post", "payroll.run", run.id, company_id=company_id,
-                  before={"status": PayrollRun.APPROVED}, after={"status": run.status,
-                  "journal_entry": result.entry_number}, uow=uow)  # fmt: skip
+    run.save_versioned(
+        ctx.principal_id, ["status", "posted_by", "posted_at", "journal_entry_id", "journal_entry_number"]
+    )
+    uow.emit(
+        "payroll.run.posted.v1",
+        {
+            "run_id": str(run.id),
+            "period_id": str(run.period_id),
+            "total_earnings": {"amount": str(q_amount(run.total_earnings)), "currency": "COP"},
+            "journal_entry_id": str(result.entry_id),
+        },
+        company_id=company_id,
+    )
+    record_change(
+        "payroll.run.post",
+        "payroll.run",
+        run.id,
+        company_id=company_id,
+        before={"status": PayrollRun.APPROVED},
+        after={"status": run.status, "journal_entry": result.entry_number},
+        uow=uow,
+    )
     return run
 
 
@@ -389,8 +521,15 @@ def pay(uow: UnitOfWork, company_id: uuid.UUID, run_id: uuid.UUID, payment_ref: 
         raise Conflict(f"only POSTED runs can be paid (status {run.status})")
     run.status, run.paid_at, run.payment_ref = PayrollRun.PAID, clock.now(), payment_ref[:120]
     run.save_versioned(ctx.principal_id, ["status", "paid_at", "payment_ref"])
-    record_change("payroll.run.pay", "payroll.run", run.id, company_id=company_id,
-                  before={"status": PayrollRun.POSTED}, after={"status": run.status}, uow=uow)  # fmt: skip
+    record_change(
+        "payroll.run.pay",
+        "payroll.run",
+        run.id,
+        company_id=company_id,
+        before={"status": PayrollRun.POSTED},
+        after={"status": run.status},
+        uow=uow,
+    )
     return run
 
 
@@ -415,19 +554,32 @@ def simulate(uow: UnitOfWork, company_id: uuid.UUID, run_id: uuid.UUID) -> dict[
         "documents": [
             {
                 "employee_id": str(r.employee.employee_id),
-                "earnings": str(r.earnings), "deductions": str(r.deductions), "net_pay": str(r.net_pay),
-                "employer_cost": str(r.employer_cost), "legal_notice": r.legal_notice,
-                "lines": [{"concept": ln.concept_code, "type": ln.concept_type, "amount": str(ln.amount),
-                           "formula_hash": ln.formula_hash, "trace": ln.trace} for ln in r.lines],
-            }  # fmt: skip
+                "earnings": str(r.earnings),
+                "deductions": str(r.deductions),
+                "net_pay": str(r.net_pay),
+                "employer_cost": str(r.employer_cost),
+                "legal_notice": r.legal_notice,
+                "lines": [
+                    {
+                        "concept": ln.concept_code,
+                        "type": ln.concept_type,
+                        "amount": str(ln.amount),
+                        "formula_hash": ln.formula_hash,
+                        "trace": ln.trace,
+                    }
+                    for ln in r.lines
+                ],
+            }
             for r in results
         ],
         "journal_entries": [
             {
-                "journal_code": "PAYROLL", "posting_date": run.period.end_date.isoformat(),
-                "total_debit": str(q_amount(debit)), "total_credit": str(q_amount(credit)),
+                "journal_code": "PAYROLL",
+                "posting_date": run.period.end_date.isoformat(),
+                "total_debit": str(q_amount(debit)),
+                "total_credit": str(q_amount(credit)),
                 "lines": [{**j, "amount": str(q_amount(j["amount"]))} for j in journal],
-            }  # fmt: skip
+            }
         ],
         "stock_moves": [],
         "graph_order": order,

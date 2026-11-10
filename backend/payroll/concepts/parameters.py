@@ -57,11 +57,18 @@ PARAMETER_INPUTS: Mapping[str, str] = {
 #: percent units (4), the unit the store is written in and the DSL's ``percent(x, p)`` expects.
 PERCENT_INPUTS: frozenset[str] = frozenset(
     {
-        "param_salud_empleado", "param_salud_empleador", "param_pension_empleado", "param_pension_empleador",
-        "param_fsp_tarifa", "param_ibc_no_salarial_pct", "param_ccf", "param_sena", "param_icbf",
+        "param_salud_empleado",
+        "param_salud_empleador",
+        "param_pension_empleado",
+        "param_pension_empleador",
+        "param_fsp_tarifa",
+        "param_ibc_no_salarial_pct",
+        "param_ccf",
+        "param_sena",
+        "param_icbf",
         "param_ret_lab_tope_pct",
     }
-)  # fmt: skip
+)
 
 
 def is_parameter_input(name: str) -> bool:

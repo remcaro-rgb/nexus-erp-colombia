@@ -267,7 +267,11 @@ class ElectronicList(PayrollAPIView):
 
         def fn(uow: UnitOfWork) -> tuple[Any, int, dict[str, str]]:
             d = payslips.create_electronic(uow, cid, body(request))
-            return payslips.electronic_json(d), 201, {**etag(d), "Location": f"/api/v1/payroll/electronic-payroll/{d.id}"}
+            return (
+                payslips.electronic_json(d),
+                201,
+                {**etag(d), "Location": f"/api/v1/payroll/electronic-payroll/{d.id}"},
+            )
 
         return command(request, ctx, "payroll.electronic_payroll.create", fn)
 

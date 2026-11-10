@@ -64,12 +64,18 @@ class PayrollWorld:
             self.author,
             self.company_id,
             {
-                "domain": "payroll", "code": code, "expression": expression, "inputs": dict(inputs),
-                "result_type": result_type, "depends_on": list(depends_on), "tests": list(tests),
-                "output_places": 2, "output_rounding": "HALF_UP",
+                "domain": "payroll",
+                "code": code,
+                "expression": expression,
+                "inputs": dict(inputs),
+                "result_type": result_type,
+                "depends_on": list(depends_on),
+                "tests": list(tests),
+                "output_places": 2,
+                "output_rounding": "HALF_UP",
                 "effective_from": effective_from.isoformat() if effective_from else None,
             },
-        )  # fmt: skip
+        )
         if activate:
             svc.submit(self.author, row.id)
             row = svc.approve(self.approver, row.id, reason="payroll admin review (synthetic)")
@@ -103,14 +109,20 @@ class PayrollWorld:
         from payroll.interfaces import PayrollEmployee
 
         emp = PayrollEmployee(
-            employee_id=over.pop("employee_id", ids.new_id()), company_id=self.company_id,
-            full_name=over.pop("full_name", "Empleado Sintético"), contract_id=ids.new_id(),
-            contract_type=over.pop("contract_type", "INDEFINIDO"), salary=Decimal(salary),
-            start_date=over.pop("start_date", dt.date(2025, 1, 1)), **over,
-        )  # fmt: skip
+            employee_id=over.pop("employee_id", ids.new_id()),
+            company_id=self.company_id,
+            full_name=over.pop("full_name", "Empleado Sintético"),
+            contract_id=ids.new_id(),
+            contract_type=over.pop("contract_type", "INDEFINIDO"),
+            salary=Decimal(salary),
+            start_date=over.pop("start_date", dt.date(2025, 1, 1)),
+            **over,
+        )
         return self.employees.add(emp)
 
-    def novelty(self, period: Any, concept: Any, employee: Any, amount: str | None = None, quantity: str | None = None) -> Any:
+    def novelty(
+        self, period: Any, concept: Any, employee: Any, amount: str | None = None, quantity: str | None = None
+    ) -> Any:
         from payroll import runs
 
         data = {"employee_id": str(employee.employee_id), "concept_id": str(concept.id), "period_id": str(period.id)}
@@ -196,49 +208,77 @@ def standard_user_concepts(world: PayrollWorld) -> dict[str, Any]:
     base = {"salary": "3000000", "days_worked": "30", "period_days": "30", "novelty_amount": "0"}
     f: dict[str, Any] = {}
     f["SALARIO"] = world.formula(
-        "SALARIO", "round(salary * days_worked / period_days, 2, 'HALF_UP')",
+        "SALARIO",
+        "round(salary * days_worked / period_days, 2, 'HALF_UP')",
         {"salary": MONEY, "days_worked": DEC, "period_days": DEC},
         [{"inputs": {**base, "days_worked": "15"}, "expected": "1500000"}],
-    )  # fmt: skip
+    )
     f["BONO"] = world.formula(
-        "BONO", "novelty_amount", {"novelty_amount": {"type": "money", "default": "0"}},
+        "BONO",
+        "novelty_amount",
+        {"novelty_amount": {"type": "money", "default": "0"}},
         [{"inputs": {"novelty_amount": "100"}, "expected": "100"}],
-    )  # fmt: skip
+    )
     f["AUX_TRANSPORTE"] = world.formula(
         "AUX_TRANSPORTE",
         "if(salary <= 2 * param_smmlv, round(param_aux_transporte * days_worked / period_days, 2, 'HALF_UP'), 0)",
         {"salary": MONEY, "days_worked": DEC, "period_days": DEC, "param_smmlv": DEC, "param_aux_transporte": DEC},
-        [{"inputs": {**base, "salary": "1000", "param_smmlv": "1000", "param_aux_transporte": "100"},
-          "expected": "100"},
-         {"inputs": {**base, "salary": "2001", "param_smmlv": "1000", "param_aux_transporte": "100"},
-          "expected": "0"}],
-    )  # fmt: skip
+        [
+            {
+                "inputs": {**base, "salary": "1000", "param_smmlv": "1000", "param_aux_transporte": "100"},
+                "expected": "100",
+            },
+            {
+                "inputs": {**base, "salary": "2001", "param_smmlv": "1000", "param_aux_transporte": "100"},
+                "expected": "0",
+            },
+        ],
+    )
     f["SALUD_EMP"] = world.formula(
-        "SALUD_EMP", "round(percent(SALARIO + BONO, param_salud_empleado), 2, 'HALF_UP')",
+        "SALUD_EMP",
+        "round(percent(SALARIO + BONO, param_salud_empleado), 2, 'HALF_UP')",
         {"param_salud_empleado": {"type": "percent"}},
         [{"inputs": {**base, "novelty_amount": "0", "param_salud_empleado": "4"}, "expected": "120000"}],
         depends_on=["SALARIO", "BONO"],
-    )  # fmt: skip
+    )
     f["PENSION_EMP"] = world.formula(
-        "PENSION_EMP", "round(percent(SALARIO, param_pension_empleado), 2, 'HALF_UP')",
+        "PENSION_EMP",
+        "round(percent(SALARIO, param_pension_empleado), 2, 'HALF_UP')",
         {"param_pension_empleado": {"type": "percent"}},
         [{"inputs": {**base, "param_pension_empleado": "4"}, "expected": "120000"}],
         depends_on=["SALARIO"],
-    )  # fmt: skip
+    )
     f["AHORRO"] = world.formula(
-        "AHORRO", "round(percent(SALARIO, 2), 2, 'HALF_UP')", {},
-        [{"inputs": base, "expected": "60000"}], depends_on=["SALARIO"],
-    )  # fmt: skip
+        "AHORRO",
+        "round(percent(SALARIO, 2), 2, 'HALF_UP')",
+        {},
+        [{"inputs": base, "expected": "60000"}],
+        depends_on=["SALARIO"],
+    )
     f["PENSION_PATRONAL"] = world.formula(
-        "PENSION_PATRONAL", "round(percent(SALARIO, param_pension_empleador), 2, 'HALF_UP')",
+        "PENSION_PATRONAL",
+        "round(percent(SALARIO, param_pension_empleador), 2, 'HALF_UP')",
         {"param_pension_empleador": {"type": "percent"}},
         [{"inputs": {**base, "param_pension_empleador": "12"}, "expected": "360000"}],
         depends_on=["SALARIO"],
-    )  # fmt: skip
-    types = {"SALARIO": "DEVENGO", "BONO": "DEVENGO", "AUX_TRANSPORTE": "DEVENGO", "SALUD_EMP": "DEDUCCION",
-             "PENSION_EMP": "DEDUCCION", "AHORRO": "DEDUCCION", "PENSION_PATRONAL": "APORTE"}  # fmt: skip
-    epay = {"SALARIO": "Basico", "BONO": "Bonificacion", "AUX_TRANSPORTE": "Transporte", "SALUD_EMP": "Salud",
-            "PENSION_EMP": "FondoPension", "AHORRO": "OtraDeduccion"}  # fmt: skip
+    )
+    types = {
+        "SALARIO": "DEVENGO",
+        "BONO": "DEVENGO",
+        "AUX_TRANSPORTE": "DEVENGO",
+        "SALUD_EMP": "DEDUCCION",
+        "PENSION_EMP": "DEDUCCION",
+        "AHORRO": "DEDUCCION",
+        "PENSION_PATRONAL": "APORTE",
+    }
+    epay = {
+        "SALARIO": "Basico",
+        "BONO": "Bonificacion",
+        "AUX_TRANSPORTE": "Transporte",
+        "SALUD_EMP": "Salud",
+        "PENSION_EMP": "FondoPension",
+        "AHORRO": "OtraDeduccion",
+    }
     concepts = {
         code: world.concept(code, types[code], formula=f[code], electronic_payroll_code=epay.get(code))
         for code in ("SALARIO", "BONO", "AUX_TRANSPORTE", "SALUD_EMP", "PENSION_EMP", "AHORRO", "PENSION_PATRONAL")

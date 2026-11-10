@@ -49,7 +49,9 @@ class PayrollPeriod(CompanyModel, AuditedModel):
         db_table = "payroll_period"
         constraints: ClassVar = [
             models.UniqueConstraint(fields=["tenant_id", "company_id", "code"], name="payroll_period_code_uq"),
-            models.CheckConstraint(condition=models.Q(end_date__gte=models.F("start_date")), name="payroll_period_dates"),
+            models.CheckConstraint(
+                condition=models.Q(end_date__gte=models.F("start_date")), name="payroll_period_dates"
+            ),
         ]
 
 

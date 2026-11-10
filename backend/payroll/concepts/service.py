@@ -29,8 +29,16 @@ from payroll.models import CONCEPT_TYPES, PayrollConcept, PayslipLine
 from workflow.audit.service import record_change
 from workflow.formula.errors import FormulaError
 
-FIELDS = ("code", "name", "concept_type", "formula_id", "depends_on", "account_role", "salary_base",
-          "electronic_payroll_code")  # fmt: skip
+FIELDS = (
+    "code",
+    "name",
+    "concept_type",
+    "formula_id",
+    "depends_on",
+    "account_role",
+    "salary_base",
+    "electronic_payroll_code",
+)
 
 
 def policy() -> PolicyService:
@@ -105,9 +113,7 @@ def _clean(data: Mapping[str, Any], *, partial: bool) -> dict[str, Any]:
 
 
 def _concepts(tenant_id: uuid.UUID, company_id: uuid.UUID) -> list[PayrollConcept]:
-    return list(
-        PayrollConcept.objects.filter(tenant_id=tenant_id, company_id=company_id, status=PayrollConcept.ACTIVE)
-    )
+    return list(PayrollConcept.objects.filter(tenant_id=tenant_id, company_id=company_id, status=PayrollConcept.ACTIVE))
 
 
 def _check_graph(ctx: TenantContext, company_id: uuid.UUID, concept: PayrollConcept) -> list[str]:
@@ -134,16 +140,24 @@ def create(uow: UnitOfWork, company_id: uuid.UUID, data: Mapping[str, Any]) -> P
     if PayrollConcept.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, code=values["code"]).exists():
         raise Conflict(f"concept {values['code']} already exists", code="duplicate")
     concept = PayrollConcept(
-        tenant_id=ctx.tenant_id, company_id=company_id, created_by=ctx.principal_id, updated_by=ctx.principal_id,
+        tenant_id=ctx.tenant_id,
+        company_id=company_id,
+        created_by=ctx.principal_id,
+        updated_by=ctx.principal_id,
         **values,
-    )  # fmt: skip
+    )
     _check_formula(ctx, company_id, concept)
     _check_graph(ctx, company_id, concept)
     concept.save()
-    record_change("payroll.concept.create", "payroll.concept", concept.id, company_id=company_id,
-                  after={k: str(v) for k, v in values.items()}, uow=uow)  # fmt: skip
-    uow.emit("payroll.concept.changed.v1", {"concept_id": str(concept.id), "code": concept.code},
-             company_id=company_id)  # fmt: skip
+    record_change(
+        "payroll.concept.create",
+        "payroll.concept",
+        concept.id,
+        company_id=company_id,
+        after={k: str(v) for k, v in values.items()},
+        uow=uow,
+    )
+    uow.emit("payroll.concept.changed.v1", {"concept_id": str(concept.id), "code": concept.code}, company_id=company_id)
     return concept
 
 
@@ -175,10 +189,16 @@ def update(
     _check_formula(ctx, company_id, concept)
     _check_graph(ctx, company_id, concept)
     concept.save_versioned(ctx.principal_id, [*values, "depends_on"])
-    record_change("payroll.concept.update", "payroll.concept", concept.id, company_id=company_id, before=before,
-                  after={k: str(v) for k, v in values.items()}, uow=uow)  # fmt: skip
-    uow.emit("payroll.concept.changed.v1", {"concept_id": str(concept.id), "code": concept.code},
-             company_id=company_id)  # fmt: skip
+    record_change(
+        "payroll.concept.update",
+        "payroll.concept",
+        concept.id,
+        company_id=company_id,
+        before=before,
+        after={k: str(v) for k, v in values.items()},
+        uow=uow,
+    )
+    uow.emit("payroll.concept.changed.v1", {"concept_id": str(concept.id), "code": concept.code}, company_id=company_id)
     return concept
 
 
@@ -189,14 +209,20 @@ def delete(uow: UnitOfWork, company_id: uuid.UUID, concept_id: uuid.UUID, if_mat
     concept = get(ctx, company_id, concept_id, lock=True)
     concept.check_if_match(if_match)
     if PayslipLine.objects.filter(concept_id=concept.id).exists() or concept.novelties.exists():
-        raise Conflict("concept in use: archive is not offered, corrections go through new concepts",
-                       code="concept_in_use")  # fmt: skip
+        raise Conflict(
+            "concept in use: archive is not offered, corrections go through new concepts", code="concept_in_use"
+        )
     if any(concept.code in (c.depends_on or []) for c in _concepts(ctx.tenant_id, company_id)):
         raise Conflict("other concepts depend on this concept", code="concept_in_use")
-    record_change("payroll.concept.delete", "payroll.concept", concept.id, company_id=company_id,
-                  before={"code": concept.code}, uow=uow)  # fmt: skip
-    uow.emit("payroll.concept.changed.v1", {"concept_id": str(concept.id), "code": concept.code},
-             company_id=company_id)  # fmt: skip
+    record_change(
+        "payroll.concept.delete",
+        "payroll.concept",
+        concept.id,
+        company_id=company_id,
+        before={"code": concept.code},
+        uow=uow,
+    )
+    uow.emit("payroll.concept.changed.v1", {"concept_id": str(concept.id), "code": concept.code}, company_id=company_id)
     concept.delete()
 
 
@@ -217,8 +243,14 @@ def validate_graph(ctx: TenantContext, company_id: uuid.UUID, on: dt.date | None
     try:
         compiled = compile_graph(specs(ctx, company_id, on))
     except FormulaError as exc:
-        return {"status": "invalid", "data": {"on": on.isoformat(), "order": [],
-                "errors": [{"code": exc.code, "detail": exc.detail, **exc.extra}]}}  # fmt: skip
+        return {
+            "status": "invalid",
+            "data": {
+                "on": on.isoformat(),
+                "order": [],
+                "errors": [{"code": exc.code, "detail": exc.detail, **exc.extra}],
+            },
+        }
     params = ParameterSet(company_id, on)
     status, errors = "valid", []
     try:

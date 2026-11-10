@@ -74,15 +74,24 @@ def test_T_PAY_FORMULA_04_adversarial_formulas_rejected_by_the_concepts_api(payr
     from workflow.formula.lifecycle import FormulaService
 
     for i, (expression, _code) in enumerate(CORPUS[:60]):
-        draft = FormulaService().create(w.author, w.company_id, {
-            "domain": "payroll", "code": f"ADV{i}", "expression": to_payroll(expression),
-            "inputs": {"fields": PAYROLL_SCHEMA}, "result_type": "decimal", "tests": [],
-        })  # fmt: skip
+        draft = FormulaService().create(
+            w.author,
+            w.company_id,
+            {
+                "domain": "payroll",
+                "code": f"ADV{i}",
+                "expression": to_payroll(expression),
+                "inputs": {"fields": PAYROLL_SCHEMA},
+                "result_type": "decimal",
+                "tests": [],
+            },
+        )
         resp = api.command(
-            "post", "/api/v1/payroll/concepts",
+            "post",
+            "/api/v1/payroll/concepts",
             {"code": f"ADV{i}", "name": "adversarial", "concept_type": "DEVENGO", "formula_id": str(draft.id)},
             **{"X-Company-Id": str(w.company_id)},
-        )  # fmt: skip
+        )
         assert resp.status_code == 422, (expression, resp.json())
         assert resp.json()["code"] in PAYROLL_CODES, (expression, resp.json())
     listing = api.get("/api/v1/payroll/concepts", HTTP_X_COMPANY_ID=str(w.company_id)).json()
@@ -94,9 +103,17 @@ def test_T_PAY_FORMULA_04_formula_of_another_domain_or_company_rejected(payroll_
     w = payroll_world
     from workflow.formula.lifecycle import FormulaService
 
-    pricing = FormulaService().create(w.author, w.company_id, {
-        "domain": "pricing", "code": "PRECIO", "expression": "1", "inputs": {}, "result_type": "decimal",
-    })  # fmt: skip
+    pricing = FormulaService().create(
+        w.author,
+        w.company_id,
+        {
+            "domain": "pricing",
+            "code": "PRECIO",
+            "expression": "1",
+            "inputs": {},
+            "result_type": "decimal",
+        },
+    )
     with pytest.raises(DomainError) as exc:
         w.concept("PRECIO", "DEVENGO", formula=pricing)
     assert exc.value.code == "validation_failed"
@@ -114,5 +131,9 @@ def test_T_PAY_FORMULA_04_static_scan_no_eval_exec_in_payroll() -> None:
                 problems.append(f"{path.name}:{node.lineno} {node.func.id}()")
             if isinstance(node, (ast.Import, ast.ImportFrom)):
                 names = [a.name for a in node.names] if isinstance(node, ast.Import) else [node.module or ""]
-                problems += [f"{path.name}: imports {n}" for n in names if n.split(".")[0] in {"subprocess", "pickle", "marshal", "ctypes"}]
+                problems += [
+                    f"{path.name}: imports {n}"
+                    for n in names
+                    if n.split(".")[0] in {"subprocess", "pickle", "marshal", "ctypes"}
+                ]
     assert problems == []

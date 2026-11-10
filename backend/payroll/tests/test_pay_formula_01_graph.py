@@ -99,8 +99,9 @@ def test_T_PAY_FORMULA_01_validate_graph_reports_order(payroll_world: Any) -> No
 
 def test_T_PAY_FORMULA_01_formula_must_be_active_to_calculate(payroll_world: Any) -> None:
     w = payroll_world
-    draft = w.formula("PRIMA_X", "salary", {"salary": MONEY}, [{"inputs": {"salary": "1"}, "expected": "1"}],
-                      activate=False)  # fmt: skip
+    draft = w.formula(
+        "PRIMA_X", "salary", {"salary": MONEY}, [{"inputs": {"salary": "1"}, "expected": "1"}], activate=False
+    )
     w.concept("PRIMA_X", "DEVENGO", formula=draft)  # saving with a DRAFT formula is allowed
     period = w.period(*JAN)
     w.employee("1500000")
@@ -112,8 +113,13 @@ def test_T_PAY_FORMULA_01_formula_must_be_active_to_calculate(payroll_world: Any
 
 def test_T_PAY_FORMULA_01_inputs_outside_the_payroll_catalogue_rejected(payroll_world: Any) -> None:
     w = payroll_world
-    bad = w.formula("RARO", "tenant_secret", {"tenant_secret": DEC},
-                    [{"inputs": {"tenant_secret": "1"}, "expected": "1"}], result_type="decimal")  # fmt: skip
+    bad = w.formula(
+        "RARO",
+        "tenant_secret",
+        {"tenant_secret": DEC},
+        [{"inputs": {"tenant_secret": "1"}, "expected": "1"}],
+        result_type="decimal",
+    )
     with pytest.raises(DomainError) as exc:
         w.concept("RARO", "DEVENGO", formula=bad)
     assert exc.value.code == "formula_unknown_identifier"

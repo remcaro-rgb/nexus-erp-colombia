@@ -43,9 +43,12 @@ def test_T_PAY_FORMULA_03_unknown_parameter_on_the_date_fails_closed(payroll_wor
 def test_T_PAY_FORMULA_03_unknown_parameter_name_rejected_on_save(payroll_world: Any) -> None:
     w = payroll_world
     f = w.formula(
-        "PRIMA_LEGAL", "percent(salary, param_prima_2030)", {"salary": MONEY, "param_prima_2030": DEC},
-        [{"inputs": {"salary": "100", "param_prima_2030": "10"}, "expected": "10"}], activate=False,
-    )  # fmt: skip
+        "PRIMA_LEGAL",
+        "percent(salary, param_prima_2030)",
+        {"salary": MONEY, "param_prima_2030": DEC},
+        [{"inputs": {"salary": "100", "param_prima_2030": "10"}, "expected": "10"}],
+        activate=False,
+    )
     with pytest.raises(DomainError) as exc:
         w.concept("PRIMA_LEGAL", "PROVISION", formula=f)
     assert exc.value.code == "payroll_parameter_unknown" and exc.value.extra["input"] == "param_prima_2030"
@@ -111,7 +114,8 @@ def test_T_PAY_FORMULA_03_salary_fields_masked_without_field_grant(payroll_world
 
 def test_T_PAY_FORMULA_03_reviewed_real_value_is_not_labelled() -> None:
     reviewed = ParameterValue("smmlv", "1", ParameterStatus.VERIFIED_PRIMARY, "S-15", legal_review_stamp="x@2026")
-    synthetic = ParameterValue("smmlv", "1", ParameterStatus.VERIFIED_PRIMARY, "S-15", legal_review_stamp="x",
-                               synthetic=True)  # fmt: skip
+    synthetic = ParameterValue(
+        "smmlv", "1", ParameterStatus.VERIFIED_PRIMARY, "S-15", legal_review_stamp="x", synthetic=True
+    )
     assert labelled_snapshot(reviewed, "param_smmlv")["label"] == ""
     assert labelled_snapshot(synthetic, "param_smmlv")["label"] == NOT_LEGALLY_VERIFIED

@@ -46,12 +46,19 @@ def payslip_json(ctx: TenantContext, slip: Payslip, *, fields: frozenset[str] | 
     fields = readable(ctx) if fields is None else fields
     lines = [
         {
-            "concept": ln.concept_code, "concept_type": ln.concept_type, "sequence": ln.sequence,
-            "amount": _money(ln.amount), "quantity": None if ln.quantity is None else str(ln.quantity),
-            "formula_id": str(ln.formula_id) if ln.formula_id else None, "formula_version": ln.formula_version,
-            "formula_hash": ln.formula_hash, "inputs": ln.inputs, "trace": ln.trace,
-            "parameters": ln.parameters, "electronic_payroll_code": ln.electronic_payroll_code,
-        }  # fmt: skip
+            "concept": ln.concept_code,
+            "concept_type": ln.concept_type,
+            "sequence": ln.sequence,
+            "amount": _money(ln.amount),
+            "quantity": None if ln.quantity is None else str(ln.quantity),
+            "formula_id": str(ln.formula_id) if ln.formula_id else None,
+            "formula_version": ln.formula_version,
+            "formula_hash": ln.formula_hash,
+            "inputs": ln.inputs,
+            "trace": ln.trace,
+            "parameters": ln.parameters,
+            "electronic_payroll_code": ln.electronic_payroll_code,
+        }
         for ln in slip.lines.all()
     ]
     full: dict[str, Any] = {
@@ -73,8 +80,20 @@ def payslip_json(ctx: TenantContext, slip: Payslip, *, fields: frozenset[str] | 
         "legally_verified": slip.legally_verified,
         "legal_notice": slip.legal_notice,
         "parameters": [
-            {k: p.get(k) for k in ("code", "input", "status", "source_id", "valid_from", "valid_to",
-                                   "legally_verified", "label", "value")}  # fmt: skip
+            {
+                k: p.get(k)
+                for k in (
+                    "code",
+                    "input",
+                    "status",
+                    "source_id",
+                    "valid_from",
+                    "valid_to",
+                    "legally_verified",
+                    "label",
+                    "value",
+                )
+            }
             for p in (slip.parameter_snapshot or {}).values()
         ],
         "masked": masked,
@@ -95,12 +114,20 @@ def payslips_for(ctx: TenantContext, company_id: uuid.UUID) -> Any:
 
 def electronic_json(doc: ElectronicPayrollDocument) -> dict[str, Any]:
     return {
-        "id": str(doc.id), "tenant_id": str(doc.tenant_id), "company_id": str(doc.company_id),
-        "period_id": str(doc.period_id), "document_type": doc.document_type, "status": doc.status,
-        "adjustment_kind": doc.adjustment_kind or None, "replaces": str(doc.replaces_id) if doc.replaces_id else None,
-        "transmission_status": doc.transmission_status, "cune": doc.cune, "label": FIXTURE_LABEL,
-        "documents": len((doc.payload or {}).get("documents", [])), "version": doc.version,
-    }  # fmt: skip
+        "id": str(doc.id),
+        "tenant_id": str(doc.tenant_id),
+        "company_id": str(doc.company_id),
+        "period_id": str(doc.period_id),
+        "document_type": doc.document_type,
+        "status": doc.status,
+        "adjustment_kind": doc.adjustment_kind or None,
+        "replaces": str(doc.replaces_id) if doc.replaces_id else None,
+        "transmission_status": doc.transmission_status,
+        "cune": doc.cune,
+        "label": FIXTURE_LABEL,
+        "documents": len((doc.payload or {}).get("documents", [])),
+        "version": doc.version,
+    }
 
 
 def create_electronic(uow: UnitOfWork, company_id: uuid.UUID, data: dict[str, Any]) -> ElectronicPayrollDocument:
@@ -115,11 +142,20 @@ def create_electronic(uow: UnitOfWork, company_id: uuid.UUID, data: dict[str, An
     except ValueError as exc:
         raise ValidationFailed("period_id must be a UUID", field="period_id") from exc
     doc = ElectronicPayrollDocument.objects.create(
-        tenant_id=ctx.tenant_id, company_id=company_id, period=period, created_by=ctx.principal_id,
+        tenant_id=ctx.tenant_id,
+        company_id=company_id,
+        period=period,
+        created_by=ctx.principal_id,
         updated_by=ctx.principal_id,
-    )  # fmt: skip
-    record_change("payroll.electronic_payroll.create", "payroll.electronic_payroll", doc.id, company_id=company_id,
-                  after={"period": period.code}, uow=uow)  # fmt: skip
+    )
+    record_change(
+        "payroll.electronic_payroll.create",
+        "payroll.electronic_payroll",
+        doc.id,
+        company_id=company_id,
+        after={"period": period.code},
+        uow=uow,
+    )
     return doc
 
 
@@ -171,16 +207,24 @@ def generate(uow: UnitOfWork, company_id: uuid.UUID, doc_id: uuid.UUID) -> Elect
     if not slips:
         raise ValidationFailed("the period has no posted payslips")
     doc.payload = {
-        "label": FIXTURE_LABEL, "mapping_version": MAPPING_VERSION, "parameter_catalogue": CATALOGUE_VERSION,
+        "label": FIXTURE_LABEL,
+        "mapping_version": MAPPING_VERSION,
+        "parameter_catalogue": CATALOGUE_VERSION,
         "period": {"start": doc.period.start_date.isoformat(), "end": doc.period.end_date.isoformat()},
         "deadline_rule": "first 10 business days of the following month (R-FE-09; external DIAN calendar)",
         "legal_notice": NOT_LEGALLY_VERIFIED if any(not s.legally_verified for s in slips) else "",
         "documents": [_individual(s) for s in slips],
-    }  # fmt: skip
+    }
     doc.status, doc.generated_at = ElectronicPayrollDocument.GENERATED, clock.now()
     doc.save_versioned(ctx.principal_id, ["payload", "status", "generated_at"])
-    record_change("payroll.electronic_payroll.generate", "payroll.electronic_payroll", doc.id, company_id=company_id,
-                  after={"documents": len(slips)}, uow=uow)  # fmt: skip
+    record_change(
+        "payroll.electronic_payroll.generate",
+        "payroll.electronic_payroll",
+        doc.id,
+        company_id=company_id,
+        after={"documents": len(slips)},
+        uow=uow,
+    )
     return doc
 
 
@@ -204,12 +248,26 @@ def adjust(uow: UnitOfWork, company_id: uuid.UUID, doc_id: uuid.UUID, kind: str 
     if kind == "Eliminar":
         payload["documents"] = []
     new = ElectronicPayrollDocument.objects.create(
-        tenant_id=ctx.tenant_id, company_id=company_id, period=doc.period, document_type=doc.ADJUSTMENT,
-        adjustment_kind=kind, replaces=doc, status=doc.GENERATED, payload=payload, generated_at=clock.now(),
-        created_by=ctx.principal_id, updated_by=ctx.principal_id,
-    )  # fmt: skip
+        tenant_id=ctx.tenant_id,
+        company_id=company_id,
+        period=doc.period,
+        document_type=doc.ADJUSTMENT,
+        adjustment_kind=kind,
+        replaces=doc,
+        status=doc.GENERATED,
+        payload=payload,
+        generated_at=clock.now(),
+        created_by=ctx.principal_id,
+        updated_by=ctx.principal_id,
+    )
     doc.status = doc.SUPERSEDED
     doc.save_versioned(ctx.principal_id, ["status"])
-    record_change("payroll.electronic_payroll.adjust", "payroll.electronic_payroll", new.id, company_id=company_id,
-                  after={"replaces": str(doc.id), "kind": kind}, uow=uow)  # fmt: skip
+    record_change(
+        "payroll.electronic_payroll.adjust",
+        "payroll.electronic_payroll",
+        new.id,
+        company_id=company_id,
+        after={"replaces": str(doc.id), "kind": kind},
+        uow=uow,
+    )
     return new

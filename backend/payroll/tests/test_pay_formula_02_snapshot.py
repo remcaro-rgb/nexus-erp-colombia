@@ -30,10 +30,15 @@ def _change_health_rate(world: Any, new_percent: str) -> None:
     with bound(world.author):
         current = Parameter.objects.get(code="ss.salud.empleado", approval=Parameter.Approval.APPROVED)
     data = parameter_workflow.ProposalInput(
-        code="ss.salud.empleado", value_type="percent", value=new_percent, valid_from=dt.date(2026, 1, 1),
-        parameter_status="VERIFIED-PRIMARY", source_id=current.source_id, synthetic=True,
+        code="ss.salud.empleado",
+        value_type="percent",
+        value=new_percent,
+        valid_from=dt.date(2026, 1, 1),
+        parameter_status="VERIFIED-PRIMARY",
+        source_id=current.source_id,
+        synthetic=True,
         notes="synthetic test correction",
-    )  # fmt: skip
+    )
     proposal = world.uow(lambda u: parameter_workflow.propose_change(u, current.id, data, reason="test"))
     world.uow(lambda u: parameter_workflow.approve(u, proposal.id, reason="second person"), world.approver)
 
@@ -70,12 +75,24 @@ def test_T_PAY_FORMULA_02_parameter_snapshot_stored_and_posted_payroll_unchanged
     # later: the legal parameter changes (approved correction 4 % → 5 %) and the formula gets a new version
     _change_health_rate(w, "5")
     w.formula(
-        "SALUD_EMP", "round(percent(SALARIO + BONO, param_salud_empleado), 2, 'HALF_UP') + 1",
+        "SALUD_EMP",
+        "round(percent(SALARIO + BONO, param_salud_empleado), 2, 'HALF_UP') + 1",
         {"param_salud_empleado": {"type": "percent"}},
-        [{"inputs": {"salary": "100", "days_worked": "30", "period_days": "30", "novelty_amount": "0",
-                     "param_salud_empleado": "4"}, "expected": "5"}],
-        depends_on=["SALARIO", "BONO"], effective_from=dt.date(2026, 2, 1),
-    )  # fmt: skip
+        [
+            {
+                "inputs": {
+                    "salary": "100",
+                    "days_worked": "30",
+                    "period_days": "30",
+                    "novelty_amount": "0",
+                    "param_salud_empleado": "4",
+                },
+                "expected": "5",
+            }
+        ],
+        depends_on=["SALARIO", "BONO"],
+        effective_from=dt.date(2026, 2, 1),
+    )
 
     # the posted payroll is unchanged: same amounts, same snapshot, same formula hash
     again = w.payslips(run)[0]
