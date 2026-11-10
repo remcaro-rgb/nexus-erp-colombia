@@ -11,31 +11,38 @@ import importlib
 import importlib.util
 from typing import Any
 
-from django.urls import path, re_path
+from django.urls import path
 
 from purchasing.api import views
 
-UUID = r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+RFQ_ACTIONS = ("send", "close", "reopen", "evaluate", "award", "approve-award")
+ORDER_ACTIONS = ("submit", "approve", "send", "close", "cancel")
+RECEIPT_ACTIONS = ("validate", "simulate")
+INVOICE_ACTIONS = ("match", "post", "simulate")
+
+
+def _actions(prefix: str, view: Any, actions: tuple[str, ...]) -> list[Any]:
+    """One explicit route per contract action (``POST …/{id}:<verb>``)."""
+    return [path(f"{prefix}/<uuid:pk>:{a}", view, {"action": a}) for a in actions]
+
 
 urlpatterns: list[Any] = [
     path("rfqs", views.RfqList.as_view()),
     path("rfqs/<uuid:pk>", views.RfqDetail.as_view()),
-    re_path(
-        rf"^rfqs/(?P<pk>{UUID}):(?P<action>send|close|reopen|evaluate|award|approve-award)$", views.RfqAction.as_view()
-    ),
+    *_actions("rfqs", views.RfqAction.as_view(), RFQ_ACTIONS),
     path("rfqs/<uuid:pk>/comparison", views.RfqComparison.as_view()),
     path("rfqs/<uuid:rfq_id>/quotes", views.QuoteList.as_view()),
     path("rfqs/<uuid:rfq_id>/quotes/<uuid:pk>", views.QuoteDetail.as_view()),
     path("rfqs/<uuid:rfq_id>/quotes/<uuid:pk>/attachments", views.QuoteAttachments.as_view()),
     path("orders", views.OrderList.as_view()),
     path("orders/<uuid:pk>", views.OrderDetail.as_view()),
-    re_path(rf"^orders/(?P<pk>{UUID}):(?P<action>submit|approve|send|close|cancel)$", views.OrderAction.as_view()),
+    *_actions("orders", views.OrderAction.as_view(), ORDER_ACTIONS),
     path("receipts", views.ReceiptList.as_view()),
     path("receipts/<uuid:pk>", views.ReceiptDetail.as_view()),
-    re_path(rf"^receipts/(?P<pk>{UUID}):(?P<action>validate|simulate)$", views.ReceiptAction.as_view()),
+    *_actions("receipts", views.ReceiptAction.as_view(), RECEIPT_ACTIONS),
     path("vendor-invoices", views.InvoiceList.as_view()),
     path("vendor-invoices/<uuid:pk>", views.InvoiceDetail.as_view()),
-    re_path(rf"^vendor-invoices/(?P<pk>{UUID}):(?P<action>match|post|simulate)$", views.InvoiceAction.as_view()),
+    *_actions("vendor-invoices", views.InvoiceAction.as_view(), INVOICE_ACTIONS),
     path("ap/open-items", views.OpenItemList.as_view()),
     path("ap/open-items/<uuid:pk>", views.OpenItemDetail.as_view()),
     path("ap/aging", views.Aging.as_view()),
