@@ -11,11 +11,16 @@ from typing import Any
 from django.db.models import Sum
 
 from kernel import tenancy
+from kernel.money import q_amount
 from kernel.tenancy import TenantContext
 from purchasing.models import ApOpenItem, PurchaseOrderLine, ReceiptLine, VendorInvoiceLine
 from purchasing.services.common import scoped
 
 BUCKETS = (("current", None, 0), ("1_30", 1, 30), ("31_60", 31, 60), ("61_90", 61, 90), ("over_90", 91, None))
+
+
+def _m(value: Decimal) -> str:
+    return f"{q_amount(value):f}"
 
 
 def bucket_of(days_overdue: int) -> str:
@@ -64,13 +69,13 @@ def _aging(ctx: TenantContext, company_id: uuid.UUID, as_of: dt.date, supplier_i
         "rows": [
             {
                 **row,
-                "buckets": {k: f"{v:f}" for k, v in row["buckets"].items()},
-                "total": f"{sum(row['buckets'].values(), Decimal(0)):f}",
+                "buckets": {k: _m(v) for k, v in row["buckets"].items()},
+                "total": _m(sum(row["buckets"].values(), Decimal(0))),
             }
             for row in vendors.values()
         ],
-        "totals": {k: f"{v:f}" for k, v in totals.items()},
-        "total": f"{sum(totals.values(), Decimal(0)):f}",
+        "totals": {k: _m(v) for k, v in totals.items()},
+        "total": _m(sum(totals.values(), Decimal(0))),
     }
 
 
@@ -118,7 +123,7 @@ def _grni(ctx: TenantContext, company_id: uuid.UUID, as_of: dt.date) -> dict[str
                 "received_qty": f"{rq:f}",
                 "invoiced_qty": f"{iq:f}",
                 "pending_qty": f"{rq - iq:f}",
-                "grni_cop": f"{balance:f}",
+                "grni_cop": _m(balance),
             }
         )
-    return {"as_of": as_of.isoformat(), "currency": "COP", "rows": rows, "total": f"{total:f}"}
+    return {"as_of": as_of.isoformat(), "currency": "COP", "rows": rows, "total": _m(total)}
