@@ -1,10 +1,12 @@
 # UI progress — after wave 02
 
-Integrated commit: `422e4e7e6b7e` · captured 2026-11-09T21:21:00Z (UTC) · viewport 1440×900 · device scale 1 · 0.06 MB · browser: system Chrome via Playwright 1.65.0
+Integrated commit: `dce41660cfed` · captured 2026-11-10T01:00:11Z (UTC) · viewport 1440×900 · device scale 1 · 0.03 MB · browser: system Chrome via Playwright 1.65.0
 
-**Status: FAILED** — no demo login available: only the entry screen was captured; login: no demo login found in deploy/dev/secrets/ (gitignored)
+**Status: FAILED** — login form not found (no sign-in button, and /m/inicio did not redirect to the identity provider)
 
 Synthetic seeded data only (DEV). Password, token and secret fields are masked. Pages not yet built are listed, never faked. Contract notes are automatic measurements against docs/spec/UI-CONTRACT.md §3 (header 64 px, sidebar 256/80 px, AI panel 320 px).
+
+Signed in as: throwaway DEV user `ui-preview` of a synthetic tenant, bootstrapped by tools/dev_login.py (password only in deploy/dev/secrets/ui-preview.env, 0600, rotated each run)
 
 | Page | Route | Theme / variant | Status | Contract notes |
 |---|---|---|---|---|
