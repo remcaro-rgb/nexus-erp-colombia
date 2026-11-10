@@ -160,12 +160,19 @@ job_make_ci() {
 cs_health() { mkdir -p reports; bash scripts/ci/dev-health.sh | tee reports/dev-health.json; }
 cs_sbom() {
   bash scripts/ci/build-images.sh --sbom
-  local img sha
+  local img sha ca_args=()
+  # Sessions behind a TLS-intercepting egress proxy (cloud VMs): grype must trust the proxy CA to download its
+  # vulnerability DB. Same CA selection as build-images.sh; mounted read-only, only when a proxy is configured.
+  if [[ -n "${HTTPS_PROXY:-${https_proxy:-}}" ]]; then
+    local ca="${NEXUS_BUILD_CA_FILE:-${SSL_CERT_FILE:-}}"
+    [[ -z "$ca" && -f /root/.ccr/ca-bundle.crt ]] && ca=/root/.ccr/ca-bundle.crt
+    [[ -n "$ca" && -f "$ca" ]] && ca_args=(-v "$ca:/etc/nexus-proxy-ca.crt:ro" -e SSL_CERT_FILE=/etc/nexus-proxy-ca.crt)
+  fi
   # only the images built from this checkout (build-images.sh labels them with the revision): stale erp-* images of
   # another checkout (e.g. a rejected merge) are neither scanned nor blamed
   sha="$(git rev-parse --short=12 HEAD 2>/dev/null || echo unknown)"
   for img in $(docker image ls --filter "label=org.opencontainers.image.revision=$sha" --format '{{.Repository}}:{{.Tag}}' | grep '^erp-'); do
-    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock "$GRYPE_IMAGE" "docker:$img" --fail-on critical --only-fixed
+    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock "${ca_args[@]}" "$GRYPE_IMAGE" "docker:$img" --fail-on critical --only-fixed
   done
 }
 cs_logs() {
