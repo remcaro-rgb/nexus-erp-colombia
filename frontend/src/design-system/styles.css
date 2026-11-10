@@ -1,0 +1,118 @@
+/* Design-system stylesheet (owner P08). Tailwind v4 built locally; theme values are CSS variables generated
+   from docs/spec/ui/tokens.json (virtual:nexus-tokens.css). No CDN, no remote fonts. */
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-sans: var(--nx-font-family);
+  --color-app: var(--nx-color-app-bg);
+  --color-surface: var(--nx-color-surface);
+  --color-line: var(--nx-color-border);
+  --color-line-subtle: var(--nx-color-border-subtle);
+  --color-fg: var(--nx-color-text-primary);
+  --color-body: var(--nx-color-text-body);
+  --color-secondary: var(--nx-color-text-secondary);
+  --color-muted: var(--nx-color-text-muted);
+  --color-brand: var(--nx-color-brand-primary);
+  --color-brand-hover: var(--nx-color-brand-primary-hover);
+  --color-brand-soft: var(--nx-color-brand-soft-bg);
+  --color-brand-soft-line: var(--nx-color-brand-soft-border);
+  --color-nav-active: var(--nx-color-nav-active-bg);
+  --color-nav-active-fg: var(--nx-color-nav-active-text);
+  --color-nav-hover: var(--nx-color-nav-hover-bg);
+  --color-input: var(--nx-color-input-bg);
+  --color-ring: var(--nx-color-focus-ring);
+  --color-positive: var(--nx-color-positive-text);
+  --color-positive-bg: var(--nx-color-positive-bg);
+  --color-warning: var(--nx-color-warning-text);
+  --color-warning-bg: var(--nx-color-warning-bg);
+  --color-danger: var(--nx-color-danger-text);
+  --color-danger-bg: var(--nx-color-danger-bg);
+  --color-dot: var(--nx-color-badge-dot);
+  --radius-control: var(--nx-control-radius);
+  --radius-card: var(--nx-card-radius);
+  --shadow-card: var(--nx-card-shadow);
+}
+
+@layer base {
+  html,
+  body {
+    font-family: var(--nx-font-family);
+    background: var(--nx-color-app-bg);
+    color: var(--nx-color-text-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  :focus-visible {
+    outline: 2px solid var(--nx-color-focus-ring);
+    outline-offset: 2px;
+  }
+  /* WCAG 2.4.11: focused elements are scrolled clear of the fixed header/module bar. */
+  html {
+    scroll-padding-top: calc(var(--nx-header-h) + var(--nx-module-bar-h));
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0ms !important;
+      transition-duration: 0ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+  [data-density="comfortable"] {
+    --nx-row-h: 44px;
+  }
+  [data-density="compact"] {
+    --nx-row-h: 36px;
+  }
+}
+
+@layer components {
+  .nx-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .nx-card {
+    background: var(--nx-color-surface);
+    border: 1px solid var(--nx-color-border);
+    border-radius: var(--nx-card-radius);
+    box-shadow: var(--nx-card-shadow);
+  }
+  .nx-formula-layer,
+  .nx-formula-input {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 14px;
+    line-height: 20px;
+    padding: 8px 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    tab-size: 2;
+  }
+  .nx-tok-number { color: var(--nx-emerald-700); }
+  .nx-tok-string { color: var(--nx-amber-700); }
+  .nx-tok-ident { color: var(--nx-color-text-primary); }
+  .nx-tok-func { color: var(--nx-indigo-600); font-weight: 600; }
+  .nx-tok-op { color: var(--nx-color-text-secondary); }
+  .nx-tok-error { text-decoration: underline wavy var(--nx-rose-600); text-decoration-skip-ink: none; }
+  :root.dark .nx-tok-number { color: var(--nx-emerald-500); }
+  :root.dark .nx-tok-string { color: var(--nx-amber-500); }
+  :root.dark .nx-tok-func { color: var(--nx-indigo-400); }
+
+  @media print {
+    [data-nx-print="hide"] { display: none !important; }
+  }
+}
