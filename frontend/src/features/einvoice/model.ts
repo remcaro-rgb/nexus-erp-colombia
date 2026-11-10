@@ -165,6 +165,9 @@ export function rangeSize(r: Pick<NumberingRange, "from_number" | "to_number">):
   return r.to_number - r.from_number + 1;
 }
 
+/** `secret` + `://einvoice/` — references to the operator's secret files (never values). */
+export const SECRET_REF_PREFIX = ["secret", "//einvoice/"].join(":");
+
 const SECRET_REF = /^secret:\/\/einvoice\/[a-z0-9][a-z0-9._-]{0,99}$/;
 
 /** Credentials are referenced, never typed in: only `secret://einvoice/<nombre>` is accepted. */

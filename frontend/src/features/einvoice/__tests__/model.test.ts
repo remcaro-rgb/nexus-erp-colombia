@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contingencyMessage, failedCases, formatCountdown, isSecretRef, statusFilterFromQuery, statusText, statusTone } from "../model";
+import { SECRET_REF_PREFIX, contingencyMessage, failedCases, formatCountdown, isSecretRef, statusFilterFromQuery, statusText, statusTone } from "../model";
 
 describe("facturacion view model", () => {
   it("labels simulated statuses with 'Simulado' and never relies on colour alone", () => {
@@ -26,7 +26,7 @@ describe("facturacion view model", () => {
   });
 
   it("accepts only secret references for provider credentials (T-PT-OPEN-02 UI side)", () => {
-    expect(isSecretRef("secret://einvoice/pt-credenciales")).toBe(true);
+    expect(isSecretRef(`${SECRET_REF_PREFIX}pt-credenciales`)).toBe(true);
     expect(isSecretRef("pt-sandbox-token-123456")).toBe(false);
     expect(isSecretRef("secret://other/x")).toBe(false);
   });

@@ -29,7 +29,7 @@ from einvoice.models import (
     SigningCertificate,
     TransmissionLog,
 )
-from einvoice.secrets import Secret
+from einvoice.secrets import PREFIX, Secret
 from einvoice.testing.fixtures import create_range, invoice_model, register
 from kernel import clock, outbox, tenancy
 from kernel.errors import ExternalIOForbidden, ValidationFailed
@@ -251,7 +251,7 @@ def test_T_P15_10_certificate_expiry_alerts(ranged: Any, company: uuid.UUID) -> 
             subject="CN=SINTETICO",
             thumbprint="ab" * 32,
             valid_to=today + dt.timedelta(days=29),
-            key_ref="secret://einvoice/cert-key",
+            key_ref=f"{PREFIX}cert-key",
         ),
         ctx,
     )

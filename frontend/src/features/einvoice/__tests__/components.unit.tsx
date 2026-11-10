@@ -3,7 +3,7 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderDs } from "@app/test/render";
 import { DocumentsTable, ProvidersPanel } from "../components";
-import type { FiscalDocument } from "../model";
+import { SECRET_REF_PREFIX, type FiscalDocument } from "../model";
 
 const doc = (status: FiscalDocument["status"]): FiscalDocument => ({
   id: `d-${status}`, status, source: { type: "sales.invoice", id: "s", number: `SETP-${status}` }, document_type: "FE",
@@ -46,8 +46,8 @@ describe("facturacion components", () => {
     expect(onCreate).not.toHaveBeenCalled();
     expect(screen.getByText(/Use una referencia secret:\/\/einvoice\//)).toBeInTheDocument();
     await user.clear(screen.getByLabelText(/Referencia de credenciales/));
-    await user.type(screen.getByLabelText(/Referencia de credenciales/), "secret://einvoice/pt2");
+    await user.type(screen.getByLabelText(/Referencia de credenciales/), `${SECRET_REF_PREFIX}pt2`);
     await user.click(screen.getByRole("button", { name: "Registrar proveedor" }));
-    expect(onCreate).toHaveBeenCalledWith(expect.objectContaining({ code: "PT2", credentials_ref: "secret://einvoice/pt2" }));
+    expect(onCreate).toHaveBeenCalledWith(expect.objectContaining({ code: "PT2", credentials_ref: `${SECRET_REF_PREFIX}pt2` }));
   });
 });

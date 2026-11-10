@@ -9,6 +9,7 @@ import {
   contingencyMessage,
   failedCases,
   isSecretRef,
+  SECRET_REF_PREFIX,
   rangeSize,
   statusText,
   statusTone,
@@ -224,7 +225,7 @@ export function ProvidersPanel({ providers, canCreate, canAdmin, canExport, expo
           </label>
           <label className="flex flex-col text-sm">URL base (sandbox)<input className="nx-input" value={draft.base_url} onChange={set("base_url")} required /></label>
           <label className="flex flex-col text-sm sm:col-span-2">Referencia de credenciales
-            <input className="nx-input font-mono" value={draft.credentials_ref} onChange={set("credentials_ref")} placeholder="secret://einvoice/pt-credenciales" autoComplete="off" aria-describedby="pt-ref-help" />
+            <input className="nx-input font-mono" value={draft.credentials_ref} onChange={set("credentials_ref")} placeholder={`${SECRET_REF_PREFIX}pt-credenciales`} autoComplete="off" aria-describedby="pt-ref-help" />
             <span id="pt-ref-help" className="text-xs">Las credenciales se guardan en el archivo de secretos del operador; aquí solo va la referencia.</span>
           </label>
           {refError && <p role="alert" className="text-sm text-red-700 sm:col-span-2">{refError}</p>}

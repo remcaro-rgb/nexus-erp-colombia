@@ -273,8 +273,8 @@ def register_document(
         if rng.last_used_number is None or digits > rng.last_used_number:
             rng.last_used_number = digits
             rng.save_versioned(ctx.principal_id, ["last_used_number"])
-    secret = _technical_key(rng) if model.hash_kind == "CUFE" else _software_pin(settings_row)
-    unique_code = hashing.compute(model.hash_kind, model.hash_inputs(environment, secret.reveal()))
+    key_material = _technical_key(rng) if model.hash_kind == "CUFE" else _software_pin(settings_row)
+    unique_code = hashing.compute(model.hash_kind, model.hash_inputs(environment, key_material.reveal()))
     software_id = settings_row.software_id or DEV_SOFTWARE_ID
     xml = builders.build(model, unique_code, environment=environment, software_id=software_id, qr_url=_qr(unique_code))
     doc = FiscalDocument.objects.create(
