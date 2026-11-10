@@ -9,7 +9,7 @@ from qa_harness.failure_injection import AtomicityProbe, InjectedFailure, fail_a
 
 from kernel import sequences
 from kernel.models import IdempotencyRecord, OutboxMessage, Sequence
-from kernel.testing.tenancy import first_company, make_context
+from kernel.testing.tenancy import bound, first_company, make_context
 from kernel.uow import run_in_unit_of_work, unit_of_work
 
 TABLES = [Sequence._meta.db_table, OutboxMessage._meta.db_table, IdempotencyRecord._meta.db_table]
@@ -19,17 +19,23 @@ TABLES = [Sequence._meta.db_table, OutboxMessage._meta.db_table, IdempotencyReco
 def setup(db):
     ctx = make_context()
     company = first_company(ctx)
-    Sequence.objects.create(tenant_id=ctx.tenant_id, company_id=company, sequence_code="QA", prefix="QA-")
+    with bound(ctx):  # kernel tables have FORCED RLS (FIX-D-W01-1): writes and reads are tenant-bound
+        Sequence.objects.create(tenant_id=ctx.tenant_id, company_id=company, sequence_code="QA", prefix="QA-")
     return ctx, company
 
 
 def _reset(ctx):
     def reset():
-        OutboxMessage.objects.all().delete()
-        IdempotencyRecord.objects.all().delete()
-        Sequence.objects.filter(tenant_id=ctx.tenant_id).update(next_number=1)
+        with bound(ctx):
+            _purge(ctx)
 
     return reset
+
+
+def _purge(ctx):
+    OutboxMessage.objects.all().delete()
+    IdempotencyRecord.objects.all().delete()
+    Sequence.objects.filter(tenant_id=ctx.tenant_id).update(next_number=1)
 
 
 def _atomic_command(ctx, company, counter=[0]):  # noqa: B006 - unique keys per call
@@ -59,7 +65,7 @@ def test_p22a_injector_counts_and_fires_before_the_nth_statement(setup):
 
 def test_p22a_sweep_proves_kernel_uow_all_or_nothing(setup):
     ctx, company = setup
-    probe = AtomicityProbe(TABLES)
+    probe = AtomicityProbe(TABLES, ctx=ctx)
     result = sweep(_atomic_command(ctx, company), probe, expect_changed=TABLES, reset=_reset(ctx))
     assert result.ok, result.violations
     assert result.points == list(range(1, result.statements + 1))
@@ -76,7 +82,7 @@ def test_p22a_sweep_detects_a_non_atomic_command(setup):
         with unit_of_work(ctx) as uow:
             uow.emit("kernel.qa.probe.v1", {"broken": True})
 
-    result = sweep(broken, AtomicityProbe(TABLES), expect_changed=TABLES[:2], reset=_reset(ctx))
+    result = sweep(broken, AtomicityProbe(TABLES, ctx=ctx), expect_changed=TABLES[:2], reset=_reset(ctx))
     assert not result.ok
     assert any("partial writes" in v for v in result.violations)
 
@@ -88,14 +94,14 @@ def test_p22a_sweep_reports_missing_expected_effects(setup):
         with unit_of_work(ctx):
             sequences.allocate(company, "QA", prefix="QA-")
 
-    result = sweep(no_outbox, AtomicityProbe(TABLES), expect_changed=TABLES[:2], reset=_reset(ctx))
+    result = sweep(no_outbox, AtomicityProbe(TABLES, ctx=ctx), expect_changed=TABLES[:2], reset=_reset(ctx))
     assert any("did not change expected tables" in v for v in result.violations)
 
 
 def test_p22a_sweep_sampling_is_reproducible(setup):
     ctx, company = setup
-    a = sweep(_atomic_command(ctx, company), AtomicityProbe(TABLES), reset=_reset(ctx), sample=3)
-    b = sweep(_atomic_command(ctx, company), AtomicityProbe(TABLES), reset=_reset(ctx), sample=3)
+    a = sweep(_atomic_command(ctx, company), AtomicityProbe(TABLES, ctx=ctx), reset=_reset(ctx), sample=3)
+    b = sweep(_atomic_command(ctx, company), AtomicityProbe(TABLES, ctx=ctx), reset=_reset(ctx), sample=3)
     assert a.ok and b.ok and a.points == b.points and len(a.points) == 3
 
 

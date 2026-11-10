@@ -68,9 +68,13 @@ class TableState:
 class AtomicityProbe:
     """Snapshot of tables; ``diff()`` lists tables whose content changed since ``snapshot()``."""
 
-    def __init__(self, tables: Sequence[str], using: str = "default") -> None:
+    def __init__(self, tables: Sequence[str], using: str = "default", ctx: Any = None) -> None:
+        """``ctx`` (a ``kernel.tenancy.TenantContext``): read the tables bound to that tenant. Kernel and
+        module tables have FORCED row-level security (ADR-003), so an unbound read sees no rows and would
+        hide every partial write; scratch tables without RLS read the same either way."""
         self.tables = tuple(tables)
         self.using = using
+        self.ctx = ctx
         self.baseline: dict[str, TableState] = {}
 
     @classmethod
@@ -94,7 +98,15 @@ class AtomicityProbe:
         return TableState(rows=int(count), digest=str(digest))
 
     def capture(self) -> dict[str, TableState]:
-        return {t: self._state(t) for t in self.tables}
+        if self.ctx is None:
+            return {t: self._state(t) for t in self.tables}
+        from django.db import transaction
+
+        from kernel import tenancy
+
+        with transaction.atomic(using=self.using), tenancy.activate(self.ctx):
+            tenancy.bind(self.ctx, self.using)
+            return {t: self._state(t) for t in self.tables}
 
     def snapshot(self) -> dict[str, TableState]:
         self.baseline = self.capture()
