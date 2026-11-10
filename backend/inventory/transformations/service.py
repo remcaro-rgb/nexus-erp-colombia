@@ -265,7 +265,7 @@ def _weight(ln: TransformationLine) -> Decimal:
 
 def _lock(o: TransformationOrder) -> TransformationOrder:
     locked = (
-        TransformationOrder.objects.select_for_update()
+        TransformationOrder.objects.select_for_update(of=("self",))
         .select_related("warehouse", "template", "bom")
         .filter(id=o.id)
         .first()
