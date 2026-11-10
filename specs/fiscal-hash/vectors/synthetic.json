@@ -1,0 +1,63 @@
+{
+  "origin": "SYNTHETIC — computed by the reference implementation (einvoice.hashing) from synthetic inputs; NOT annex worked examples (the DS v1.1 / Nómina v1.0 annex files were not obtained, B-06)",
+  "status": "SYNTHETIC_NOT_LEGALLY_VERIFIED",
+  "vectors": [
+    {
+      "id": "syn-cuds-1",
+      "kind": "CUDS",
+      "inputs": {
+        "NumDS": "DSE1001",
+        "FecDS": "2026-11-02",
+        "HorDS": "09:15:00-05:00",
+        "ValDS": "1000000.00",
+        "ValImp": "0.00",
+        "ValTol": "1000000.00",
+        "NumSNO": "1020304050",
+        "NITABS": "900000001",
+        "SoftwarePIN": "75315",
+        "TipoAmbiente": "2"
+      },
+      "composition": "DSE10012026-11-0209:15:00-05:001000000.00010.001000000.001020304050900000001753152",
+      "expected": "69a526ced94c0bbe2df6cb259be177a2a4be8daba71a270b7f9f8771fe4ecdd755702e65146b68e4a080e7eb324a6d83"
+    },
+    {
+      "id": "syn-cune-1",
+      "kind": "CUNE",
+      "inputs": {
+        "NumNE": "NE5001",
+        "FecNE": "2026-11-30",
+        "HorNE": "18:00:00-05:00",
+        "ValDev": "3500000.00",
+        "ValDed": "280000.00",
+        "ValTolNE": "3220000.00",
+        "NitNE": "900000001",
+        "DocEmp": "1020304050",
+        "TipoXML": "102",
+        "SoftwarePIN": "75315",
+        "TipoAmbiente": "2"
+      },
+      "composition": "NE50012026-11-3018:00:00-05:003500000.00280000.003220000.009000000011020304050102753152",
+      "expected": "30ceacf348f950036d39ba560404daaab0abcbbf599796797660147b2fadb1a232488865fe19a90152500692bca69de9"
+    },
+    {
+      "id": "syn-cufe-truncation",
+      "kind": "CUFE",
+      "inputs": {
+        "NumFac": "SETP990000001",
+        "FecFac": "2026-11-02",
+        "HorFac": "10:00:00-05:00",
+        "ValFac": "100.999",
+        "ValImp1": "19.189",
+        "ValImp2": "0",
+        "ValImp3": "0",
+        "ValTot": "120.188",
+        "NitOFE": "900000001",
+        "NumAdq": "222222222222",
+        "ClTec": "fc8eac422eba16e22ffd8c6f94b3f40a6e38162c",
+        "TipoAmbiente": "2"
+      },
+      "composition": "SETP9900000012026-11-0210:00:00-05:00100.990119.18040.00030.00120.18900000001222222222222fc8eac422eba16e22ffd8c6f94b3f40a6e38162c2",
+      "expected": "395628600c19190ff19f6a1ffdee86209797ef239b478ea0e0b4930da0daa2017fd0902ab5de3eeaa97b00352616fe0a"
+    }
+  ]
+}
