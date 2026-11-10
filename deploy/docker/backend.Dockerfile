@@ -34,6 +34,10 @@ COPY --from=build /opt/venv /opt/venv
 COPY --from=build --chown=root:root /src/backend /app
 COPY --chmod=0555 deploy/docker/backend-entrypoint.sh /opt/nexus/entrypoint.sh
 COPY --chmod=0444 deploy/docker/healthcheck.py /opt/nexus/healthcheck.py
+# Contract data read at run time (FIX-UI-LOGIN-W03 UL-1): REPO_DIR = BASE_DIR.parent = / in the image, so the
+# permission catalog and the UI module registry live at their repository paths under /. Read-only, root-owned.
+COPY --chown=root:root --chmod=0444 contracts/permissions/catalog.yaml /contracts/permissions/catalog.yaml
+COPY --chown=root:root --chmod=0444 docs/spec/ui/module-registry.json /docs/spec/ui/module-registry.json
 ENV PATH=/opt/venv/bin:$PATH \
     PYTHONPATH=/app \
     PYTHONDONTWRITEBYTECODE=1 \
