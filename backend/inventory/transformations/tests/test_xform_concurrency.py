@@ -13,9 +13,9 @@ from django.db.models import Sum
 
 from inventory.models import Item, Lot, StockMove, StockQuant
 from inventory.stock.service import SERVICE
-from inventory.tests.conftest import TODAY
 from inventory.transformations import service as xf
 from inventory.transformations.models import TransformationOrder
+from inventory.transformations.tests.conftest import TODAY
 from kernel import ids
 from kernel.errors import DomainError
 from kernel.interfaces.common import DocumentRef
@@ -48,7 +48,7 @@ def run_threads(targets: list[Any]) -> tuple[list[Any], list[BaseException]]:
 
 
 @pytest.mark.django_db(transaction=True)
-def test_T_INV_XFORM_06_concurrent_transformation_and_pos_sale_on_same_lot_one_fails_cleanly(xw, inv):
+def test_T_INV_XFORM_06_concurrent_transformation_and_pos_sale_on_same_lot_one_fails_cleanly(xw: Any, inv: Any) -> None:
     kg = {"base_uom": "KG", "tracking": Item.Tracking.LOT}
     queso = inv.item("QUESO-BLOQUE", **kg)
     tajado = inv.item("QUESO-TAJADO", base_uom="KG")

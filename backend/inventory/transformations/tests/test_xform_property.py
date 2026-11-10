@@ -53,7 +53,9 @@ _N = {"n": 0}
     max_examples=20, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture, HealthCheck.too_slow]
 )
 @given(steps=st.lists(STEP, min_size=2, max_size=8))
-def test_T_INV_XFORM_08_random_transformations_value_invariant_and_no_negative_stock(xw, inv, steps):
+def test_T_INV_XFORM_08_random_transformations_value_invariant_and_no_negative_stock(
+    xw: Any, inv: Any, steps: Any
+) -> None:
     _N["n"] += 1
     n = _N["n"]
     kg = {"base_uom": "KG"}

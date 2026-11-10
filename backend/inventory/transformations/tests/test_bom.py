@@ -6,6 +6,7 @@ import datetime as dt
 import uuid
 from decimal import Decimal
 from fractions import Fraction
+from typing import Any
 
 import pytest
 
@@ -26,7 +27,9 @@ def _code(exc: pytest.ExceptionInfo[DomainError]) -> str:
     return exc.value.code
 
 
-def test_T_INV_BOM_01_cycles_across_multi_level_boms_and_overlapping_versions_rejected(xw, inv, clerk, login):
+def test_T_INV_BOM_01_cycles_across_multi_level_boms_and_overlapping_versions_rejected(
+    xw: Any, inv: Any, clerk: Any, login: Any
+) -> None:
     # ---- pure graph checks
     a, b, c = (uuid.uuid4() for _ in range(3))
     assert core.find_cycle({a: {b}, b: {c}}, a) is None
@@ -66,8 +69,8 @@ def test_T_INV_BOM_01_cycles_across_multi_level_boms_and_overlapping_versions_re
     assert r.status_code == 200 and r.json()["bom_status"] == "ACTIVE", r.content
     with inv.scope():
         assert Bom.objects.get(id=v1.id).valid_to == dt.date(2026, 5, 31)
-        assert boms.active_bom(inv.company(), out.id, dt.date(2026, 5, 31)).id == v1.id
-        assert boms.active_bom(inv.company(), out.id, dt.date(2026, 6, 1)).id == v2.id
+        assert getattr(boms.active_bom(inv.company(), out.id, dt.date(2026, 5, 31)), "id", None) == v1.id
+        assert getattr(boms.active_bom(inv.company(), out.id, dt.date(2026, 6, 1)), "id", None) == v2.id
     # v3 inside v1's (now closed) range overlaps v1 → rejected even with supersede (v1 is not open-ended)
     v3 = xw.run(lambda u: boms.copy_version(u, v1, valid_from=dt.date(2026, 3, 1), valid_to=dt.date(2026, 4, 30)))
     with pytest.raises(DomainError) as exc:
@@ -108,8 +111,8 @@ def test_T_INV_BOM_01_cycles_across_multi_level_boms_and_overlapping_versions_re
 
 
 def test_T_INV_BOM_02_explosion_with_yields_and_scrap_is_exact_and_costed_explosion_matches_valuation(
-    xw, inv, clerk, login
-):
+    xw: Any, inv: Any, clerk: Any, login: Any
+) -> None:
     # ---- pure: 20 good units of a batch of 10 at 80 % yield = 2.5 batches; 4 kg × 2.5 × 1.05 scrap = 10.5 kg
     fin, mix, flour, salt, water = (uuid.uuid4() for _ in range(5))
     spec_mix = core.BomSpec(mix, mix, D("3"), D("100"), (core.Component(water, D("1"), line_no=1),))

@@ -6,6 +6,7 @@ Account codes and names are SINTÉTICOS (no real PUC claim)."""
 from __future__ import annotations
 
 import datetime as dt
+import importlib
 import uuid
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -16,12 +17,18 @@ import pytest
 
 from inventory.bom import service as boms
 from inventory.models import Item, Warehouse
-from inventory.tests.conftest import *  # noqa: F403 - re-export the inventory fixtures (inv, world, login, clerk …)
-from inventory.tests.conftest import INV_GRANTS, TODAY, Inv, _issuer_session  # noqa: F401 - session fixture
 from inventory.transformations import service as xf
 from inventory.transformations.registry import register_fields
 from kernel.uow import run_in_unit_of_work
 from ledger.models import Account, AccountDetermination
+
+# The P09a inventory fixtures (inv, world, login, clerk, the session issuer …) are re-exported by name so pytest sees
+# them here. The module is loaded dynamically: it lives in the P09a test tree, which the type checker excludes, and a
+# static import would pull it into this package's (type-checked) graph.
+_INV_TESTS = importlib.import_module("inventory.tests.conftest")
+globals().update({k: v for k, v in vars(_INV_TESTS).items() if not k.startswith("__")})
+INV_GRANTS: list[str] = _INV_TESTS.INV_GRANTS
+TODAY: dt.date = _INV_TESTS.TODAY
 
 D = Decimal
 EXTRA_ACCOUNTS = (
@@ -41,9 +48,9 @@ def _p09c_fields() -> Iterator[None]:
 
 @dataclass
 class Xf:
-    """Helpers over :class:`Inv` for BOM and transformation documents."""
+    """Helpers over the P09a ``Inv`` helper for BOM and transformation documents."""
 
-    inv: Inv
+    inv: Any
     wh: Warehouse
 
     def run(self, fn: Any, principal: uuid.UUID | None = None) -> Any:
@@ -94,7 +101,7 @@ class Xf:
         return self.run(lambda u: xf.post(u, o), principal)
 
 
-def add_accounts(inv: Inv, company: str = "ALFA") -> None:
+def add_accounts(inv: Any, company: str = "ALFA") -> None:
     ctx = inv.ctx(company)
     cid = inv.company(company)
 
@@ -109,13 +116,13 @@ def add_accounts(inv: Inv, company: str = "ALFA") -> None:
 
 
 @pytest.fixture
-def xw(inv: Inv) -> Xf:
+def xw(inv: Any) -> Xf:
     add_accounts(inv)
     return Xf(inv, inv.warehouse("WT"))
 
 
 @pytest.fixture
-def approver(world: Any, inv: Inv) -> str:
+def approver(world: Any, inv: Any) -> str:
     """Second inventory user (``jefe``) so approvals respect segregation of duties (D-023)."""
     if "inv_admin" not in world.roles:
         world.add_role("inv_admin", INV_GRANTS, max_cls="confidential")

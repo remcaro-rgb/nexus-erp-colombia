@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import datetime as dt
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from django.db.models import Sum
@@ -55,7 +55,9 @@ def lines_of(inv: Any, o: Any) -> list[TransformationLine]:
 # =========================================================================== XFORM-01
 
 
-def test_T_INV_XFORM_01_repack_unpack_and_pack_canonical_stock_unchanged_no_entry(xw, inv, clerk, login):
+def test_T_INV_XFORM_01_repack_unpack_and_pack_canonical_stock_unchanged_no_entry(
+    xw: Any, inv: Any, clerk: Any, login: Any
+) -> None:
     api = login(clerk)
     item = inv.item("AZUCAR-UND")
     box = inv.presentation(item, "CJ12", "12")
@@ -149,7 +151,9 @@ def test_T_INV_XFORM_01_repack_unpack_and_pack_canonical_stock_unchanged_no_entr
 # =========================================================================== XFORM-02
 
 
-def test_T_INV_XFORM_02_portioning_direct_actual_weights_waste_values_balance_rounding_to_main(xw, inv):
+def test_T_INV_XFORM_02_portioning_direct_actual_weights_waste_values_balance_rounding_to_main(
+    xw: Any, inv: Any
+) -> None:
     kg = {"base_uom": "KG"}
     res = inv.item("RES-CANAL", **kg)
     lomo = inv.item("LOMO", standard_cost="40000", **kg)
@@ -224,8 +228,8 @@ def _template(xw: Any, inv: Any, res: Any, lomo: Any, molida: Any, hueso: Any) -
 
 
 def test_T_INV_XFORM_03_portioning_template_outside_tolerance_requires_approval_inside_posts(
-    xw, inv, clerk, approver, login
-):
+    xw: Any, inv: Any, clerk: Any, approver: Any, login: Any
+) -> None:
     kg = {"base_uom": "KG"}
     res, lomo = inv.item("RES-T", **kg), inv.item("LOMO-T", **kg)
     molida, hueso = inv.item("MOLIDA-T", **kg), inv.item("HUESO-T", **kg)
@@ -297,8 +301,8 @@ def test_T_INV_XFORM_03_portioning_template_outside_tolerance_requires_approval_
 
 
 def test_T_INV_XFORM_04_manual_multi_input_output_balances_value_and_quantities_outputs_without_inputs_rejected(
-    xw, inv, world, clerk, login, issuer
-):
+    xw: Any, inv: Any, world: Any, clerk: Any, login: Any, issuer: Any
+) -> None:
     a, b = inv.item("MAN-A"), inv.item("MAN-B")
     c, d = inv.item("MAN-C"), inv.item("MAN-D")
     xw.stock(a, "5", "1000")
@@ -357,7 +361,9 @@ def test_T_INV_XFORM_04_manual_multi_input_output_balances_value_and_quantities_
 # =========================================================================== XFORM-05
 
 
-def test_T_INV_XFORM_05_production_from_bom_v2_consumes_components_with_scrap_byproduct_by_cost_share(xw, inv):
+def test_T_INV_XFORM_05_production_from_bom_v2_consumes_components_with_scrap_byproduct_by_cost_share(
+    xw: Any, inv: Any
+) -> None:
     kg = {"base_uom": "KG"}
     pan, harina = inv.item("PAN-TAJ"), inv.item("HARINA-P", **kg)
     sal, salvado = inv.item("SAL-P", **kg), inv.item("SALVADO", **kg)
@@ -380,7 +386,7 @@ def test_T_INV_XFORM_05_production_from_bom_v2_consumes_components_with_scrap_by
     v2 = xw.run(lambda u: boms.update(u, v2, data))
     v2 = xw.activate(v2, supersede=True)
     with inv.scope():
-        assert boms.active_bom(inv.company(), pan.id, dt.date(2026, 11, 9)).id == v2.id
+        assert getattr(boms.active_bom(inv.company(), pan.id, dt.date(2026, 11, 9)), "id", None) == v2.id
 
     o = xw.order("PRODUCTION", [], bom_id=v2.id, planned_qty=D("20"))
     lines = {(ln.role, ln.item_id): ln for ln in lines_of(inv, o)}
@@ -430,7 +436,7 @@ class FailingLedger:
         return self.real.reverse(uow, entry_id, reversal_date, reason)
 
 
-def test_T_INV_XFORM_07_ledger_failure_during_post_rolls_back_all_stock_moves(xw, inv):
+def test_T_INV_XFORM_07_ledger_failure_during_post_rolls_back_all_stock_moves(xw: Any, inv: Any) -> None:
     kg = {"base_uom": "KG"}
     pollo, pechuga, alas = inv.item("POLLO", **kg), inv.item("PECHUGA", **kg), inv.item("ALAS", **kg)
     xw.stock(pollo, "12", "9876.54321")
@@ -451,7 +457,8 @@ def test_T_INV_XFORM_07_ledger_failure_during_post_rolls_back_all_stock_moves(xw
         before["entries"] = JournalEntry.objects.count()
         [res] = Reservation.objects.filter(source_id=o.id, state="ACTIVE")
     failing = FailingLedger(services.get(PostingService))
-    with services.override(PostingService, failing), pytest.raises(DomainError) as exc:
+    double = cast(PostingService, failing)  # duck-typed test double standing in for the real ledger
+    with services.override(PostingService, double), pytest.raises(DomainError) as exc:
         xw.post(o)
     assert exc.value.code == "ledger_failure_injected" and failing.calls == 1
     with inv.scope():
