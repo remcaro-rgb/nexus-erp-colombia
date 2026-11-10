@@ -6,7 +6,7 @@
   "reason": "",
   "branch": "claude/project-thread-w3pvt3",
   "base_sha": "0ad6b29cf89fbb04594796b202bbcd005f616c86",
-  "tested_sha": "7933c996a61adbae9fed05af18b98e39f42abfe6",
+  "tested_sha": "b17ec2481e9e7271214b6028d97c57952b10c04b",
   "changed_paths": [
     "backend/inventory/barcodes/__init__.py",
     "backend/inventory/barcodes/core.py",
@@ -36,6 +36,7 @@
     "contracts/change-requests/P09b-2.md",
     "docs/handoffs/P09b.md",
     "docs/run/progress/P09b.md",
+    "docs/run/reports/P09b.json",
     "frontend/src/features/inventory/barcodes/BarcodesPage.tsx",
     "frontend/src/features/inventory/barcodes/LabelPreview.tsx",
     "frontend/src/features/inventory/barcodes/ScanInput.tsx",
@@ -59,5 +60,5 @@
   },
   "missing_tests": [],
   "session_url": "https://claude.ai/code/session_01XNGgzKxJ7reL96GBkSmEku",
-  "created_at": "2026-11-10T22:28:26Z"
+  "created_at": "2026-11-10T22:33:04Z"
 }
