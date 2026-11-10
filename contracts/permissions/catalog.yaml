@@ -4512,6 +4512,30 @@ codes:
   - purchasing_rfqs_by_send
   - purchasing_rfqs_by_update
   source: P02
+- code: purchasing.settings.update
+  module: purchasing
+  owner: P11
+  description: Configurar compras por empresa (pesos D-009, tolerancias de recepción y cruce, límite de autoaprobación)
+  operations: []
+  source: P11a
+- code: purchasing.supplier.create
+  module: purchasing
+  owner: P11
+  description: Crear perfiles de proveedor de compras (calificación, plazo de pago, moneda)
+  operations: []
+  source: P11a
+- code: purchasing.supplier.read
+  module: purchasing
+  owner: P11
+  description: Consultar perfiles de proveedor de compras
+  operations: []
+  source: P11a
+- code: purchasing.supplier.update
+  module: purchasing
+  owner: P11
+  description: Actualizar perfiles de proveedor de compras
+  operations: []
+  source: P11a
 - code: purchasing.support_document.create
   module: purchasing
   owner: P11
