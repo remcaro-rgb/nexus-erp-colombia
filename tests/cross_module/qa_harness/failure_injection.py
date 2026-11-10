@@ -27,12 +27,32 @@ class InjectedFailure(RuntimeError):
     """Raised by the injector; never caught by application code (it is not a DatabaseError)."""
 
 
+def injected_domain_failure() -> type[Exception]:
+    """A ``kernel.errors.DomainError`` subclass (500, ``p22_injected_failure``): the API layer turns it into a
+    problem+json response, so a request-level sweep exercises the *handled* error path (view finalised,
+    transaction rolled back). The unhandled path is covered by DEF-P22-009."""
+    from kernel.errors import DomainError
+
+    global _INJECTED_DOMAIN  # created once, lazily: this module imports without Django
+    if _INJECTED_DOMAIN is None:
+
+        class InjectedDomainFailure(DomainError):
+            code, status, title = "p22_injected_failure", 500, "P22 injected failure"
+
+        _INJECTED_DOMAIN = InjectedDomainFailure
+    return _INJECTED_DOMAIN
+
+
+_INJECTED_DOMAIN: type[Exception] | None = None
+
+
 @dataclass
 class StatementCounter:
     fail_at: int | None = None
     count: int = 0
     statements: list[str] = field(default_factory=list)
     fired: bool = False
+    error: type[Exception] = InjectedFailure
 
     def __call__(self, execute: Callable[..., Any], sql: str, params: Any, many: bool, context: Any) -> Any:
         head = sql.lstrip().upper()
@@ -41,16 +61,18 @@ class StatementCounter:
             self.statements.append(sql.split()[0].upper() if sql.split() else "")
             if self.fail_at is not None and self.count == self.fail_at:
                 self.fired = True
-                raise InjectedFailure(f"injected failure before SQL statement #{self.count}: {sql[:120]}")
+                raise self.error(f"injected failure before SQL statement #{self.count}: {sql[:120]}")
         return execute(sql, params, many, context)
 
 
 @contextlib.contextmanager
-def fail_after(n: int | None, using: str = "default") -> Iterator[StatementCounter]:
-    """Raise before the n-th non-control statement (``None`` = count only)."""
+def fail_after(
+    n: int | None, using: str = "default", error: type[Exception] = InjectedFailure
+) -> Iterator[StatementCounter]:
+    """Raise ``error`` before the n-th non-control statement (``None`` = count only)."""
     from django.db import connections
 
-    counter = StatementCounter(fail_at=n)
+    counter = StatementCounter(fail_at=n, error=error)
     with connections[using].execute_wrapper(counter):
         yield counter
 
@@ -68,9 +90,13 @@ class TableState:
 class AtomicityProbe:
     """Snapshot of tables; ``diff()`` lists tables whose content changed since ``snapshot()``."""
 
-    def __init__(self, tables: Sequence[str], using: str = "default") -> None:
+    def __init__(self, tables: Sequence[str], using: str = "default", ctx: Any = None) -> None:
+        """``ctx`` (a ``kernel.tenancy.TenantContext``): read the tables bound to that tenant. Kernel and
+        module tables have FORCED row-level security (ADR-003), so an unbound read sees no rows and would
+        hide every partial write; scratch tables without RLS read the same either way."""
         self.tables = tuple(tables)
         self.using = using
+        self.ctx = ctx
         self.baseline: dict[str, TableState] = {}
 
     @classmethod
@@ -94,7 +120,15 @@ class AtomicityProbe:
         return TableState(rows=int(count), digest=str(digest))
 
     def capture(self) -> dict[str, TableState]:
-        return {t: self._state(t) for t in self.tables}
+        if self.ctx is None:
+            return {t: self._state(t) for t in self.tables}
+        from django.db import transaction
+
+        from kernel import tenancy
+
+        with transaction.atomic(using=self.using), tenancy.activate(self.ctx):
+            tenancy.bind(self.ctx, self.using)
+            return {t: self._state(t) for t in self.tables}
 
     def snapshot(self) -> dict[str, TableState]:
         self.baseline = self.capture()
@@ -132,12 +166,24 @@ def sweep(
     sample: int | None = None,
     seed: int = 20261109,
     using: str = "default",
+    isolate: bool = False,
+    error: type[Exception] = InjectedFailure,
 ) -> SweepResult:
     """All-or-nothing check of ``command`` under failure injection at every statement.
 
     ``reset`` must restore the database to the baseline after a *successful* run (tests usually
     delete the rows the command created, or run inside an outer savepoint they roll back).
+
+    ``isolate=True`` (P22b) runs every attempt inside an outer savepoint that is rolled back after the
+    probe has looked at it: needed when the effects cannot be deleted (posted journal lines and audit
+    rows are append-only by trigger). A command that "commits" part of its work in its own inner unit of
+    work releases that savepoint into the outer one, so partial writes stay visible to the probe until
+    the rollback - the check is as strict as with ``reset``.
     """
+    if isolate:
+        if reset is not None:
+            raise ValueError("isolate and reset are exclusive")
+        return _sweep_isolated(command, probe, expect_changed, sample, seed, using, error)
     probe.snapshot()
     with fail_after(None, using) as counter:
         command()
@@ -170,4 +216,71 @@ def sweep(
             violations.append(f"failure before statement #{k} left partial writes in {sorted(partial)}")
             if reset is not None:
                 reset()
+    return SweepResult(total, points, changed, violations)
+
+
+class _Rollback(Exception):
+    """Internal: rolls the isolation savepoint back."""
+
+
+def _isolated(using: str, body: Callable[[], Any]) -> Any:
+    from django.db import transaction
+
+    out: list[Any] = []
+    try:
+        with transaction.atomic(using=using):
+            out.append(body())
+            raise _Rollback
+    except _Rollback:
+        pass
+    return out[0]
+
+
+def _sweep_isolated(
+    command: Callable[[], Any],
+    probe: AtomicityProbe,
+    expect_changed: Sequence[str],
+    sample: int | None,
+    seed: int,
+    using: str,
+    error: type[Exception] = InjectedFailure,
+) -> SweepResult:
+    from django.db import connections
+
+    probe.snapshot()
+    depth = len(connections[using].savepoint_ids)
+
+    def clean() -> tuple[int, set[str]]:
+        with fail_after(None, using) as counter:
+            command()
+        return counter.count, set(probe.diff())
+
+    total, changed = _isolated(using, clean)
+    violations: list[str] = []
+    missing = [t for t in expect_changed if t not in changed]
+    if missing:
+        violations.append(f"successful run did not change expected tables {missing}")
+    if probe.diff():
+        violations.append("isolation savepoint did not restore the baseline")
+        return SweepResult(total, [], changed, violations)
+    points = list(range(1, total + 1))
+    if sample is not None and sample < total:
+        points = sorted(random.Random(seed).sample(points, sample))
+    for k in points:
+
+        def injected(k: int = k) -> tuple[bool, list[str], int]:
+            with fail_after(k, using, error) as inj:
+                with contextlib.suppress(error):
+                    command()
+            leaked = len(connections[using].savepoint_ids) - depth - 1  # -1: the isolation savepoint
+            return inj.fired, sorted(probe.diff()), leaked
+
+        fired, partial, leaked = _isolated(using, injected)
+        if leaked:
+            violations.append(f"failure before statement #{k} leaked {leaked} open transaction block(s)")
+            break  # the connection state is corrupt from here on
+        if not fired:
+            violations.append(f"injection #{k} never fired (statement count not deterministic)")
+        elif partial:
+            violations.append(f"failure before statement #{k} left partial writes in {partial}")
     return SweepResult(total, points, changed, violations)

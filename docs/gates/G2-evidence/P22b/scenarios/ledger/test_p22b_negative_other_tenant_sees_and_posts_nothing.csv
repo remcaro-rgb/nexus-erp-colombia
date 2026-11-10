@@ -1,0 +1,3 @@
+scenario,company,document,entry_id,posting_date,line,account,description,dimension,currency,debit,credit,debit_functional,credit_functional
+tests/cross_module/scenarios/test_xm_invariants_negative.py::test_p22b_negative_other_tenant_sees_and_posts_nothing,A,treasury.payment payment,BANK-000001,2026-08-03,1,220505 AP,Proveedores nacionales (SINTÉTICO),,COP,10.0000,0,10.0000,0.0000
+tests/cross_module/scenarios/test_xm_invariants_negative.py::test_p22b_negative_other_tenant_sees_and_posts_nothing,A,treasury.payment payment,BANK-000001,2026-08-03,2,111005 BANK,Bancos nacionales (SINTÉTICO),,COP,0,10.0000,0.0000,10.0000

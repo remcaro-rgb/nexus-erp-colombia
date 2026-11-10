@@ -18,7 +18,8 @@ from typing import Any
 from .openapi import Operation, operations, path_regex
 
 _CONVERTER_RE = re.compile(r"<(?:(?P<conv>[a-z_]+):)?(?P<name>[A-Za-z_][A-Za-z0-9_]*)>")
-_REGEX_GROUP_RE = re.compile(r"\(\?P<(?P<name>[A-Za-z_][A-Za-z0-9_]*)>[^)]*\)")
+_REGEX_GROUP_RE = re.compile(r"\(\?P<(?P<name>[A-Za-z_][A-Za-z0-9_]*)>(?P<body>[^)]*)\)")
+_LITERAL_ALTERNATION_RE = re.compile(r"^[A-Za-z0-9_\-]+(?:\|[A-Za-z0-9_\-]+)+$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,12 +29,30 @@ class Route:
     view: str
 
 
-def _pattern_text(pattern: Any) -> str:
+def _expand_groups(raw: str) -> list[str]:
+    """Regex groups -> OpenAPI templates; a group that is a literal alternation (``(?P<slug>a|b)``)
+    expands into one template per literal (P22b: wave-2 ledger routes), any other group -> ``{name}``."""
+    m = _REGEX_GROUP_RE.search(raw)
+    if m is None:
+        return [raw]
+    head, tail = raw[: m.start()], raw[m.end() :]
+    body = m.group("body")
+    choices = body.split("|") if _LITERAL_ALTERNATION_RE.match(body) else ["{" + m.group("name") + "}"]
+    return [head + choice + rest for choice in choices for rest in _expand_groups(tail)]
+
+
+def _pattern_texts(pattern: Any) -> list[str]:
     raw = str(pattern.pattern) if hasattr(pattern, "pattern") else str(pattern)
     raw = raw.lstrip("^").rstrip("$").replace("\\Z", "")
-    raw = _CONVERTER_RE.sub(lambda m: "{" + m.group("name") + "}", raw)
-    raw = _REGEX_GROUP_RE.sub(lambda m: "{" + m.group("name") + "}", raw)
-    return raw.replace("\\", "")
+    out = []
+    for text in _expand_groups(raw):
+        text = _CONVERTER_RE.sub(lambda m: "{" + m.group("name") + "}", text)
+        out.append(text.replace("\\", ""))
+    return out
+
+
+def _pattern_text(pattern: Any) -> str:
+    return _pattern_texts(pattern)[0]
 
 
 def _walk(patterns: Iterable[Any], prefix: str) -> Iterator[Route]:
@@ -41,15 +60,17 @@ def _walk(patterns: Iterable[Any], prefix: str) -> Iterator[Route]:
 
     for p in patterns:
         if isinstance(p, URLResolver):
-            yield from _walk(p.url_patterns, prefix + _pattern_text(p.pattern))
+            for text in _pattern_texts(p.pattern):
+                yield from _walk(p.url_patterns, prefix + text)
         elif isinstance(p, URLPattern):
             cb = p.callback
             view = getattr(cb, "view_class", None) or getattr(cb, "cls", None) or cb
-            yield Route(
-                template="/" + (prefix + _pattern_text(p.pattern)).lstrip("/"),
-                name=p.name,
-                view=f"{getattr(view, '__module__', '?')}.{getattr(view, '__qualname__', repr(view))}",
-            )
+            for text in _pattern_texts(p.pattern):
+                yield Route(
+                    template="/" + (prefix + text).lstrip("/"),
+                    name=p.name,
+                    view=f"{getattr(view, '__module__', '?')}.{getattr(view, '__qualname__', repr(view))}",
+                )
 
 
 def implemented_routes(api_only: bool = True) -> list[Route]:

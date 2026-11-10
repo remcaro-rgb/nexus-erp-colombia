@@ -1,0 +1,242 @@
+{
+  "gate": "G2",
+  "label": "P22b",
+  "environment": "dev",
+  "synthetic_data": true,
+  "commit": "48ef9ae3b2fe1ecc15410b1f44239a1f053c11cb",
+  "collected_at_utc": "2026-11-10T17:51:28Z",
+  "junit": {
+    "tests": 649,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 22
+  },
+  "files": [
+    {
+      "path": "junit/p22b-suites.xml",
+      "sha256": "a39653d0597bcf712a9e83bf5cb0e6815869d93288e6c17cf542657d3bab0f38",
+      "bytes": 105062
+    },
+    {
+      "path": "scenarios/effect-matrix.csv",
+      "sha256": "a1c597719c7c67673d401d72b6852a844668cf1110753c6a7ccc7ceee0eda5c3",
+      "bytes": 7979
+    },
+    {
+      "path": "scenarios/ledger/test_T_P22_FIN_01_api_ledger_reverse_is_all_or_nothing.csv",
+      "sha256": "b78b25c71337dfb757d5a1bb6c23ce0d23c8b05c86e3497ff6c7a5e55d3f3c26",
+      "bytes": 636
+    },
+    {
+      "path": "scenarios/ledger/test_T_P22_FIN_01_reference_posting_paths_are_all_or_nothing-gl_only.csv",
+      "sha256": "f6620ae5baf31325e647499167fa10d18b1c0364522a63261b8e0bfc1e4aa848",
+      "bytes": 731
+    },
+    {
+      "path": "scenarios/ledger/test_T_P22_FIN_01_reference_posting_paths_are_all_or_nothing-goods_receipt.csv",
+      "sha256": "1de7f44b571c08cdd5756e5f873854124d6b63d57fa229c4269e35f412285ba1",
+      "bytes": 743
+    },
+    {
+      "path": "scenarios/ledger/test_T_P22_FIN_01_reference_posting_paths_are_all_or_nothing-intercompany.csv",
+      "sha256": "b1cb0823087c9562a505df40db3402f727c78f73e22316531d84509ff35af5eb",
+      "bytes": 741
+    },
+    {
+      "path": "scenarios/ledger/test_T_P22_FIN_01_reference_posting_paths_are_all_or_nothing-sales_invoice_deliver.csv",
+      "sha256": "e22aacd81f642647a9e5b16c4c3626a4856fa7b7f02397074b4a8fde614e693e",
+      "bytes": 759
+    },
+    {
+      "path": "scenarios/ledger/test_T_P22_STK_01_stock_paths_are_all_or_nothing-goods_receipt.csv",
+      "sha256": "0eaea2f524b6b79f7f61e88c7105f2704a049d70750357df9fd02597e8cca5d6",
+      "bytes": 719
+    },
+    {
+      "path": "scenarios/ledger/test_T_P22_STK_01_stock_paths_are_all_or_nothing-intercompany.csv",
+      "sha256": "e5303f080fc6fa9e85b4e6758ac8c77e995d764ceb39f5a0898f02359677aeda",
+      "bytes": 717
+    },
+    {
+      "path": "scenarios/ledger/test_T_P22_STK_01_stock_paths_are_all_or_nothing-sales_invoice_deliver.csv",
+      "sha256": "4334e12600c079ed16b2483f3bc66d0f66ecb84af2475ca8653903191f817f70",
+      "bytes": 735
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S01_customer_receipt_with_withholdings.csv",
+      "sha256": "1f06eabc10bd45adc75ec079e662b73ab082e02aff530cfb24656a0e133f487d",
+      "bytes": 3801
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S01_invoice_journal_stock_and_audit.csv",
+      "sha256": "94e1237adce0c12cc237f871c47de96faacf1afe01601039c330c9b563c50577",
+      "bytes": 2507
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S02_oracle_agrees_with_reference_valuation.csv",
+      "sha256": "0e6fafd6492c723fd61686b09bc8211bf0f805d6f94ecd78617383adbd22fc34",
+      "bytes": 3056
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S02_receipts_layers_and_grni.csv",
+      "sha256": "06dce90b4be9ebd3c21ace6ae23e119ba89546a09122c3219c636463371b1287",
+      "bytes": 1201
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S02_wac_vs_fifo_vendor_invoices_and_price_difference-CAF-500-WAC-cogs0-remaining0-after_pd0.csv",
+      "sha256": "0f6b7a6e4ab215943277b17b902c9fe922f80654775b495895ce90d5205c629f",
+      "bytes": 6177
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S02_wac_vs_fifo_vendor_invoices_and_price_difference-CAF-500F-FIFO-cogs1-remaining1-after_pd1.csv",
+      "sha256": "fd0cccddf366335d8d42b0384c3ff41341eb92061a0ee5a6d7657aba28b0f6ac",
+      "bytes": 6215
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S03_allocation_by_value_and_by_quantity-quantity-expected1.csv",
+      "sha256": "276cce4ea1e0c52cc450558e1c47b6b09a208ceb1590b4a8ee22ce792c48e1dd",
+      "bytes": 2435
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S03_allocation_by_value_and_by_quantity-value-expected0.csv",
+      "sha256": "58c9b29656fb030d6676c9e5fbbba4ea8a46cd7795e5eabef0e07ec565f8ee9c",
+      "bytes": 2411
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S03_rounding_last_line_takes_the_residual.csv",
+      "sha256": "c573fcf249ddbcb5506946927a746f74f2328ae8a128031008523b5b50796975",
+      "bytes": 1218
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S03_variant_y_partly_sold_before_freight.csv",
+      "sha256": "9500db4dfeccd3a087b2d65e96ee3c1aecb223413e2abba870ba8a5353b817e1",
+      "bytes": 3788
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S04_disconnected_draft_is_blocked_and_writes_nothing.csv",
+      "sha256": "42e4d10dcbab0242d1c2e8bac97d6347dfa58859c1697b5a25b0d19e2057131b",
+      "bytes": 4871
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S04_insufficient_stock_never_reaches_the_ledger.csv",
+      "sha256": "cb46a4e490f131dc05928b3362ace5e0d5237df7e92c72cf8de21fb3938afd80",
+      "bytes": 2281
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S04_online_checkout_each_ticket_one_transaction.csv",
+      "sha256": "fc4a696d9dac8017b045f2d15a0cee256e2da34365d16ecbb1bd8b9530d613a7",
+      "bytes": 4781
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S04_price_change_needs_confirmation_before_commit.csv",
+      "sha256": "c1c61ca2572f6211913cc423edec6f7ba4e5f36ff6a51a3bf185e760b8c482ed",
+      "bytes": 3540
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S04_reconnect_commits_atomically_and_failure_keeps_the_draft.csv",
+      "sha256": "e0c33fb40c72d710d4d6d4bb237f512b8f3f5f3c8e9a37183ed5d4b304989764",
+      "bytes": 6313
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S04_return_and_session_close_cash_difference.csv",
+      "sha256": "7dccf2079f821300915208f30af54f14b85b7c1e4ff50955920ab796bedb2f8f",
+      "bytes": 7667
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S05_failure_after_stock_move_before_journal_rolls_back_everything.csv",
+      "sha256": "ba8dd80895233858f58ad2f343423777d06376d08c982ea3da07e026782134cb",
+      "bytes": 2208
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S05_same_key_different_request_is_refused.csv",
+      "sha256": "84f60525a363f6b69ea6e601760cbb5f6a04581bac2a320ad65192fd0f36b66e",
+      "bytes": 2032
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S06_payroll_journal_and_subledger.csv",
+      "sha256": "d0425caacbba2bc831ea0eb6614b2e33d8d508f289d827004ec63779286ded5b",
+      "bytes": 3556
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S08_acquisition_and_eight_months_niif.csv",
+      "sha256": "2651062e7e7ab381d286fa8f1a83b8c3870354fa0b15c2f557cb245b3dad6049",
+      "bytes": 5597
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S08_sale_after_december_gain.csv",
+      "sha256": "e85213067a63643ad6a461176abc884fffd786b10898abc8ac7e3763fc9c1c29",
+      "bytes": 7278
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S09_weekly_support_document-monday0-expected_ds_day0.csv",
+      "sha256": "954f5d396ec13028f4cf30c257bd9da4ca8f739934bb28d5fa90a8c93eb93a79",
+      "bytes": 1067
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S09_weekly_support_document-monday1-expected_ds_day1.csv",
+      "sha256": "c5d4d7646edfe5d645d7aecf24b6d9ce512de5abc630a959ff812757dd27d906",
+      "bytes": 1067
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S10_a_context_without_b_cannot_mirror.csv",
+      "sha256": "22afb54204bc8531959b8f78234e16aa8f85da34736bd5507dfe18fe880aa8bb",
+      "bytes": 707
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S10_failure_injection_neither_side_persists.csv",
+      "sha256": "e805a0e86abc3a1acb327dcabc9fbfd8cf3202557a785ae9307627632ced62db",
+      "bytes": 719
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S10_intercompany_both_companies_one_transaction.csv",
+      "sha256": "cf21744f01087a8a2d480551923df176c31c2cb91337e778d2e8135504b5365c",
+      "bytes": 2962
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S11_opening_entry_balanced_and_subledgers_reconcile.csv",
+      "sha256": "739688ea2fcd221233f6f0319804acc6604c081c928aeac8f58d2c9f2b8646a7",
+      "bytes": 6886
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_S12_fx_payable_revaluation_reversal_and_payment.csv",
+      "sha256": "1b15acc15e214bf8e3157527137360cd199dab9b5d866cd2d7e6cce450e2c391",
+      "bytes": 2596
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_invariant_checker_detects_a_planted_violation.csv",
+      "sha256": "ebbf9a5ba9e36c001fe8cc2365cfabb20f569a232f7841b01f8725dc23f458fa",
+      "bytes": 695
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_invariants_hold_after_the_golden_scenario_mix.csv",
+      "sha256": "8e78120f6b2328064aee3cf6a220b399bb26cf67612b83b15f0b18bc2bc3f450",
+      "bytes": 3261
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_negative_closed_period_rolls_back_number_stock_and_document.csv",
+      "sha256": "961908affa029c66a3beb5930fb9f1435bae41eddbe949f69a31c2c51ee8aa04",
+      "bytes": 723
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_negative_other_tenant_sees_and_posts_nothing.csv",
+      "sha256": "c85d962a16d8429b14f965b68a95b7d5d25c273efa707aad1895f37f7fc0c215",
+      "bytes": 628
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_negative_posted_lines_are_immutable_and_corrections_are_reversals.csv",
+      "sha256": "2eac7b1aee337520b293790ee69616659deb28cc045fa7cb4641b77acc9c1032",
+      "bytes": 1215
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_negative_soft_closed_needs_the_closing_permission.csv",
+      "sha256": "606134b41b2f4069048a396f90c2d7bb2840fa3dcc0056bb74cefcd5527c9887",
+      "bytes": 638
+    },
+    {
+      "path": "scenarios/ledger/test_p22b_stateful_tenant_500_steps_keeps_every_invariant.csv",
+      "sha256": "2c8c4a4834e4f3fc7d65d9918b8afe738c6a56428f08d06d16ad6fe04aeaaf03",
+      "bytes": 259179
+    }
+  ],
+  "note": "DEV build with synthetic data; not evidence of DIAN/UGPP/PILA or any legal compliance."
+}
