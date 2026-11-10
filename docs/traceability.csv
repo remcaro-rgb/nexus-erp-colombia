@@ -1,28 +1,49 @@
 ur,requirement,gates,kind,test_file,test_name,status
-UR-01,"SaaS, multi-tenant, multi-company","G1, G2",,,,MISSING
+UR-01,"SaaS, multi-tenant, multi-company","G1, G2",pytest,tests/cross_module/scenarios/test_S09_S10_support_doc_intercompany.py,test_p22b_S10_a_context_without_b_cannot_mirror,PASSED
+UR-01,"SaaS, multi-tenant, multi-company","G1, G2",pytest,tests/cross_module/scenarios/test_S09_S10_support_doc_intercompany.py,test_p22b_S10_module_leg_intercompany_and_consolidation,XFAIL
+UR-01,"SaaS, multi-tenant, multi-company","G1, G2",pytest,tests/cross_module/scenarios/test_xm_invariants_negative.py,test_p22b_negative_company_outside_scope_is_refused,PASSED
+UR-01,"SaaS, multi-tenant, multi-company","G1, G2",pytest,tests/cross_module/scenarios/test_xm_invariants_negative.py,test_p22b_negative_other_tenant_sees_and_posts_nothing,PASSED
 UR-02,AI-first,G3,,,,MISSING
 UR-03,ERP + CRM,G2,,,,MISSING
-UR-04,Complies with Colombian regulation,G4 + EG-1..EG-8,,,,MISSING
+UR-04,Complies with Colombian regulation,G4 + EG-1..EG-8,pytest,tests/cross_module/scenarios/test_S09_S10_support_doc_intercompany.py,test_p22b_S09_module_leg_ds_transmission,XFAIL
 UR-05,Research local regulation constraints and guidelines,G4,,,,MISSING
 UR-06,"ERP best practices, security, features; top ERP practices",G4,,,,MISSING
-UR-07,Module 1: Accounting and finance,"G1, G2",,,,MISSING
-UR-08,Module 2: Inventory and costs,G2,,,,MISSING
-UR-09,Module 3: Invoicing (incl. DIAN e-invoicing),"G2, EG-1",,,,MISSING
-UR-10,Module 4: Purchases,G2,,,,MISSING
-UR-11,Module 5: POS,G2,,,,MISSING
-UR-12,"Module 6: HR, payroll, time keeping","G2, EG-4, EG-7",,,,MISSING
-UR-13,Module 7: Fixed assets (depreciation),G2,,,,MISSING
-UR-14,All money processes post in-line to the ledger,G2,,,,MISSING
-UR-15,All stock processes update inventory in-line,G2,,,,MISSING
+UR-07,Module 1: Accounting and finance,"G1, G2",pytest,tests/cross_module/scenarios/test_S11_S12_onboarding_fx.py,test_p22b_S12_missing_rate_fails_closed,PASSED
+UR-07,Module 1: Accounting and finance,"G1, G2",pytest,tests/cross_module/scenarios/test_S11_S12_onboarding_fx.py,test_p22b_S12_module_leg_trm_adapter_and_revaluation_job,XFAIL
+UR-07,Module 1: Accounting and finance,"G1, G2",pytest,tests/cross_module/scenarios/test_xm_invariants_negative.py,test_p22b_negative_closed_period_rolls_back_number_stock_and_document,PASSED
+UR-07,Module 1: Accounting and finance,"G1, G2",pytest,tests/cross_module/scenarios/test_xm_invariants_negative.py,test_p22b_negative_control_account_only_from_its_subledger,PASSED
+UR-07,Module 1: Accounting and finance,"G1, G2",pytest,tests/cross_module/scenarios/test_xm_invariants_negative.py,test_p22b_negative_posted_lines_are_immutable_and_corrections_are_reversals,PASSED
+UR-07,Module 1: Accounting and finance,"G1, G2",pytest,tests/cross_module/scenarios/test_xm_invariants_negative.py,test_p22b_negative_soft_closed_needs_the_closing_permission,PASSED
+UR-08,Module 2: Inventory and costs,G2,pytest,tests/cross_module/scenarios/test_S02_purchases_wac_fifo.py,test_p22b_S02_module_leg_purchasing_and_inventory,XFAIL
+UR-08,Module 2: Inventory and costs,G2,pytest,tests/cross_module/scenarios/test_S03_landed_cost.py,test_p22b_S03_module_leg_landed_cost_document,XFAIL
+UR-08,Module 2: Inventory and costs,G2,pytest,tests/cross_module/scenarios/test_S05_concurrency_failure_injection.py,test_p22b_S05_module_leg_api_returns_409_insufficient_stock,XFAIL
+UR-09,Module 3: Invoicing (incl. DIAN e-invoicing),"G2, EG-1",pytest,tests/cross_module/scenarios/test_S01_sale_vat_withholding.py,test_p22b_S01_module_leg_fiscal_document_accepted_in_sandbox,XFAIL
+UR-09,Module 3: Invoicing (incl. DIAN e-invoicing),"G2, EG-1",pytest,tests/cross_module/scenarios/test_S01_sale_vat_withholding.py,test_p22b_S01_module_leg_sales_api,XFAIL
+UR-10,Module 4: Purchases,G2,pytest,tests/cross_module/scenarios/test_S02_purchases_wac_fifo.py,test_p22b_S02_module_leg_purchasing_and_inventory,XFAIL
+UR-10,Module 4: Purchases,G2,pytest,tests/cross_module/scenarios/test_S03_landed_cost.py,test_p22b_S03_module_leg_landed_cost_document,XFAIL
+UR-10,Module 4: Purchases,G2,pytest,tests/cross_module/scenarios/test_S09_S10_support_doc_intercompany.py,test_p22b_S09_module_leg_ds_transmission,XFAIL
+UR-11,Module 5: POS,G2,pytest,tests/cross_module/scenarios/test_S04_pos_session.py,test_p22b_S04_module_leg_dian_down_contingency_and_fe_conversion,XFAIL
+UR-12,"Module 6: HR, payroll, time keeping","G2, EG-4, EG-7",pytest,tests/cross_module/scenarios/test_S06_S07_payroll_timekeeping.py,test_p22b_S06_module_leg_payroll_engine_and_nomina_electronica,XFAIL
+UR-12,"Module 6: HR, payroll, time keeping","G2, EG-4, EG-7",pytest,tests/cross_module/scenarios/test_S06_S07_payroll_timekeeping.py,test_p22b_S07_module_leg_timekeeping_engine,XFAIL
+UR-13,Module 7: Fixed assets (depreciation),G2,pytest,tests/cross_module/scenarios/test_S08_fixed_asset_two_books.py,test_p22b_S08_fiscal_book_has_its_own_depreciation,XFAIL
+UR-13,Module 7: Fixed assets (depreciation),G2,pytest,tests/cross_module/scenarios/test_S08_fixed_asset_two_books.py,test_p22b_S08_module_leg_asset_register,XFAIL
+UR-14,All money processes post in-line to the ledger,G2,pytest,tests/cross_module/scenarios/test_xm_fin01_stk01_atomicity.py,test_T_P22_FIN_01_api_ledger_reverse_is_all_or_nothing,PASSED
+UR-14,All money processes post in-line to the ledger,G2,pytest,tests/cross_module/scenarios/test_xm_fin01_stk01_atomicity.py,test_T_P22_FIN_01_every_implemented_operation_has_a_driver,PASSED
+UR-15,All stock processes update inventory in-line,G2,pytest,tests/cross_module/scenarios/test_S05_concurrency_failure_injection.py,test_p22b_S05_module_leg_api_returns_409_insufficient_stock,XFAIL
 UR-16,Bulk import/export,G3,,,,MISSING
 UR-17,"Model-agnostic AI agent: query data, perform processes, schedule tasks, custom reports/documents, simulations/what-if",G3,,,,MISSING
-UR-18,Onboarding AI agent incl. existing data,G3,,,,MISSING
+UR-18,Onboarding AI agent incl. existing data,G3,pytest,tests/cross_module/scenarios/test_S11_S12_onboarding_fx.py,test_p22b_S11_module_leg_agent_dry_run_and_first_invoice,XFAIL
 UR-19,"Tech stack with the best maintenance cost-benefit, container deploy","G0, G4",,,,MISSING
 UR-20,Best UI/UX practices,"G1, G4",,,,MISSING
-UR-21,Granular data access: row and field level,"G1, G3",,,,MISSING
+UR-21,Granular data access: row and field level,"G1, G3",pytest,tests/cross_module/scenarios/test_S01_sale_vat_withholding.py,test_p22b_S01_step7_vendedor_reads_invoices_of_own_customers,XFAIL
+UR-21,Granular data access: row and field level,"G1, G3",pytest,tests/cross_module/scenarios/test_S01_sale_vat_withholding.py,test_p22b_S01_step7_vendedor_sees_no_cost_fields_on_any_channel,XFAIL
+UR-21,Granular data access: row and field level,"G1, G3",pytest,tests/cross_module/scenarios/test_xm_fin01_stk01_atomicity.py,test_p22b_secured_view_releases_transaction_and_context_on_unhandled_error,XFAIL
+UR-21,Granular data access: row and field level,"G1, G3",pytest,tests/cross_module/scenarios/test_xm_invariants_negative.py,test_p22b_negative_company_outside_scope_is_refused,PASSED
+UR-21,Granular data access: row and field level,"G1, G3",pytest,tests/cross_module/scenarios/test_xm_invariants_negative.py,test_p22b_negative_other_tenant_sees_and_posts_nothing,PASSED
 UR-22,All processes available via API,G3,pytest,tests/security/test_sec_route_conformance.py,test_p22a_documented_routes_resolve_to_contract_operations,PASSED
 UR-22,All processes available via API,G3,pytest,tests/security/test_sec_route_conformance.py,test_p22a_every_implemented_api_route_is_in_the_contract,XFAIL
 UR-22,All processes available via API,G3,pytest,tests/security/test_sec_route_conformance.py,test_p22a_no_new_undocumented_api_route,PASSED
+UR-22,All processes available via API,G3,pytest,tests/security/test_sec_route_conformance.py,test_p22b_wave2_module_routes_are_in_the_contract,XFAIL
 UR-23,MCP so agents can connect,"G3, EG-10",,,,MISSING
 UR-24,Prompts for the highest parallelism,—,,,,MISSING
 UR-25,Done in one shot with the prompts,G4,,,,MISSING
