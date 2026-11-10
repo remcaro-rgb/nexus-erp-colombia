@@ -119,6 +119,15 @@ class Andina:
         with bound(self.ctx) as c:
             yield c
 
+    def grant(self, *permissions: str, principal: uuid.UUID | None = None) -> None:
+        """Grant permission codes in the policy fake (explicit, per principal; never a blanket bypass)."""
+        from kernel import services
+        from kernel.interfaces.policy import PolicyService
+
+        policy = services.get(PolicyService)
+        for code in permissions:
+            policy.grant(principal or self.ctx.principal_id, code)  # type: ignore[attr-defined]
+
     # ----------------------------------------------------------------- GL reads (real ledger tables)
     def entries(self, source: Any, book: str = "NIIF") -> list[Any]:
         from ledger.models import JournalEntry

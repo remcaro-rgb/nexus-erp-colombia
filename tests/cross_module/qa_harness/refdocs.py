@@ -229,7 +229,11 @@ def document(ctx: Any, ref: Any) -> dict[str, Any] | None:
         row = cur.fetchone()
     if row is None:
         return None
-    return dict(zip(("number", "status", "total", "payload", "links"), row, strict=True))
+    out = dict(zip(("number", "status", "total", "payload", "links"), row, strict=True))
+    for key in ("payload", "links"):  # raw cursors return jsonb as text under Django
+        if isinstance(out[key], str):
+            out[key] = json.loads(out[key])
+    return out
 
 
 def numbers(ctx: Any, company: uuid.UUID, doc_type: str) -> list[str]:

@@ -144,12 +144,23 @@ def sweep(
     sample: int | None = None,
     seed: int = 20261109,
     using: str = "default",
+    isolate: bool = False,
 ) -> SweepResult:
     """All-or-nothing check of ``command`` under failure injection at every statement.
 
     ``reset`` must restore the database to the baseline after a *successful* run (tests usually
     delete the rows the command created, or run inside an outer savepoint they roll back).
+
+    ``isolate=True`` (P22b) runs every attempt inside an outer savepoint that is rolled back after the
+    probe has looked at it: needed when the effects cannot be deleted (posted journal lines and audit
+    rows are append-only by trigger). A command that "commits" part of its work in its own inner unit of
+    work releases that savepoint into the outer one, so partial writes stay visible to the probe until
+    the rollback - the check is as strict as with ``reset``.
     """
+    if isolate:
+        if reset is not None:
+            raise ValueError("isolate and reset are exclusive")
+        return _sweep_isolated(command, probe, expect_changed, sample, seed, using)
     probe.snapshot()
     with fail_after(None, using) as counter:
         command()
@@ -182,4 +193,63 @@ def sweep(
             violations.append(f"failure before statement #{k} left partial writes in {sorted(partial)}")
             if reset is not None:
                 reset()
+    return SweepResult(total, points, changed, violations)
+
+
+class _Rollback(Exception):
+    """Internal: rolls the isolation savepoint back."""
+
+
+def _isolated(using: str, body: Callable[[], Any]) -> Any:
+    from django.db import transaction
+
+    out: list[Any] = []
+    try:
+        with transaction.atomic(using=using):
+            out.append(body())
+            raise _Rollback
+    except _Rollback:
+        pass
+    return out[0]
+
+
+def _sweep_isolated(
+    command: Callable[[], Any],
+    probe: AtomicityProbe,
+    expect_changed: Sequence[str],
+    sample: int | None,
+    seed: int,
+    using: str,
+) -> SweepResult:
+    probe.snapshot()
+
+    def clean() -> tuple[int, set[str]]:
+        with fail_after(None, using) as counter:
+            command()
+        return counter.count, set(probe.diff())
+
+    total, changed = _isolated(using, clean)
+    violations: list[str] = []
+    missing = [t for t in expect_changed if t not in changed]
+    if missing:
+        violations.append(f"successful run did not change expected tables {missing}")
+    if probe.diff():
+        violations.append("isolation savepoint did not restore the baseline")
+        return SweepResult(total, [], changed, violations)
+    points = list(range(1, total + 1))
+    if sample is not None and sample < total:
+        points = sorted(random.Random(seed).sample(points, sample))
+    for k in points:
+
+        def injected(k: int = k) -> tuple[bool, list[str]]:
+            with fail_after(k, using) as inj:
+                with contextlib.suppress(InjectedFailure):
+                    command()
+            return inj.fired, sorted(probe.diff())
+
+        fired, partial = _isolated(using, injected)
+        if not fired:
+            violations.append(f"injection #{k} never fired (statement count not deterministic)")
+        elif partial:
+            violations.append(f"failure before statement #{k} left partial writes in {partial}")
     return SweepResult(total, points, changed, violations)
