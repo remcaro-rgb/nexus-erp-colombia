@@ -1,4 +1,5 @@
 attempt: 1
+status: verified (make ci, parity 4/4, dev login, UI-SNAPSHOT OK), handoff written
 
 # FIX-UI-LOGIN-W03 progress
 

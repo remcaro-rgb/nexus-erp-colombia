@@ -77,7 +77,47 @@ The preview only captures modules whose owner task is ACCEPTED (today contabilid
   context on the server (unchanged behaviour; noted as residual).
 
 ## Step 4 results
-RESULTS_PLACEHOLDER
+All in this session (stack built from this branch; preview code = `c3e55f4`, later commits change only test fixtures and this file).
+* `mypy backend`: Success (257 files). Focused pytest (`fix_ui_login_w03 or ui_context or ui_modules or nav`): 16 passed. Whole backend: 864 passed.
+* `tsc --noEmit` exit 0; `make frontend-test`: 17 files / 80 tests passed (81 after the NotFound heading); P08 shell e2e (`pnpm --dir frontend run e2e`): 3 passed.
+* `make ci`: exit 0 (`make ci: OK`).
+* `make dev-up && make dev-seed && make dev-health`: exit 0 (all services PASSED).
+* `tools/dev_login.py ensure`: `DEV-LOGIN OK user=ui-preview file=deploy/dev/secrets/ui-preview.env origin=http://localhost:8080 (DEV-UI-PRINCIPAL OK tenant=2b55fda7-6f59-56c8-9fce-10f2e9464e19 company=3d9dd620-bfc8-51a4-a8a4-fefccd75fe50 user=01a1c592-4db2-724d-bdba-0c4e6ceff8da permissio)`
+  * The tool cuts its summary at 160 characters, so `permissions=N` is truncated (integrator tooling, not editable here).
+    Same formula in the api container (`len(granted_codes(catalog_codes(), ROLE_GRANTS, ROLE_DENIES))`, catalog 795 codes):
+    **permissions=256** (was 0 before UL-1).
+  * First run on this branch failed with `PermissionError: /contracts/permissions/catalog.yaml` (BuildKit `--chmod` on auto-created
+    parent dirs) → fixed with `install -d -m 0755`; second run OK.
+* First preview run: `login form not found` — Keycloak publishes `token_endpoint` with its internal host (`http://localhost/…`, no
+  port), so discovery was refused; fixed by re-basing realm endpoints onto the page origin (`oidc.ts › rebase`).
+  Second run captured Administración as a page because `NotFound` had no heading; `NotFound` now has an `h1`.
+* `tools/ui_snapshot.py --wave 3` (real screenshots, `NEXUS_REHEARSAL` unset): `UI-SNAPSHOT: OK 9 images, 15 pages not captured, 0.60 MB, not committed (--commit not given)`
+  INDEX rows (captured):
+
+| Page | Route | Theme / variant | Status | Contract notes |
+|---|---|---|---|---|
+| Login / entry | `/` | light | captured | header not found; sidebar not found; AI panel not found |
+| Login / entry | `/` | dark | captured | header not found; sidebar not found; AI panel not found; dark class ✓ |
+| Inicio | `/m/inicio` | light | captured | header 64 ✓; sidebar 256 ✓; AI panel not found |
+| Inicio | `/m/inicio` | dark | captured | header 64 ✓; sidebar 256 ✓; AI panel not found; dark class ✓ |
+| Contabilidad | `/m/contabilidad` | light | captured | header 64 ✓; sidebar 256 ✓; AI panel not found |
+| Contabilidad | `/m/contabilidad` | dark | captured | header 64 ✓; sidebar 256 ✓; AI panel not found; dark class ✓ |
+| Aprobaciones y auditoría | `/m/aprobaciones` | light | captured | header 64 ✓; sidebar 256 ✓; AI panel not found |
+| Aprobaciones y auditoría | `/m/aprobaciones` | dark | captured | header 64 ✓; sidebar 256 ✓; AI panel not found; dark class ✓ |
+| Inicio (sidebar + AI panel collapsed) | `/m/inicio` | collapsed | captured | header 64 ✓; sidebar 80 ✓; AI panel closed ✓; collapse control(s) not found (aria-label/aria-controls), captured as rendered |
+
+  `administracion`: `not yet built (HTTP 200, heading: Página no encontrada)`: absent for the read-only role (correct; no IAM admin capability).
+  Checked by eye: `inicio-light.png` shows the real shell (header, sidebar, DEV banner, "Vista Previa UI S.A.S." in the company
+  selector, user "ui-preview (sintético)"); `contabilidad-light.png` has no "Cierres" submenu and no quick action (denied).
+  `docs/ui-progress/**` reverted after every run.
+* `tools/parity_gate.py`: first run `PARITY-GATE FAILED 2/4` (secret scanners flagged synthetic token fixtures in tests) → fixture values
+  renamed `example-*`; rerun **`PARITY-GATE OK 4/4 (HEAD 925c2b8)`**.
+* `make dev-down` (volumes kept).
+
+## GitHub Actions
+Observed through the GitHub API: run 157 (`ci`, head `925c2b8`) **success**; jobs `policy`, `make ci (lint, unit, contract)`,
+`T-P03-01 docker compose up healthy from a clean clone`, `P03 tests (T-P03-01..06)` all success. (Run 146 on `1d8faab` failed
+only on the repo secret scan of the same fixtures; fixed.)
 
 ## Residual items
 * OpenAPI paths for `ui/context` / `ui/modules` → CCR P08-1 stays with P02 (plus CCR FIX-UI-LOGIN-W03-1).
