@@ -67,12 +67,15 @@ export function ShellProvider({ api, children, descriptors, renderLoading, rende
 
   const load = useCallback(
     async (companyId: string | null, period: PeriodRef | null, signal: AbortSignal) => {
+      // The server builds the principal's context for the X-Company-Id company (default membership when absent) and
+      // re-checks company_id against it, so both travel together on every shell call.
+      const companyHeader = (id: string | null) => (id ? { "X-Company-Id": id } : undefined);
       const [context, me] = await Promise.all([
-        api.get<UiContext>("/api/v1/ui/context", { params: { company_id: companyId }, signal }),
-        api.get<Me>("/api/v1/iam/me", { signal, headers: companyId ? { "X-Company-Id": companyId } : undefined }),
+        api.get<UiContext>("/api/v1/ui/context", { params: { company_id: companyId }, signal, headers: companyHeader(companyId) }),
+        api.get<Me>("/api/v1/iam/me", { signal, headers: companyHeader(companyId) }),
       ]);
       const cid = context.company_id ?? companyId;
-      const modules = await api.get<UiModules>("/api/v1/ui/modules", { params: { company_id: cid }, signal });
+      const modules = await api.get<UiModules>("/api/v1/ui/modules", { params: { company_id: cid }, signal, headers: companyHeader(cid) });
       const p = period && context.period && period.id !== context.period.id ? period : context.period;
       return { context, me, modules, companyId: cid, period: p };
     },

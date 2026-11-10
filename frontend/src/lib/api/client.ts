@@ -3,8 +3,11 @@
 // * Every state-changing call sends an Idempotency-Key.
 // * Errors are RFC 9457 problems mapped to ApiError (field errors by JSON pointer, trace id for the toast).
 // * Requests can be aborted (context switch) and responses from a stale context are dropped by the caller.
+// * With a sign-in session (optional third argument, FIX-UI-LOGIN-W03 UL-6): `Authorization: Bearer <access token>`;
+//   a 401 refreshes once and retries once; when that fails the browser is sent to sign-in with the return URL.
 import type { Problem } from "./types";
 import { newIdempotencyKey } from "../ids";
+import { currentPath, type AuthSession } from "../auth/oidc";
 
 export class ApiError extends Error {
   constructor(
@@ -54,7 +57,12 @@ export function buildUrl(path: string, params?: RequestOptions["params"]): strin
   return q ? `${path}${path.includes("?") ? "&" : "?"}${q}` : path;
 }
 
-export function createApiClient(fetcher: Fetcher = (i, init) => fetch(i, init), base = ""): ApiClient {
+/** The error the client throws after a failed re-authentication (the sign-in redirect is under way). */
+export function isAuthRedirect(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 401;
+}
+
+export function createApiClient(fetcher: Fetcher = (i, init) => fetch(i, init), base = "", auth?: AuthSession | null): ApiClient {
   async function call<T>(method: string, path: string, opts: RequestOptions = {}): Promise<T> {
     const headers: Record<string, string> = { Accept: "application/json, application/problem+json", ...opts.headers };
     if (method !== "GET") headers["Idempotency-Key"] = opts.idempotencyKey ?? newIdempotencyKey();
@@ -64,13 +72,18 @@ export function createApiClient(fetcher: Fetcher = (i, init) => fetch(i, init), 
       headers["Content-Type"] = "application/json";
       body = JSON.stringify(opts.body);
     }
-    const res = await fetcher(base + buildUrl(path, opts.params), {
-      method,
-      headers,
-      body,
-      signal: opts.signal,
-      credentials: "same-origin",
-    });
+    const send = () => {
+      const token = auth?.accessToken();
+      const h = token ? { ...headers, Authorization: `Bearer ${token}` } : headers;
+      return fetcher(base + buildUrl(path, opts.params), { method, headers: h, body, signal: opts.signal, credentials: "same-origin" });
+    };
+    let res = await send();
+    if (res.status === 401 && auth) {
+      // One refresh, one retry (same Idempotency-Key); then sign in again and come back here.
+      const refreshed = await auth.refresh().catch(() => false);
+      if (refreshed) res = await send();
+      if (res.status === 401) void auth.signIn(currentPath()).catch(() => undefined);
+    }
     const traceId = res.headers.get("X-Request-Id") ?? res.headers.get("traceparent");
     if (!res.ok) {
       let problem: Problem | null = null;

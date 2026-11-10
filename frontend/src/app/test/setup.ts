@@ -2,10 +2,21 @@
 import "@testing-library/jest-dom/vitest";
 import "fake-indexeddb/auto";
 import { cleanup } from "@testing-library/react";
-import { afterEach } from "vitest";
+import { afterEach, beforeEach } from "vitest";
+import { setAuth } from "@lib/auth/oidc";
+import { fakeAuth } from "./auth";
+
+// Every test starts with a synthetic signed-in session (FIX-UI-LOGIN-W03); sign-in tests pass their own.
+beforeEach(() => setAuth(fakeAuth()));
 
 afterEach(() => {
   cleanup();
+  setAuth(null);
+  try {
+    window.sessionStorage.clear();
+  } catch {
+    /* storage unavailable */
+  }
   try {
     window.localStorage.clear();
   } catch {

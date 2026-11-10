@@ -1,6 +1,6 @@
 // Boot states (owner P08): loading and context-error screens shown before the shell has its context.
 import { useT } from "@i18n/index";
-import { ApiError } from "@lib/api/client";
+import { ApiError, isAuthRedirect } from "@lib/api/client";
 import { Button } from "@ds/components/Button";
 
 export function BootLoading() {
@@ -14,6 +14,14 @@ export function BootLoading() {
 
 export function BootError({ error, retry }: { error: unknown; retry: () => void }) {
   const t = useT();
+  // 401 after the client's one refresh + retry: the sign-in redirect is under way (UL-6); not a boot error.
+  if (isAuthRedirect(error)) {
+    return (
+      <div role="status" className="flex h-screen items-center justify-center bg-app text-sm text-muted">
+        {t("auth.redirecting")}
+      </div>
+    );
+  }
   const trace = error instanceof ApiError ? error.traceId : null;
   return (
     <div className="flex h-screen items-center justify-center bg-app p-4">

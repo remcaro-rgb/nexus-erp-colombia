@@ -14,6 +14,16 @@ export const esCO = {
   "app.contextError": "No fue posible cargar su contexto de trabajo. Verifique su sesión e intente de nuevo.",
   "app.modulesError": "No fue posible cargar los módulos permitidos.",
 
+  "auth.entry.title": "Bienvenido",
+  "auth.entry.body": "Ingrese con su cuenta de la organización para abrir su espacio de trabajo.",
+  "auth.signIn": "Iniciar sesión",
+  "auth.redirecting": "Redirigiendo al inicio de sesión…",
+  "auth.connecting": "Conectando…",
+  "auth.error.title": "No fue posible iniciar sesión",
+  "auth.error.body": "La respuesta del proveedor de identidad no es válida o expiró. Vuelva a intentarlo.",
+  "auth.error.code": "Detalle: {code}",
+  "auth.retry": "Volver a intentar",
+
   "header.brandHome": "{brand} — ir a Inicio",
   "header.search": "Buscar documentos, productos, terceros… (Ctrl+K)",
   "header.searchShort": "Buscar",
