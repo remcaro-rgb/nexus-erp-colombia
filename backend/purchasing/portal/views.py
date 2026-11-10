@@ -25,9 +25,9 @@ from kernel import clock, tenancy
 from kernel.errors import NotFound, ValidationFailed
 from kernel.money import q_amount
 from kernel.uow import UnitOfWork
-from purchasing.models import ApOpenItem, PurchaseOrder, Rfq, Supplier, VendorQuote
+from purchasing.models import ApOpenItem, PurchaseOrder, Supplier, VendorQuote
 from purchasing.portal import crypto, service
-from purchasing.portal.models import ShipmentNotice, SupplierDocument, SupplierInvoiceUpload
+from purchasing.portal.models import SupplierDocument, SupplierInvoiceUpload
 from purchasing.requisitions.common import reject_unknown
 
 ACTION_KEYS = ("reason", "comment", "effective_date", "parameters")
@@ -97,7 +97,7 @@ class ProfileView(SupplierPortalView):
         "audit",
     )
 
-    def to_dict(self, s: Supplier) -> dict[str, Any]:
+    def to_dict(self, s: Any) -> dict[str, Any]:
         row = service.master_data(s)
         return {
             "id": s.id,
@@ -155,7 +155,7 @@ class DocumentsView(SupplierPortalView):
         "audit",
     )
 
-    def to_dict(self, d: SupplierDocument) -> dict[str, Any]:
+    def to_dict(self, d: Any) -> dict[str, Any]:
         return {
             "id": d.id,
             "tenant_id": d.tenant_id,
@@ -204,7 +204,7 @@ class RfqsView(SupplierPortalView):
         "audit",
     )
 
-    def to_dict(self, r: Rfq) -> dict[str, Any]:
+    def to_dict(self, r: Any) -> dict[str, Any]:
         return {
             "id": r.id,
             "tenant_id": r.tenant_id,
@@ -277,7 +277,7 @@ class QuotesView(SupplierPortalView):
         "audit",
     )
 
-    def to_dict(self, q: VendorQuote) -> dict[str, Any]:
+    def to_dict(self, q: Any) -> dict[str, Any]:
         return quote_dict(q)
 
     def _quotes(self, rfq_id: str) -> Any:
@@ -323,7 +323,7 @@ class OrdersView(SupplierPortalView):
         "audit",
     )
 
-    def to_dict(self, o: PurchaseOrder) -> dict[str, Any]:
+    def to_dict(self, o: Any) -> dict[str, Any]:
         answer = service.last_answer(o)
         status = o.status
         if status == PurchaseOrder.Status.SENT and answer is not None and not answer.accepted:
@@ -401,7 +401,7 @@ class ShipmentsView(SupplierPortalView):
         "audit",
     )
 
-    def to_dict(self, n: ShipmentNotice) -> dict[str, Any]:
+    def to_dict(self, n: Any) -> dict[str, Any]:
         return {
             "id": n.id,
             "tenant_id": n.tenant_id,
@@ -445,7 +445,7 @@ class InvoicesView(SupplierPortalView):
     }
     portal_fields = ("id", "tenant_id", "status", "number", "processing_status", "version", "audit")
 
-    def to_dict(self, i: SupplierInvoiceUpload) -> dict[str, Any]:
+    def to_dict(self, i: Any) -> dict[str, Any]:
         return {
             "id": i.id,
             "tenant_id": i.tenant_id,
@@ -480,7 +480,7 @@ class PaymentsView(SupplierPortalView):
     permissions: ClassVar[dict[str, str]] = {"GET": "portal.supplier_payment.read"}
     portal_fields = ("id", "tenant_id", "status", "document", "amount", "paid_on", "vouchers", "version", "audit")
 
-    def to_dict(self, item: ApOpenItem) -> dict[str, Any]:
+    def to_dict(self, item: Any) -> dict[str, Any]:
         vouchers = [info for it, info in self._payments if it.id == item.id]
         posted = [v.posted_on for v in vouchers if v.state == "POSTED" and v.posted_on]
         return {

@@ -254,7 +254,7 @@ def own_rfqs(supplier: Supplier) -> Any:
 
 
 def own_rfq(supplier: Supplier, rfq_id: uuid.UUID) -> Rfq:
-    rfq = own_rfqs(supplier).filter(id=rfq_id).first()
+    rfq: Rfq | None = own_rfqs(supplier).filter(id=rfq_id).first()
     if rfq is None:
         raise NotFound("not found", code="portal_document_not_owned")
     return rfq
@@ -301,7 +301,7 @@ def own_orders(supplier: Supplier) -> Any:
 
 
 def own_order(supplier: Supplier, order_id: uuid.UUID) -> PurchaseOrder:
-    order = own_orders(supplier).filter(id=order_id).first()
+    order: PurchaseOrder | None = own_orders(supplier).filter(id=order_id).first()
     if order is None:
         raise NotFound("not found", code="portal_document_not_owned")
     return order

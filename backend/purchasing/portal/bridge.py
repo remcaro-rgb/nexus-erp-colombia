@@ -19,7 +19,7 @@ from __future__ import annotations
 import contextvars
 import threading
 import uuid
-from collections.abc import Iterator, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
 from typing import Any
 
@@ -76,7 +76,8 @@ def portal_resources(supplier: Supplier) -> Iterator[None]:
             if isinstance(current, _BridgePolicy):
                 yield
                 return
-            with services.override(PolicyService, _BridgePolicy(current)):
+            interface: Callable[..., Any] = PolicyService
+            with services.override(interface, _BridgePolicy(current)):
                 yield
     finally:
         _active.reset(token)

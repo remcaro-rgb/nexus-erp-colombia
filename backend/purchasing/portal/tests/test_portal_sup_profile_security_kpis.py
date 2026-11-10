@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+from collections.abc import Callable
 from decimal import Decimal
 from typing import Any
 
@@ -14,7 +15,7 @@ import pytest
 from kernel import clock, ids, services
 from kernel.errors import PermissionDenied
 from kernel.interfaces.common import DocumentRef
-from kernel.interfaces.treasury import PaymentStatus, PaymentStatusInfo
+from kernel.interfaces.treasury import PaymentStatus, PaymentStatusInfo, VoucherState
 from kernel.testing.fakes import FakePaymentStatus
 from purchasing.models import ApOpenItem, PurchaseOrder, Rfq
 from purchasing.portal import service
@@ -257,7 +258,7 @@ def test_T_PORTAL_SUP_05_dashboard_kpis_match_direct_queries(w: P11bWorld, fakes
     assert api_a.post(f"{SP}/purchase-orders/{first_po}:acknowledge").status_code == 200
 
     payments = FakePaymentStatus()
-    docs = []
+    docs: list[ApOpenItem] = []
     with w.scope():
         for supplier, amount, balance, status in (
             (a, "1000000", "1000000", "OPEN"),
@@ -283,11 +284,11 @@ def test_T_PORTAL_SUP_05_dashboard_kpis_match_direct_queries(w: P11bWorld, fakes
             )
             docs.append(item_row)
 
-    def voucher(doc: ApOpenItem, amount: str, posted_on: dt.date | None, state: str = "POSTED") -> None:
+    def voucher(doc: ApOpenItem, amount: str, posted_on: dt.date | None, state: VoucherState = "POSTED") -> None:
         ref = DocumentRef(doc.document_type, doc.document_id, doc.document_number)
         info = PaymentStatusInfo(
             DocumentRef("treasury.ce", ids.new_id(), f"CE-{amount}"), state, D(amount), "COP", posted_on
-        )  # type: ignore[arg-type]
+        )
         payments.add(ref, info)
 
     voucher(docs[1], "300000", dt.date(2026, 11, 5))  # in November
@@ -295,7 +296,8 @@ def test_T_PORTAL_SUP_05_dashboard_kpis_match_direct_queries(w: P11bWorld, fakes
     voucher(docs[2], "1234", None, "APPROVED")  # not posted
     voucher(docs[3], "999999", dt.date(2026, 11, 6))  # other supplier
 
-    with services.override(PaymentStatus, payments):
+    interface: Callable[..., Any] = PaymentStatus
+    with services.override(interface, payments):
         body = api_a.get(f"{SP}/kpis", period="2026-11").json()
         october = api_a.get(f"{SP}/kpis", period="2026-10").json()
     got = {k["id"]: k["value"] for k in body["kpis"]}
