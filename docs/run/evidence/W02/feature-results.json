@@ -1,55 +1,51 @@
 {
   "schema": "erp-features/results/v1",
   "registry_sha256": "a62fa1d937c13533ddc08f22b87a65d9bce24d662e6df7e8996f3aa7ee939ab4",
-  "commit": "e195fac7b1f060addb46f380c27e3fa4c507c33c",
+  "commit": "7efa8dc70c24ef347a8193c03e71f65e6bc984d7",
   "tests": {
-    "T-ACC-BRANCH-01": {
+    "T-ACC-DIM-01": {
       "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_BRANCH_01_crud_code_unique_per_company_and_one_head_office"
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_DIM_01_create_group_and_leaf_unique_code_per_company[cost_center]"
     },
-    "T-ACC-BRANCH-02": {
+    "T-ACC-DIM-02": {
       "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_BRANCH_02_cross_company_links_rejected_and_archive_blocked_while_referenced"
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_DIM_02_agrupador_not_postable_rolls_back_document"
     },
-    "T-ACC-DIM-09": {
+    "T-ACC-DIM-03": {
       "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_DIM_09_subtree_grant_limits_list_tree_search_and_export"
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_DIM_03_hierarchy_rules_on_create"
     },
-    "T-ACC-EXO-01": {
+    "T-ACC-DIM-04": {
       "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_EXO_01_stored_synthetic_pack_is_not_dian_valid"
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_DIM_04_cross_company_reference_rejected_by_api"
     },
-    "T-FORMULA-ENGINE-01": {
+    "T-ACC-DIM-05": {
       "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_FORMULA_ENGINE_01_suite_has_at_least_200_cases"
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_DIM_05_used_node_delete_and_type_change_rejected"
     },
-    "T-FORMULA-ENGINE-02": {
+    "T-ACC-DIM-06": {
       "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_FORMULA_ENGINE_02_corpus_is_large_and_codes_are_stable"
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_DIM_06_rule_matrix_enforced_in_posting_and_simulate"
     },
-    "T-FORMULA-ENGINE-03": {
+    "T-ACC-DIM-07": {
       "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_FORMULA_ENGINE_03_d008_defaults"
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_DIM_07_dimension_assignment_never_changes_amounts"
     },
-    "T-FORMULA-ENGINE-04": {
+    "T-ACC-DIM-08": {
       "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_FORMULA_ENGINE_04_topological_order_diamond_is_deterministic"
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_DIM_08_dimensions_ui_playwright"
     },
-    "T-FORMULA-ENGINE-05": {
+    "T-ACC-DIM-12": {
       "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_FORMULA_ENGINE_05_db_tables_of_other_companies_are_invisible"
+      "evidence": "reports/junit/test-ids-frontend.xml#T-ACC-DIM-12 TreeTable > T-ACC-DIM-12 renders 10,000 nodes virtualized in both views"
     },
-    "T-PORTAL-CORE-01": {
+    "T-FORMULA-ENGINE-06": {
       "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_CORE_01_invite_accept_login_me_and_revoked_denied"
+      "evidence": "reports/junit/test-ids-frontend.xml#T-FORMULA-ENGINE-06 FormulaEditor > T-FORMULA-ENGINE-06 shows positioned errors (line/column) and moves the caret to them"
     },
-    "T-PORTAL-CORE-02": {
+    "T-PORTAL-CORE-04": {
       "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_CORE_02_idor_suite_party_a_cannot_read_party_b"
-    },
-    "T-PORTAL-CORE-03": {
-      "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_CORE_03_external_users_get_no_internal_roles_and_internal_api_rejects_portal_tokens"
+      "evidence": "reports/junit/test-ids-frontend.xml#T-PORTAL-CORE-04 portal shell variant > T-PORTAL-CORE-04 supplier portal renders only its own menus"
     }
   }
 }
