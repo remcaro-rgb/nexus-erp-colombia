@@ -21,7 +21,7 @@ from kernel.idempotency import StoredResponse
 D = Decimal
 DAY = dt.date(2026, 6, 12)
 P1, P2, P3 = item("POS-T1"), item("POS-T2"), item("POS-T3")
-pytestmark = [pytest.mark.django_db, pytest.mark.req("UR-14")]
+pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
@@ -136,6 +136,7 @@ def test_p22b_S04_insufficient_stock_never_reaches_the_ledger(pos):
     assert exc.value.code == "insufficient_stock" and w.counts() == before
 
 
+@pytest.mark.req("UR-11")
 def test_p22b_S04_module_leg_dian_down_contingency_and_fe_conversion(andina):
     """DIAN-down: checkout commits in-line, the DEE POS goes to P15's contingency queue (48 h timer);
     T2 converted to an FE on buyer request (buyer data per R-FE-03)."""

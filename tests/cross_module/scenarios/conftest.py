@@ -35,11 +35,28 @@ def scenario_services() -> Iterator[None]:
         yield
 
 
+def _dump_ledger(world: andina_mod.Andina, node: Any) -> None:
+    """Scenario ledger dump (prompt P22 "Required outputs per gate"): ``reports/p22b/ledger/<test>.csv``."""
+    from qa_harness import ledger_dump
+    from qa_harness.paths import REPORTS
+
+    rows = world.ledger_rows()
+    if not rows:
+        return
+    # Invariant 1 in the functional currency (mixed-currency entries carry COP-only FX lines by design; the
+    # per-currency balance of single-currency entries is checked by the posting engine and qa_harness.invariants).
+    unbalanced = {e: d for e, d in ledger_dump.unbalanced_entries(rows).items() if "functional" in d}
+    assert not unbalanced, f"unbalanced entries in COP (invariant 1): {unbalanced}"
+    name = node.name.replace("/", "_").replace("[", "-").rstrip("]")
+    ledger_dump.dump_csv(node.nodeid, rows, REPORTS / "p22b" / "ledger" / f"{name}.csv")
+
+
 @pytest.fixture
-def andina(db: Any, scenario_services: None) -> andina_mod.Andina:
+def andina(request: Any, db: Any, scenario_services: None) -> Iterator[andina_mod.Andina]:
     world = andina_mod.bootstrap(years=(2026, 2027))
     world.services["stock"] = _stock_service()
-    return world
+    yield world
+    _dump_ledger(world, request.node)
 
 
 @pytest.fixture

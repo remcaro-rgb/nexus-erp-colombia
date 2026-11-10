@@ -17,7 +17,7 @@ from qa_harness.refdocs import Entry
 
 D = Decimal
 R1_DAY, R2_DAY, SALE_DAY, INV1_DAY, INV2_DAY = (dt.date(2026, 3, d) for d in (2, 3, 4, 5, 6))
-pytestmark = [pytest.mark.django_db, pytest.mark.req("UR-14")]
+pytestmark = pytest.mark.django_db
 
 
 def vendor_invoice(world, company, receipt, received_qty, receipt_price, invoice_price, day, item_id, wh):
@@ -122,6 +122,7 @@ def test_p22b_S02_oracle_agrees_with_reference_valuation(andina, stock):
     assert andina.lines(sale.ref, "cogs")[0] == ("COGS", "Dr", expected)
 
 
+@pytest.mark.req("UR-08", "UR-10")
 def test_p22b_S02_module_leg_purchasing_and_inventory(andina):
     """The same S2 against P11 goods receipts / vendor invoices and P09 valuation (shared/11 S2)."""
     defects.require("PEND-P11", "PEND-P09")

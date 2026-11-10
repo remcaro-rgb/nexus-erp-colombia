@@ -18,7 +18,7 @@ from qa_harness.refdocs import Entry
 
 D = Decimal
 RECEIPT_DAY, SALE_DAY, FREIGHT_DAY = dt.date(2026, 5, 4), dt.date(2026, 5, 5), dt.date(2026, 5, 6)
-pytestmark = [pytest.mark.django_db, pytest.mark.req("UR-14")]
+pytestmark = pytest.mark.django_db
 
 
 def _receive(w):
@@ -97,5 +97,6 @@ def test_p22b_S03_rounding_last_line_takes_the_residual(andina):
     assert [x[2] for x in lines[:3]] == parts and not any(r == "ROUNDING" for r, _, _ in lines)
 
 
+@pytest.mark.req("UR-08", "UR-10")
 def test_p22b_S03_module_leg_landed_cost_document(andina):
     defects.require("PEND-P11", "PEND-P09")

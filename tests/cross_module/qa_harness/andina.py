@@ -178,6 +178,37 @@ class Andina:
                 agg = q.aggregate(d=Sum("debit"), c=Sum("credit"))
         return (agg["d"] or Decimal(0)) - (agg["c"] or Decimal(0))
 
+    def ledger_rows(self, book: str = "NIIF") -> list[dict[str, Any]]:
+        """Every journal line of the world in ``book`` as ``ledger_dump`` rows (contador review, EG-8)."""
+        from ledger.models import JournalLine
+
+        roles = self.role_by_account_code()
+        names = {self.a: "A", self.b: "B"}
+        rows = []
+        with self.scope():
+            qs = (
+                JournalLine.objects.filter(entry__book__code=book)
+                .select_related("entry", "account")
+                .order_by("entry__posting_date", "entry__number", "line_no")
+            )
+            for ln in qs:
+                role = "ROUNDING" if ln.is_rounding else roles.get((ln.company_id, ln.account.code), "?")
+                rows.append({
+                    "company": names.get(ln.company_id, str(ln.company_id)),
+                    "document": f"{ln.entry.source_type} {ln.entry.purpose}",
+                    "entry_id": ln.entry.number,
+                    "posting_date": ln.posting_date.isoformat(),
+                    "line": ln.line_no,
+                    "account": f"{ln.account.code} {role}",
+                    "description": ln.account.name,
+                    "currency": ln.currency,
+                    "debit": ln.amount_currency if ln.debit else Decimal(0),
+                    "credit": ln.amount_currency if ln.credit else Decimal(0),
+                    "debit_functional": ln.debit,
+                    "credit_functional": ln.credit,
+                })  # fmt: skip
+        return rows
+
     def role_by_account_code(self) -> dict[tuple[uuid.UUID, str], str]:
         from ledger.models import AccountDetermination
 

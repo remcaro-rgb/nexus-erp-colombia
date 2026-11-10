@@ -39,7 +39,6 @@ def _payroll_entries(p):
 
 
 @pytest.mark.django_db
-@pytest.mark.req("UR-14")
 def test_p22b_S06_payroll_journal_and_subledger(andina):
     p = golden.payroll_s6()
     assert p["net"] == D(3009095)
@@ -87,6 +86,7 @@ def test_p22b_S06_transmission_scheduled_before_the_tenth_of_july():
 
 
 @pytest.mark.django_db
+@pytest.mark.req("UR-12")
 def test_p22b_S06_module_leg_payroll_engine_and_nomina_electronica(andina):
     """P13 engine computes the same run; NominaIndividual XML generated and CUNE computed (P15)."""
     defects.require("PEND-P13", "PEND-P15")
@@ -165,5 +165,6 @@ def test_p22b_S07_t77_third_sunday_is_habitual():
 
 
 @pytest.mark.django_db
+@pytest.mark.req("UR-12")
 def test_p22b_S07_module_leg_timekeeping_engine(andina):
     defects.require("PEND-P13T")

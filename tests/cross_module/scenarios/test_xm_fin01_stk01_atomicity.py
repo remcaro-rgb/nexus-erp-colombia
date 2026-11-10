@@ -36,7 +36,7 @@ LEDGER_TABLES = ["ledger_journal_entry", "ledger_journal_line", "ledger_balance"
 PLATFORM_TABLES = ["kernel_outbox", "kernel_sequence", "kernel_idempotency", "workflow_audit_event"]
 DOC_TABLES = ["qa_ref_document", *refstock.TABLES]
 ALL_TABLES = LEDGER_TABLES + PLATFORM_TABLES + DOC_TABLES
-pytestmark = [pytest.mark.django_db, pytest.mark.req("UR-14")]
+pytestmark = pytest.mark.django_db
 
 #: operation_id -> driver name, for operations whose route is implemented today.
 API_DRIVERS = {"ledger_entries_by_reverse": "api_ledger_reverse"}
@@ -72,6 +72,7 @@ def test_T_P22_FIN_01_introspection_finds_every_tagged_operation():
         assert "idempotency_conflict" in op.error_codes or op.idempotent, op.operation_id  # C2-6
 
 
+@pytest.mark.req("UR-14")
 def test_T_P22_FIN_01_every_implemented_operation_has_a_driver():
     live = implemented_ids()
     missing = [op.operation_id for op in effect_ops("money") + effect_ops("stock")
@@ -186,6 +187,7 @@ def _payment(andina, amount=D(700)):
         entries=[Entry("payment", [("AP", "DEBIT", amount), ("BANK", "CREDIT", amount)])]))  # fmt: skip
 
 
+@pytest.mark.req("UR-14")
 def test_T_P22_FIN_01_api_ledger_reverse_is_all_or_nothing(andina, ledger_api):
     """The real POST /api/v1/ledger/entries/{id}:reverse with a (handled) failure before every statement."""
     entry_id = _payment(andina).entries[0].entry_id
@@ -205,6 +207,7 @@ def test_T_P22_FIN_01_api_ledger_reverse_is_all_or_nothing(andina, ledger_api):
 
 
 @defects.xfail("DEF-P22-009")
+@pytest.mark.req("UR-21")
 def test_p22b_secured_view_releases_transaction_and_context_on_unhandled_error(andina, ledger_api):
     """An unexpected exception inside a ModuleSecuredView handler must not leave the request's tenant scope
     (transaction.atomic + bound tenant context) open: DRF skips finalize_response on unhandled errors.
@@ -221,8 +224,13 @@ def test_p22b_secured_view_releases_transaction_and_context_on_unhandled_error(a
     leaks: list[tuple[int, bool, bool]] = []
 
     def probe():
+        import logging
+
         from django.db import connection
 
+        # Django logs the uncaught error with exc_info; a captured log record would keep the traceback - and with
+        # it the leaked scope generator - alive until the main thread collects it. No records during the probe.
+        logging.disable(logging.CRITICAL)
         try:
             for k in range(1, 6):
                 try:
@@ -239,6 +247,7 @@ def test_p22b_secured_view_releases_transaction_and_context_on_unhandled_error(a
             # on this thread, so it can never pop a savepoint of another thread's transaction.
             gc.collect()
             connection.close()
+            logging.disable(logging.NOTSET)
 
     t = threading.Thread(target=probe)
     t.start()

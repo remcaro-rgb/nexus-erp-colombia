@@ -63,7 +63,6 @@ def _ten_on_hand(world, code="S5-ITEM"):
     return a, wh, it
 
 
-@pytest.mark.req("UR-14")
 def test_p22b_S05_two_parallel_invoices_exactly_one_posts(andina_tx):
     w = andina_tx
     a, wh, it = _ten_on_hand(w)
@@ -87,7 +86,6 @@ def test_p22b_S05_two_parallel_invoices_exactly_one_posts(andina_tx):
     assert _deadlocks() == deadlocks
 
 
-@pytest.mark.req("UR-14")
 def test_p22b_S05_concurrent_retries_with_one_idempotency_key_post_once(andina_tx):
     w = andina_tx
     a, wh, it = _ten_on_hand(w, "S5-IDEM")
@@ -181,6 +179,7 @@ def test_p22b_S05_same_key_different_request_is_refused(andina):
 
 
 @pytest.mark.django_db
+@pytest.mark.req("UR-08", "UR-15")
 def test_p22b_S05_module_leg_api_returns_409_insufficient_stock(andina):
     """S5 through the P10 API: ``409 insufficient_stock`` problem+json for the losing invoice."""
     defects.require("PEND-P10", "PEND-P09")

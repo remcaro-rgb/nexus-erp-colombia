@@ -31,7 +31,6 @@ def s1(andina):
 
 
 @pytest.mark.django_db
-@pytest.mark.req("UR-14")
 def test_p22b_S01_invoice_journal_stock_and_audit(s1, stock):
     w, inv, before = s1
     a = w.a
@@ -75,7 +74,6 @@ def _assert_audit(w, ref):
 
 
 @pytest.mark.django_db
-@pytest.mark.req("UR-14")
 def test_p22b_S01_customer_receipt_with_withholdings(s1):
     w, inv, _ = s1
     receipt, tax = steps.customer_receipt(w, w.a, CUSTOMER, inv, D(2856000), D(2400000), PAY_DAY)
@@ -122,7 +120,7 @@ def _cost_fields_visible_to(kind: principals.Kind) -> list[tuple[str, str, str]]
 
 
 @defects.xfail("DEF-P22-005")
-@pytest.mark.req("UR-07")
+@pytest.mark.req("UR-21")
 def test_p22b_S01_step7_vendedor_sees_no_cost_fields_on_any_channel():
     """API list/detail, export, report, AI and MCP read the same contract operations; the vendedor role must
     not reach any cost/margin/valuation field through any of them."""
@@ -135,7 +133,7 @@ def test_p22b_S01_step7_cost_field_audit_is_not_vacuous():
 
 
 @defects.xfail("DEF-P22-006")
-@pytest.mark.req("UR-07")
+@pytest.mark.req("UR-21")
 def test_p22b_S01_step7_vendedor_reads_invoices_of_own_customers():
     p = principals.matrix().of("T1", principals.Kind.SALESPERSON)
     ops = [op for op in openapi.operations() if op.path == "/api/v1/sales/invoices/{id}" and op.method == "get"]
@@ -157,6 +155,7 @@ def test_p22b_S01_step7_ai_and_mcp_never_exceed_the_vendedor():
 
 
 @pytest.mark.django_db
+@pytest.mark.req("UR-09")
 def test_p22b_S01_module_leg_fiscal_document_accepted_in_sandbox(andina):
     """Step 6: FE (UBL) generated, CUFE computed, sandbox accepted, AttachedDocument, fiscal status accepted."""
     defects.require("PEND-P10", "PEND-P15")
@@ -167,6 +166,7 @@ def test_p22b_S01_module_leg_fiscal_document_accepted_in_sandbox(andina):
 
 
 @pytest.mark.django_db
+@pytest.mark.req("UR-09")
 def test_p22b_S01_module_leg_sales_api(andina):
     defects.require("PEND-P10", "PEND-P09")
     from qa_harness.routes import resolves

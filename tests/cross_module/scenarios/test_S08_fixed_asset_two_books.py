@@ -20,7 +20,7 @@ from qa_harness.refdocs import Entry
 
 D = Decimal
 COST, VAT = D(4800000), D(912000)
-pytestmark = [pytest.mark.django_db, pytest.mark.req("UR-14")]
+pytestmark = pytest.mark.django_db
 
 
 def _acquire(w):
@@ -86,6 +86,7 @@ def test_p22b_S08_last_month_takes_the_residual():
 
 
 @defects.xfail("DEF-P22-007")
+@pytest.mark.req("UR-13")
 def test_p22b_S08_fiscal_book_has_its_own_depreciation(andina):
     """shared/07 §5: separate entries per book. Needs a book selector on PostingRequest (CCR P22b-3)."""
     from kernel.interfaces.posting import PostingRequest
@@ -96,5 +97,6 @@ def test_p22b_S08_fiscal_book_has_its_own_depreciation(andina):
     assert -andina.balance("ACCUM_DEPRECIATION", andina.a, book="FISCAL") == D(640000)
 
 
+@pytest.mark.req("UR-13")
 def test_p22b_S08_module_leg_asset_register(andina):
     defects.require("PEND-P14")

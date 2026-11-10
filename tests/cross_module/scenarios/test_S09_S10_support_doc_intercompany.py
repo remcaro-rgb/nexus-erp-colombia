@@ -22,7 +22,6 @@ from localization_co.holidays import is_business_day, is_holiday
 
 D = Decimal
 PROVIDER = party("Juan Pérez (persona natural no obligada, SINTÉTICO)")
-pytestmark = pytest.mark.req("UR-14")
 
 
 def _withholdings(company, payments):
@@ -73,6 +72,7 @@ def test_p22b_S09_payment_below_base_has_no_withholding(andina):
 
 
 @pytest.mark.django_db
+@pytest.mark.req("UR-10", "UR-04")
 def test_p22b_S09_module_leg_ds_transmission(andina):
     defects.require("PEND-P11", "PEND-P15")
 
@@ -147,6 +147,7 @@ def test_p22b_S10_failure_injection_neither_side_persists(andina):
 
 
 @pytest.mark.django_db
+@pytest.mark.req("UR-01")
 def test_p22b_S10_a_context_without_b_cannot_mirror(andina):
     """Cross-company postings need both companies in the principal's scope (tenant/company row security)."""
     from qa_harness.andina import demo_context
@@ -163,5 +164,6 @@ def test_p22b_S10_a_context_without_b_cannot_mirror(andina):
 
 
 @pytest.mark.django_db
+@pytest.mark.req("UR-01")
 def test_p22b_S10_module_leg_intercompany_and_consolidation(andina):
     defects.require("PEND-P16", "PEND-P16C", "PEND-P10", "PEND-P11")
