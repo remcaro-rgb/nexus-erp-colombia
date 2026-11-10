@@ -3,8 +3,8 @@
 // (`/auth/*` is proxied to Keycloak). No client secret, no password grant, no implicit flow, no dependency.
 //
 // Storage:
-// * access token + id_token: memory only;
-// * refresh token: sessionStorage (restores the session on a full page load of the same tab);
+// * access token and id_token in memory only;
+// * refresh token in sessionStorage (restores the session on a full page load of the same tab);
 // * PKCE code_verifier, state, nonce and return path: sessionStorage only between the authorize redirect and the
 //   callback, removed when the callback runs (success or failure: a failed callback never loops).
 // Refresh ~60 s before the access token expires; RP-initiated logout at end_session_endpoint.

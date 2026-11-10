@@ -14,7 +14,7 @@ const DISCOVERY = {
 };
 
 const enc = (o: unknown) => base64UrlEncode(new TextEncoder().encode(JSON.stringify(o)));
-export function syntheticIdToken(claims: Record<string, unknown>): string {
+export function fakeIdJwt(claims: Record<string, unknown>): string {
   return `${enc({ alg: "none", typ: "JWT" })}.${enc({ iss: ISSUER, aud: "erp-web", azp: "erp-web", exp: Math.floor(Date.now() / 1000) + 600, ...claims })}.sig`;
 }
 
@@ -98,7 +98,7 @@ describe("FIX_UI_LOGIN_W03 callback", () => {
   });
 
   it("FIX_UI_LOGIN_W03 nonce mismatch is rejected (no tokens kept)", async () => {
-    const { auth, navigations } = setup(() => json({ access_token: "at", refresh_token: "rt", expires_in: 600, id_token: syntheticIdToken({ nonce: "other" }) }));
+    const { auth, navigations } = setup(() => json({ access_token: "at", refresh_token: "rt", expires_in: 600, id_token: fakeIdJwt({ nonce: "other" }) }));
     const { pending } = await startSignIn(auth, navigations);
     const err = await auth.handleCallback(`?code=abc&state=${pending.state}`).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(AuthError);
@@ -112,7 +112,7 @@ describe("FIX_UI_LOGIN_W03 callback", () => {
     await startSignIn(a.auth, a.navigations);
     await expect(a.auth.handleCallback("?error=access_denied")).rejects.toMatchObject({ code: "idp_error" });
     let nonce = "";
-    const b = setup(() => json({ access_token: "at", expires_in: 600, id_token: syntheticIdToken({ nonce, aud: "erp-portal", azp: "erp-portal" }) }));
+    const b = setup(() => json({ access_token: "at", expires_in: 600, id_token: fakeIdJwt({ nonce, aud: "erp-portal", azp: "erp-portal" }) }));
     const { pending } = await startSignIn(b.auth, b.navigations);
     nonce = pending.nonce;
     await expect(b.auth.handleCallback(`?code=abc&state=${pending.state}`)).rejects.toMatchObject({ code: "invalid_id_token" });
@@ -120,7 +120,7 @@ describe("FIX_UI_LOGIN_W03 callback", () => {
 
   it("FIX_UI_LOGIN_W03 code exchange keeps the access token in memory and only the refresh token in sessionStorage", async () => {
     let nonce = "";
-    const { auth, navigations, posts } = setup(() => json({ access_token: "synthetic-at", refresh_token: "synthetic-rt", expires_in: 600, id_token: syntheticIdToken({ nonce }) }));
+    const { auth, navigations, posts } = setup(() => json({ access_token: "fake-access-1", refresh_token: "fake-refresh-1", expires_in: 600, id_token: fakeIdJwt({ nonce }) }));
     const { pending } = await startSignIn(auth, navigations, "/m/aprobaciones");
     nonce = pending.nonce;
     await expect(auth.handleCallback(`?code=abc&state=${pending.state}&session_state=x`)).resolves.toBe("/m/aprobaciones");
@@ -130,17 +130,17 @@ describe("FIX_UI_LOGIN_W03 callback", () => {
     expect(form?.get("client_id")).toBe("erp-web");
     expect(form?.get("redirect_uri")).toBe(`${ORIGIN}/oidc/callback`);
     expect(form?.has("client_secret")).toBe(false);
-    expect(auth.accessToken()).toBe("synthetic-at");
-    expect(window.sessionStorage.getItem(REFRESH_KEY)).toBe("synthetic-rt");
+    expect(auth.accessToken()).toBe("fake-access-1");
+    expect(window.sessionStorage.getItem(REFRESH_KEY)).toBe("fake-refresh-1");
     expect(window.sessionStorage.getItem(PENDING_KEY)).toBeNull();
     expect([...Array(window.sessionStorage.length).keys()].map((i) => window.sessionStorage.key(i))).toEqual([REFRESH_KEY]);
-    expect(JSON.stringify(window.sessionStorage.getItem(REFRESH_KEY))).not.toContain("synthetic-at");
+    expect(JSON.stringify(window.sessionStorage.getItem(REFRESH_KEY))).not.toContain("fake-access-1");
   });
 
   it("FIX_UI_LOGIN_W03 no auth key is ever written to localStorage (sign-in, callback, refresh, logout)", async () => {
     const spy = vi.spyOn(Storage.prototype, "setItem");
     let nonce = "";
-    const { auth, navigations } = setup(() => json({ access_token: "at", refresh_token: "rt", expires_in: 600, id_token: syntheticIdToken({ nonce }) }));
+    const { auth, navigations } = setup(() => json({ access_token: "at", refresh_token: "rt", expires_in: 600, id_token: fakeIdJwt({ nonce }) }));
     const { pending } = await startSignIn(auth, navigations);
     nonce = pending.nonce;
     await auth.handleCallback(`?code=abc&state=${pending.state}`);
@@ -155,7 +155,7 @@ describe("FIX_UI_LOGIN_W03 callback", () => {
 describe("FIX_UI_LOGIN_W03 session restore, refresh and logout", () => {
   it("FIX_UI_LOGIN_W03 a full page load restores silently from the stored refresh token", async () => {
     window.sessionStorage.setItem(REFRESH_KEY, "rt-1");
-    const { auth, posts } = setup(() => json({ access_token: "at-2", refresh_token: "rt-2", expires_in: 600, id_token: syntheticIdToken({}) }));
+    const { auth, posts } = setup(() => json({ access_token: "at-2", refresh_token: "rt-2", expires_in: 600, id_token: fakeIdJwt({}) }));
     expect(auth.hasStoredSession()).toBe(true);
     const [a, b] = await Promise.all([auth.restore(), auth.restore()]);
     expect(a && b).toBe(true);
@@ -174,7 +174,7 @@ describe("FIX_UI_LOGIN_W03 session restore, refresh and logout", () => {
 
   it("FIX_UI_LOGIN_W03 RP-initiated logout uses id_token_hint, or client_id after a reload", async () => {
     window.sessionStorage.setItem(REFRESH_KEY, "rt-1");
-    const idToken = syntheticIdToken({});
+    const idToken = fakeIdJwt({});
     const s = setup(() => json({ access_token: "at", refresh_token: "rt-2", expires_in: 600, id_token: idToken }));
     await s.auth.restore();
     await s.auth.logout();
@@ -192,7 +192,7 @@ describe("FIX_UI_LOGIN_W03 session restore, refresh and logout", () => {
   });
 
   it("FIX_UI_LOGIN_W03 decodes only well-formed id_token payloads", () => {
-    expect(decodeJwtPayload(syntheticIdToken({ nonce: "n" }))?.nonce).toBe("n");
+    expect(decodeJwtPayload(fakeIdJwt({ nonce: "n" }))?.nonce).toBe("n");
     expect(decodeJwtPayload("not-a-jwt")).toBeNull();
     expect(decodeJwtPayload("a.!!!.c")).toBeNull();
   });
