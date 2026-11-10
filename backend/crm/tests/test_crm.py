@@ -106,3 +106,25 @@ def test_crm_field_security_and_deny_by_default(crm_api: ApiClient, world: World
     assert crm_api.as_("outsider").get("leads").status_code == 403
     assert crm_api.as_("seller").get("forecast").status_code == 403  # amounts are confidential
     assert crm_api.as_("other_admin").get(f"leads/{lead['id']}").status_code in (403, 404)
+
+
+def test_crm_events_match_the_contract_schemas(crm_api: ApiClient, world: World, pipeline: dict[str, Any]) -> None:
+    import json
+    from pathlib import Path
+
+    import jsonschema
+
+    from kernel.models import OutboxMessage
+
+    lead = _ok(crm_api.post("leads", {"name": "Sin oportunidad (SINTÉTICO)", "nit": "900765432"}), 201)
+    _ok(crm_api.post(f"leads/{lead['id']}:convert", {"parameters": {"consent_ref": str(uuid.uuid4())}}))
+    body = {"name": "X", "pipeline_id": pipeline["id"], "stage": "PROPUESTA", "amount": "100"}
+    opp = _ok(crm_api.post("opportunities", body), 201)
+    _ok(crm_api.post(f"opportunities/{opp['id']}:win", {}))
+    root = Path(__file__).resolve().parents[3] / "contracts" / "events" / "crm"
+    with bound(world.ctx("admin")):
+        rows = list(OutboxMessage.objects.filter(tenant_id=world.tenant_id, event_type__startswith="crm."))
+    assert {r.event_type for r in rows} == {"crm.lead.converted.v1", "crm.opportunity.won.v1"}
+    for row in rows:
+        schema = json.loads((root / f"{row.event_type}.json").read_text())
+        jsonschema.validate(row.envelope["payload"], {**schema, **schema["properties"]["payload"]})

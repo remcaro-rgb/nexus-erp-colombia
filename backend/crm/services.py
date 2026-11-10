@@ -271,7 +271,7 @@ def convert_lead(uow: UnitOfWork, lead: Lead, params: Mapping[str, Any]) -> Lead
     _touch(uow, lead)
     uow.emit(
         "crm.lead.converted.v1",
-        {"lead_id": str(lead.id), "party_id": str(party_id), "opportunity_id": str(opp.id) if opp else None},
+        {"lead_id": str(lead.id), "party_id": str(party_id), **({"opportunity_id": str(opp.id)} if opp else {})},
         company_id=lead.company_id,
     )
     audit(uow, "crm.lead.convert", "crm.lead", lead.id, lead.company_id, {"party": str(party_id)})

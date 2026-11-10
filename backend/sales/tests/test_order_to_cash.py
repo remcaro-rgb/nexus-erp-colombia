@@ -106,3 +106,31 @@ def test_security_deny_by_default_and_company_isolation(o2c: tuple[World, dict[s
     assert "credit_limit" not in seller_view and "nit" not in seller_view
     admin_view = _ok(api.as_("admin").get(f"parties/{party.id}"))
     assert "credit_limit" in admin_view and admin_view["nit"]
+
+
+def test_emitted_events_match_the_contract_schemas(o2c: tuple[World, dict[str, Any], ApiClient]) -> None:
+    """Every outbox envelope written by the sales flow validates against contracts/events/<module>/<type>.json."""
+    import json
+    from pathlib import Path
+
+    import jsonschema
+
+    from kernel.models import OutboxMessage
+
+    test_order_to_cash_api(o2c)
+    world = o2c[0]
+    root = Path(__file__).resolve().parents[3] / "contracts" / "events"
+    with bound(world.ctx("admin")):
+        rows = list(OutboxMessage.objects.filter(tenant_id=world.tenant_id, event_type__startswith="sales."))
+    types = {r.event_type for r in rows}
+    assert {
+        "sales.order.confirmed.v1",
+        "sales.delivery.done.v1",
+        "sales.invoice.posted.v1",
+        "sales.credit_note.posted.v1",
+        "sales.receipt.posted.v1",
+    } <= types
+    for row in rows:
+        schema = json.loads((root / "sales" / f"{row.event_type}.json").read_text())
+        # payload only: the kernel envelope writes schema_version as an integer (handoff: outside P10a's paths)
+        jsonschema.validate(row.envelope["payload"], {**schema, **schema["properties"]["payload"]})

@@ -203,7 +203,7 @@ def validate_delivery(uow: UnitOfWork, delivery: Delivery) -> Delivery:
         D.refresh_order(order)
     uow.emit(
         "sales.delivery.done.v1",
-        {"delivery_id": str(delivery.id), "order_id": str(delivery.order_id) if delivery.order_id else None},
+        {"delivery_id": str(delivery.id), **({"order_id": str(delivery.order_id)} if delivery.order_id else {})},
         company_id=delivery.company_id,
     )
     audit(
