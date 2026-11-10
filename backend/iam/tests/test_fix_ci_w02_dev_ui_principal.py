@@ -110,7 +110,10 @@ def test_FIX_CI_W02_dev_ui_principal_request_gets_synthetic_tenant_context(setti
         assert body["tenant_id"] == str(tenant)
         assert str(cmd.company_id_for(tenant)) in str(body)
         perms = set(body.get("permissions") or [])
-        assert perms and all(p.endswith(".read") for p in perms)
+        # FIX-UI-LOGIN-W03 UL-4: /iam/me = effective catalog codes ∪ resolved registry navigation codes.
+        catalog_perms = perms & set(catalog_codes())
+        assert catalog_perms and all(p.endswith(".read") for p in catalog_perms)
+        assert "shell.access" in perms and not {"ledger.post", "admin.access", "inventory.write"} & perms
         # a write is denied by the normal checks (deny wins over the read grant)
         w = client.post(
             "/api/v1/iam/roles",

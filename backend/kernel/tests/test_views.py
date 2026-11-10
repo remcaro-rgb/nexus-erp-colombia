@@ -8,6 +8,7 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 from kernel import services, tenancy, views
 from kernel.errors import TenancyNotBound, ValidationFailed
 from kernel.interfaces.periods import PeriodInfo, PeriodService
+from kernel.interfaces.ui import UiShellProvider
 from kernel.testing.fakes import FakePeriodService
 from kernel.testing.tenancy import first_company, make_context
 
@@ -94,19 +95,85 @@ def test_ui_context_payload_with_period(settings):
     )
 
 
+class _FakeShell:
+    """Typed fake of kernel.interfaces.ui.UiShellProvider (no IAM import in kernel tests)."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, object]] = []
+
+    def context_extras(self, ctx, company_id):
+        self.calls.append(("context", company_id))
+        return {
+            "companies": [{"id": str(company_id), "legal_name": "Sintética S.A.S.", "nit": "900000001-1", "code": "S"}],
+            "roles": ["r"],
+            "permissions": ["shell.access"],
+            "user": {"display_name": "u", "email": "u@example.invalid"},
+        }
+
+    def modules(self, ctx, company_id):
+        self.calls.append(("modules", company_id))
+        return {"groups": ["Inicio"], "modules": []}
+
+
 def test_ui_context_view_authenticated():
+    """FIX-UI-LOGIN-W03 UL-2: the authenticated context is activated for the handler and the provider's extras merge."""
+
     class User:
         is_authenticated = True
 
     factory = APIRequestFactory()
     view = views.UiContextView.as_view()
+    ctx = make_context()
+    fake = _FakeShell()
     request = factory.get("/api/v1/ui/context")
     force_authenticate(request, user=User())
-    ctx = make_context()
-    with tenancy.activate(ctx):
+    request.erp_context = ctx  # what the IAM authentication sets
+    with services.override(UiShellProvider, fake):
         r = view(request)
     assert r.status_code == 200 and r.data["tenant_id"] == str(ctx.tenant_id)
+    assert r.data["companies"][0]["code"] == "S" and r.data["permissions"] == ["shell.access"]
+    assert r.data["session_idle_minutes"] == 30 and r.data["feature_flags"] == {}
+    assert fake.calls == [("context", first_company(ctx))]
+    assert tenancy.current() is None  # closed in finalize_response
+    # An authenticated principal without a context still fails closed.
     request = factory.get("/api/v1/ui/context")
     force_authenticate(request, user=User())
-    r = view(request)
+    with services.override(UiShellProvider, fake):
+        r = view(request)
     assert r.status_code == 500 and r.data["code"] == TenancyNotBound.code
+
+
+def test_fix_ui_login_w03_ui_modules_view_delegates_and_fails_closed():
+    class User:
+        is_authenticated = True
+
+    factory = APIRequestFactory()
+    view = views.UiModulesView.as_view()
+    ctx = make_context()
+    fake = _FakeShell()
+
+    def call(params=None):
+        request = factory.get("/api/v1/ui/modules", params or {})
+        force_authenticate(request, user=User())
+        request.erp_context = ctx
+        return view(request)
+
+    with services.override(UiShellProvider, fake):
+        r = call({"company_id": str(first_company(ctx))})
+        assert r.status_code == 200 and r.data == {"groups": ["Inicio"], "modules": []}
+        assert call({"company_id": str(uuid.uuid4())}).status_code == 422  # not one of the principal's companies
+    previous = services.optional(UiShellProvider)
+    services.unregister(UiShellProvider)
+    try:
+        r = call()
+        assert r.status_code == 503 and r.data["code"] == "service_unavailable"
+    finally:
+        if previous is not None:
+            services.register(UiShellProvider, previous, replace=True)
+
+
+@pytest.mark.django_db
+def test_fix_ui_login_w03_ui_modules_requires_authentication():
+    r = Client().get("/api/v1/ui/modules")
+    assert r.status_code == 401
+    assert r["Content-Type"].startswith("application/problem+json")

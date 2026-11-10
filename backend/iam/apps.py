@@ -14,7 +14,12 @@ class IamConfig(AppConfig):
     def ready(self) -> None:
         from iam.policy import engine
         from kernel import services
-        from kernel.interfaces import PolicyService
+        from kernel.interfaces import PolicyService, UiShellProvider
 
         policy: PolicyService = engine.get_engine()  # structural check of the engine against the protocol
         services.register(PolicyService, policy, replace=True)
+        from iam.ui import IamUiShellProvider
+
+        # FIX-UI-LOGIN-W03: the kernel /api/v1/ui/context and /api/v1/ui/modules views read shell data here.
+        shell: UiShellProvider = IamUiShellProvider()  # structural check against the protocol
+        services.register(UiShellProvider, shell, replace=True)
