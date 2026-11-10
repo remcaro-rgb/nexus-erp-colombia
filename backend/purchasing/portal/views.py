@@ -528,18 +528,28 @@ class KpisView(SupplierPortalView):
 
     def get(self, request: Request) -> Response:
         start, end = _period(request.query_params.get("period"))
+        prev_end = start - dt.timedelta(days=1)
+        prev_start = prev_end.replace(day=1)
         with tenancy.scope(self.ctx):
-            values = service.kpis(self.supplier(), start, end)
-        units = {"sp_rfq_abiertas": "count", "sp_oc_por_confirmar": "count"}
-        items = [
-            {
-                "id": k,
-                "unit": units.get(k, "COP"),
-                "value": str(v) if units.get(k) else str(q_amount(v)),
-                "semantics": "flow" if k == "sp_pagos_periodo" else "snapshot",
-            }
-            for k, v in values.items()
-        ]
+            supplier = self.supplier()
+            values = service.kpis(supplier, start, end)
+            previous = service.kpis(supplier, prev_start, prev_end)["sp_pagos_periodo"]
+        counts = ("sp_rfq_abiertas", "sp_oc_por_confirmar")
+        items = []
+        for key, value in values.items():
+            flow = key == "sp_pagos_periodo"
+            items.append(
+                {
+                    "id": key,
+                    "unit": "count" if key in counts else "COP",
+                    "value": str(value) if key in counts else str(q_amount(value)),
+                    "previous": str(q_amount(previous)) if flow else None,
+                    "delta": str(q_amount(value - previous)) if flow else None,
+                    "state": "ok",
+                    "semantics": "flow" if flow else "snapshot",
+                    "formula_ref": "module-registry.json › portals › proveedores",
+                }
+            )
         body = {
             "as_of": clock.business_date(),
             "period": {"start": start, "end": end},

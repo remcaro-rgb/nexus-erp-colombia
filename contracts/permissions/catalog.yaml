@@ -4518,6 +4518,12 @@ codes:
   description: Configurar compras por empresa (pesos D-009, tolerancias de recepción y cruce, límite de autoaprobación)
   operations: []
   source: P11a
+- code: purchasing.shipment_notice.read
+  module: purchasing
+  owner: P11
+  description: Consultar avisos de despacho de proveedores (recepción en bodega)
+  operations: []
+  source: P11b
 - code: purchasing.supplier.create
   module: purchasing
   owner: P11
@@ -4536,6 +4542,18 @@ codes:
   description: Actualizar perfiles de proveedor de compras
   operations: []
   source: P11a
+- code: purchasing.supplier_profile_change.approve
+  module: purchasing
+  owner: P11
+  description: Aprobar o rechazar cambios de datos maestros de proveedores (cuenta bancaria con doble aprobación)
+  operations: []
+  source: P11b
+- code: purchasing.supplier_profile_change.read
+  module: purchasing
+  owner: P11
+  description: Consultar cambios de datos maestros solicitados desde el portal de proveedores
+  operations: []
+  source: P11b
 - code: purchasing.support_document.create
   module: purchasing
   owner: P11
