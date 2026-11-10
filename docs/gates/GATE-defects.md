@@ -18,3 +18,6 @@
 
 ### D-W01-1 — RESOLVED (with CI-1…CI-4)
 Resolved by FIX-D-W01-1 v2 (branch claude/new-session-7cbu2u, merge 2c16425). Integrator re-ran `make ci`, `scripts/ci/ci-parity.sh` (policy, p03-tests, make-ci, compose-startup: 4/4) and `make dev-up && make dev-seed && make dev-health` (migrations included): PASSED at 2026-11-09T21:06Z UTC. Fixed: D-W01-1 settings x compose; CI-1 forbidden-pattern scan; CI-2 P03 tests dev deps; CI-3 make ci with network PostgreSQL; CI-4 compose start-up incl. ERP_FIELD_ENCRYPTION_KEY.
+
+### CI-W02 — RESOLVED (CI parity on main after wave 02)
+Resolved by FIX-CI-W02 v1 (branch claude/new-session-itc56d, merge 6054a22). Integrator re-ran tools/parity_gate.py (scripts/ci/ci-parity.sh: policy, p03-tests, make-ci incl. mypy backend, compose-startup incl. DR drill: 4/4) and the dev stack: PASSED at 2026-11-10T00:53Z UTC. Fixed: CW-1 forbidden pattern in a workflow test payload; CW-2 ADR-004 static checks (secured views, advisory locks via kernel tenancy, webhook transport in an adapter); CW-3 mypy backend 0 errors (apps wired); CW-4 make ci typecheck = CI. UI login: DEV-LOGIN OK user=ui-preview file=deploy/dev/secrets/ui-preview.env origin=http://localhost:8080 .
