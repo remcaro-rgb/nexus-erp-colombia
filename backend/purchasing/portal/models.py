@@ -13,15 +13,20 @@ party in one company), so ``PolicyEngine.scope_queryset`` scopes portal reads in
 
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from django.db import models
+
+if TYPE_CHECKING:
+    from django.db.models.fields.related_descriptors import RelatedManager
 
 from kernel.fields import QtyField
 from kernel.models import AuditedModel, CompanyModel
 
 
 class SupplierMasterData(CompanyModel, AuditedModel):
+    objects: ClassVar[models.Manager[SupplierMasterData]] = models.Manager()
+
     supplier_id = models.UUIDField()
     party_id = models.UUIDField()
     bank_account_enc = models.TextField(null=True, blank=True)
@@ -37,6 +42,10 @@ class SupplierMasterData(CompanyModel, AuditedModel):
 
 
 class SupplierProfileChange(CompanyModel, AuditedModel):
+    objects: ClassVar[models.Manager[SupplierProfileChange]] = models.Manager()
+    if TYPE_CHECKING:
+        approvals: RelatedManager[ProfileChangeApproval]
+
     class Status(models.TextChoices):
         SUBMITTED = "SUBMITTED"
         APPROVED = "APPROVED"
@@ -67,6 +76,8 @@ class SupplierProfileChange(CompanyModel, AuditedModel):
 
 
 class ProfileChangeApproval(CompanyModel):
+    objects: ClassVar[models.Manager[ProfileChangeApproval]] = models.Manager()
+
     change = models.ForeignKey(SupplierProfileChange, on_delete=models.CASCADE, related_name="approvals")
     approver_id = models.UUIDField()
     approve = models.BooleanField()
@@ -81,6 +92,10 @@ class ProfileChangeApproval(CompanyModel):
 
 
 class ShipmentNotice(CompanyModel, AuditedModel):
+    objects: ClassVar[models.Manager[ShipmentNotice]] = models.Manager()
+    if TYPE_CHECKING:
+        lines: RelatedManager[ShipmentNoticeLine]
+
     class Status(models.TextChoices):
         ANNOUNCED = "ANNOUNCED"
         RECEIVED = "RECEIVED"
@@ -102,6 +117,8 @@ class ShipmentNotice(CompanyModel, AuditedModel):
 
 
 class ShipmentNoticeLine(CompanyModel):
+    objects: ClassVar[models.Manager[ShipmentNoticeLine]] = models.Manager()
+
     notice = models.ForeignKey(ShipmentNotice, on_delete=models.CASCADE, related_name="lines")
     party_id = models.UUIDField()
     order_line_no = models.PositiveIntegerField()
@@ -116,6 +133,8 @@ class ShipmentNoticeLine(CompanyModel):
 
 
 class SupplierDocument(CompanyModel, AuditedModel):
+    objects: ClassVar[models.Manager[SupplierDocument]] = models.Manager()
+
     class Review(models.TextChoices):
         PENDING = "PENDING"
         ACCEPTED = "ACCEPTED"
@@ -134,6 +153,8 @@ class SupplierDocument(CompanyModel, AuditedModel):
 
 class SupplierInvoiceUpload(CompanyModel, AuditedModel):
     """Electronic invoice uploaded by the supplier: a DRAFT item for internal ingestion (P11 received e-invoices)."""
+
+    objects: ClassVar[models.Manager[SupplierInvoiceUpload]] = models.Manager()
 
     class Processing(models.TextChoices):
         RECEIVED = "RECEIVED"

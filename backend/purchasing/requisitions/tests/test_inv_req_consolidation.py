@@ -15,7 +15,7 @@ from inventory.transfers import service as transfers
 from purchasing.models import PurchaseOrder
 from purchasing.requisitions import service
 from purchasing.requisitions.models import BuyerTask, InternalRequisition, RequisitionLine
-from purchasing.requisitions.testkit import P11bWorld, approved_price, order_sent, receive_order
+from purchasing.requisitions.tests.kit import P11bWorld, approved_price, order_sent, receive_order
 
 D = Decimal
 BASE = "/api/v1/purchasing/internal-requisitions"
@@ -43,7 +43,8 @@ def approved_requisition(w: P11bWorld, user: str, wh: Any, item: Any, qty: str, 
 
 def line_of(w: P11bWorld, rid: str) -> RequisitionLine:
     with w.scope():
-        return RequisitionLine.objects.get(requisition_id=rid)
+        line: RequisitionLine = RequisitionLine.objects.get(requisition_id=rid)
+    return line
 
 
 def status_of(w: P11bWorld, rid: str) -> str:

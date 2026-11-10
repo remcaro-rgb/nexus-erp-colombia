@@ -8,10 +8,13 @@ Invariant (DB check + service): per source line ``qty_transfer + qty_procure + q
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from django.db import models
 from django.db.models import F, Q
+
+if TYPE_CHECKING:
+    from django.db.models.fields.related_descriptors import RelatedManager
 
 from kernel.fields import AmountField, CurrencyField, QtyField
 from kernel.models import AuditedModel, CompanyModel
@@ -21,6 +24,8 @@ ZERO = Decimal(0)
 
 class RequisitionSettings(CompanyModel, AuditedModel):
     """Per-company F-INV-REQ policy: D-011 automatic-PO limit and D-012 warehouse priority list."""
+
+    objects: ClassVar[models.Manager[RequisitionSettings]] = models.Manager()
 
     auto_po_limit = AmountField(default=Decimal("5000000"))  # D-011 default COP 5,000,000 per line total
     warehouse_priority = models.JSONField(default=list, blank=True)  # [warehouse_id, …] (D-012)
@@ -33,6 +38,10 @@ class RequisitionSettings(CompanyModel, AuditedModel):
 
 
 class InternalRequisition(CompanyModel, AuditedModel):
+    objects: ClassVar[models.Manager[InternalRequisition]] = models.Manager()
+    if TYPE_CHECKING:
+        lines: RelatedManager[RequisitionLine]
+
     class Status(models.TextChoices):
         DRAFT = "DRAFT"
         SUBMITTED = "SUBMITTED"
@@ -76,6 +85,10 @@ class InternalRequisition(CompanyModel, AuditedModel):
 
 
 class RequisitionLine(CompanyModel):
+    objects: ClassVar[models.Manager[RequisitionLine]] = models.Manager()
+    if TYPE_CHECKING:
+        decisions: RelatedManager[SourcingDecision]
+
     class Status(models.TextChoices):
         OPEN = "OPEN"
         RESERVED = "RESERVED"
@@ -120,10 +133,12 @@ class RequisitionLine(CompanyModel):
 
     @property
     def remaining(self) -> Decimal:
-        return self.base_qty - self.qty_transfer - self.qty_procure - self.qty_cancelled
+        return Decimal(self.base_qty - self.qty_transfer - self.qty_procure - self.qty_cancelled)
 
 
 class SourcingDecision(CompanyModel):
+    objects: ClassVar[models.Manager[SourcingDecision]] = models.Manager()
+
     class Source(models.TextChoices):
         TRANSFER = "TRANSFER"
         PURCHASE = "PURCHASE"
@@ -150,6 +165,10 @@ class SourcingDecision(CompanyModel):
 
 
 class ConsolidationBatch(CompanyModel, AuditedModel):
+    objects: ClassVar[models.Manager[ConsolidationBatch]] = models.Manager()
+    if TYPE_CHECKING:
+        lines: RelatedManager[ConsolidationLine]
+
     class Status(models.TextChoices):
         APPLIED = "APPLIED"
         CLOSED = "CLOSED"
@@ -167,6 +186,10 @@ class ConsolidationBatch(CompanyModel, AuditedModel):
 
 
 class ConsolidationLine(CompanyModel):
+    objects: ClassVar[models.Manager[ConsolidationLine]] = models.Manager()
+    if TYPE_CHECKING:
+        tasks: RelatedManager[BuyerTask]
+
     class Status(models.TextChoices):
         OPEN = "OPEN"
         IN_PURCHASE = "IN_PURCHASE"
@@ -203,6 +226,8 @@ class ConsolidationLine(CompanyModel):
 class BuyerTask(CompanyModel, AuditedModel):
     """Work item for a buyer when D-011 forbids an automatic draft (limit exceeded / no valid vendor price)."""
 
+    objects: ClassVar[models.Manager[BuyerTask]] = models.Manager()
+
     class Status(models.TextChoices):
         OPEN = "OPEN"
         DONE = "DONE"
@@ -220,6 +245,10 @@ class BuyerTask(CompanyModel, AuditedModel):
 
 class PurchaseRequisition(CompanyModel, AuditedModel):
     """``/api/v1/purchasing/requisitions`` (P11 ``PurchaseRequisition``): manual purchase request → RFQ / PO."""
+
+    objects: ClassVar[models.Manager[PurchaseRequisition]] = models.Manager()
+    if TYPE_CHECKING:
+        lines: RelatedManager[PurchaseRequisitionLine]
 
     class Status(models.TextChoices):
         DRAFT = "DRAFT"
@@ -252,6 +281,8 @@ class PurchaseRequisition(CompanyModel, AuditedModel):
 
 
 class PurchaseRequisitionLine(CompanyModel):
+    objects: ClassVar[models.Manager[PurchaseRequisitionLine]] = models.Manager()
+
     requisition = models.ForeignKey(PurchaseRequisition, on_delete=models.CASCADE, related_name="lines")
     line_no = models.PositiveIntegerField()
     item_id = models.UUIDField(null=True, blank=True)

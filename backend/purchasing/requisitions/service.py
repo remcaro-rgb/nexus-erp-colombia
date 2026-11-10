@@ -693,7 +693,7 @@ def run_consolidation(uow: UnitOfWork, company_id: uuid.UUID, *, dry_run: bool) 
 def _source_json(line: RequisitionLine, qty: Decimal) -> dict[str, Any]:
     return {
         "line_id": str(line.id),
-        "requisition_id": str(line.requisition_id),
+        "requisition_id": str(line.requisition.pk),
         "requisition_number": line.requisition.number,
         "line_no": line.line_no,
         "needed_by": line.needed_by.isoformat(),
@@ -783,7 +783,7 @@ def _lineage_all(cline: ConsolidationLine, entry: Mapping[str, Any], *, in_purch
 
 
 def _line_done(line: RequisitionLine) -> bool:
-    return line.fulfilled_qty >= line.base_qty - line.qty_cancelled
+    return bool(line.fulfilled_qty >= line.base_qty - line.qty_cancelled)
 
 
 def sync_fulfilment(uow: UnitOfWork, req: InternalRequisition) -> InternalRequisition:

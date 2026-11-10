@@ -15,7 +15,7 @@ from django.db import connections
 from inventory.models import Reservation
 from purchasing.requisitions import service
 from purchasing.requisitions.models import InternalRequisition, RequisitionLine
-from purchasing.requisitions.testkit import P11bWorld
+from purchasing.requisitions.tests.kit import P11bWorld
 
 D = Decimal
 
@@ -50,7 +50,10 @@ def submitted(w: P11bWorld, user: str, wh: Any, item: Any, qty: str) -> Internal
         "lines": [{"line_no": 1, "item_id": str(item.id), "quantity": {"value": qty, "uom": "UND"}}],
     }
     req = w.run(lambda u: service.create(u, w.company(), body), user=user)
-    return w.run(lambda u: service.submit(u, InternalRequisition.objects.get(pk=req.pk)), user=user)
+    done: InternalRequisition = w.run(
+        lambda u: service.submit(u, InternalRequisition.objects.get(pk=req.pk)), user=user
+    )
+    return done
 
 
 @pytest.mark.django_db(transaction=True)

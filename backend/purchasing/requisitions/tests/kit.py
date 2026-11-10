@@ -10,34 +10,68 @@ from __future__ import annotations
 
 import datetime as dt
 import uuid
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any
 
 from django.core.cache import cache
+from rest_framework.test import APIClient
 
 from iam.models import Branch
 from iam.oidc.local import LocalIssuer
 from iam.testing.world import ADMIN_GRANTS, World
-from iam.tests import conftest as iam_fixtures
 from kernel import clock, ids, services, tenancy
 from kernel.interfaces.audit import AuditService
 from kernel.interfaces.common import DocumentRef
 from kernel.interfaces.dimensions import Dimensions
+from kernel.interfaces.notifications import NotificationService
 from kernel.interfaces.periods import PeriodService
 from kernel.interfaces.posting import PostingService
 from kernel.interfaces.stock import Inventory, StockLine, StockService
 from kernel.interfaces.workflow import WorkflowService
-from kernel.testing.fakes import FakeAuditService, FakeWorkflowService
+from kernel.testing.fakes import FakeAuditService, FakeNotificationService, FakeWorkflowService
 from kernel.uow import run_in_unit_of_work
 
 NOW = dt.datetime(2026, 11, 9, 15, 0, tzinfo=dt.UTC)  # Monday 10:00 Bogotá
 TODAY = dt.date(2026, 11, 9)
-Api = iam_fixtures.Api
+ISSUER = "http://127.0.0.1:8080/auth/realms/erp-dev"
 
-ACCOUNTS = (  # synthetic PUC-like codes (SINTÉTICO, not a legal chart of accounts)
+
+class Api:
+    """DRF test client with bearer token, ``X-Company-Id`` and a fresh ``Idempotency-Key`` per write."""
+
+    def __init__(self, token: str, company: uuid.UUID | None = None) -> None:
+        self.client = APIClient()
+        self.token = token
+        self.company = company
+
+    def _headers(self, idem: bool, extra: dict[str, str]) -> dict[str, str]:
+        h = {"HTTP_AUTHORIZATION": f"Bearer {self.token}"}
+        if self.company:
+            h["HTTP_X_COMPANY_ID"] = str(self.company)
+        if idem:
+            h["HTTP_IDEMPOTENCY_KEY"] = str(uuid.uuid4())
+        h.update(extra)
+        return h
+
+    def get(self, url: str, **params: Any) -> Any:
+        return self.client.get(url, params, **self._headers(False, {}))
+
+    def post(self, url: str, data: Any = None, idem: bool = True, **extra: str) -> Any:
+        return self.client.post(url, data or {}, format="json", **self._headers(idem, extra))
+
+    def patch(self, url: str, data: Any, **extra: str) -> Any:
+        return self.client.patch(url, data, format="json", **self._headers(True, extra))
+
+    def delete(self, url: str, **extra: str) -> Any:
+        return self.client.delete(url, **self._headers(True, extra))
+
+
+ACCOUNTS: tuple[
+    tuple[str, str, str, str, bool, list[str], str], ...
+] = (  # synthetic PUC-like codes (SINTÉTICO, not a legal chart of accounts)
     ("143505", "Mercancías no fabricadas (SINTÉTICO)", "asset", "debit", False, [], "INVENTORY"),
     ("143595", "Mercancías en tránsito (SINTÉTICO)", "asset", "debit", False, [], "INVENTORY_IN_TRANSIT"),
     ("229505", "Recepciones por facturar (SINTÉTICO)", "liability", "credit", True, ["purchasing."], "GRNI"),
@@ -109,22 +143,25 @@ def p11b_services() -> Iterator[dict[str, Any]]:
     impls = ledger_impls()
     workflow = FakeWorkflowService()
     audit = FakeAuditService()
-    stack = [
-        services.override(PostingService, impls[PostingService]),
-        services.override(PeriodService, impls[PeriodService]),
-        services.override(Dimensions, impls[Dimensions]),
-        services.override(AuditService, audit),
-        services.override(Inventory, SERVICE),
-        services.override(StockService, SERVICE),
-        services.override(WorkflowService, workflow),
+    notifications = FakeNotificationService()
+    pairs: list[tuple[Callable[..., Any], Any]] = [
+        (PostingService, impls[PostingService]),
+        (PeriodService, impls[PeriodService]),
+        (Dimensions, impls[Dimensions]),
+        (AuditService, audit),
+        (Inventory, SERVICE),
+        (StockService, SERVICE),
+        (WorkflowService, workflow),
+        (NotificationService, notifications),
     ]
+    stack = [services.override(interface, impl) for interface, impl in pairs]
     for cm in stack:
         cm.__enter__()
     inv_registry.register_branch_reference()
     inv_registry.register_fields()
     try:
         with clock.frozen(NOW):
-            yield {"workflow": workflow, "audit": audit}
+            yield {"workflow": workflow, "audit": audit, "notifications": notifications}
     finally:
         for cm in reversed(stack):
             cm.__exit__(None, None, None)
@@ -160,7 +197,7 @@ class P11bWorld:
         return tenancy.scope(self.ctx(company))
 
     def api(self, user: str, company: str = "ALFA") -> Any:
-        token = self.issuer.issue(self.world.users[user].idp_subject, self.world.tenant_id, "erp-web")
+        token = self.issuer.issue(str(self.world.users[user].idp_subject), self.world.tenant_id, "erp-web")
         return Api(token, self.company(company))
 
     # ------------------------------------------------------------ masters
@@ -299,7 +336,7 @@ def rfq_sent(
     }
     r = api.post(f"{PUR}/rfqs", body)
     assert r.status_code == 201, r.content
-    rfq = r.json()
+    rfq: dict[str, Any] = r.json()
     r = api.post(f"{PUR}/rfqs/{rfq['id']}:send")
     assert r.status_code == 200, r.content
     return dict(r.json())
@@ -319,7 +356,7 @@ def award_rfq(w: P11bWorld, rfq_id: str) -> dict[str, Any]:
     for action in ("close", "evaluate"):
         r = api.post(f"{PUR}/rfqs/{rfq_id}:{action}")
         assert r.status_code == 200, r.content
-    comparison = api.get(f"{PUR}/rfqs/{rfq_id}/comparison").json()
+    comparison: dict[str, Any] = api.get(f"{PUR}/rfqs/{rfq_id}/comparison").json()
     r = api.post(f"{PUR}/rfqs/{rfq_id}:award", {"parameters": {"quote_id": comparison["recommended_quote_id"]}})
     assert r.status_code == 200, r.content
     r = w.api("aprobador").post(f"{PUR}/rfqs/{rfq_id}:approve-award", {"reason": "ok"})

@@ -6,15 +6,38 @@ from collections.abc import Iterator
 from typing import Any
 
 import pytest
+from django.core.cache import cache
 
-from iam.tests import conftest as iam_fixtures
-from purchasing.requisitions.testkit import P11bWorld, make_p11b_world, p11b_services
+from iam.oidc import verifier
+from iam.oidc.local import LocalIssuer
+from iam.testing.world import World, make_world
+from purchasing.requisitions.tests.kit import ISSUER, P11bWorld, make_p11b_world, p11b_services
 
-_clean_cache = iam_fixtures._clean_cache
-_issuer_session = iam_fixtures._issuer_session
-issuer = iam_fixtures.issuer
-notifications = iam_fixtures.notifications
-world = iam_fixtures.world
+
+@pytest.fixture(scope="session")
+def _issuer_session() -> LocalIssuer:
+    return LocalIssuer(ISSUER)
+
+
+@pytest.fixture
+def issuer(_issuer_session: LocalIssuer) -> Iterator[LocalIssuer]:
+    verifier.set_key_provider(_issuer_session, ISSUER)
+    try:
+        yield _issuer_session
+    finally:
+        verifier.set_key_provider(None)
+
+
+@pytest.fixture(autouse=True)
+def _clean_cache() -> Iterator[None]:
+    cache.clear()
+    yield
+    cache.clear()
+
+
+@pytest.fixture
+def world(db: Any) -> World:
+    return make_world()
 
 
 @pytest.fixture

@@ -8,7 +8,7 @@ from typing import Any
 
 from purchasing.requisitions import service
 from purchasing.requisitions.models import InternalRequisition, RequisitionLine, SourcingDecision
-from purchasing.requisitions.testkit import P11bWorld
+from purchasing.requisitions.tests.kit import P11bWorld
 
 D = Decimal
 BASE = "/api/v1/purchasing/internal-requisitions"
@@ -38,7 +38,7 @@ def create_and_submit(w: P11bWorld, s: dict[str, Any], qty: str, user: str = "so
     api = w.api(user)
     r = api.post(BASE, request_body(s, qty))
     assert r.status_code == 201, r.content
-    req = r.json()
+    req: dict[str, Any] = r.json()
     assert req["status"] == "DRAFT" and req["number"].startswith("SOL-")
     r = api.post(f"{BASE}/{req['id']}:submit")
     assert r.status_code == 200 and r.json()["status"] == "SUBMITTED", r.content
