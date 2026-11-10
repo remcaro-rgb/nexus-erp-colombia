@@ -1,0 +1,18 @@
+{
+  "name": "@nexus/frontend",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Nexus ERP Colombia web app (shell, design system, modules). Dependencies are pinned in the root package.json.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "typecheck": "node src/app/tools/ensure-deps.mjs && tsc --noEmit -p tsconfig.json",
+    "test": "node src/app/tools/ensure-deps.mjs && tsc --noEmit -p tsconfig.json && vitest run --reporter=default --reporter=junit --outputFile.junit=../reports/junit/frontend.xml",
+    "test:watch": "vitest",
+    "budget": "vite build && node src/app/tools/check-budget.mjs",
+    "e2e": "node src/app/tools/ensure-deps.mjs && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 playwright test --config src/app/e2e/playwright.config.ts",
+    "sync-spec": "node src/app/tools/sync-spec.mjs"
+  }
+}
