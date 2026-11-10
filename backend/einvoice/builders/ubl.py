@@ -14,6 +14,7 @@ import xml.etree.ElementTree as ET
 from decimal import Decimal
 
 from einvoice import annex
+from einvoice.errors import present
 from einvoice.model import FiscalDocumentModel, Party
 
 NS = {
@@ -35,8 +36,17 @@ ROOT_NS = {
     "NominaIndividual": "dian:gov:co:facturaelectronica:NominaIndividual",
     "NominaIndividualDeAjuste": "dian:gov:co:facturaelectronica:NominaIndividualDeAjuste",
 }
-CUSTOMIZATION = {"FE": "10", "FE_EXPORT": "10", "FE_CONTINGENCY_DIAN": "10", "FE_CONTINGENCY_ISSUER": "10",
-                 "NC": "20", "ND": "30", "DEE_POS": "10", "DS": "10", "DS_ADJUSTMENT": "10"}  # fmt: skip
+CUSTOMIZATION = {
+    "FE": "10",
+    "FE_EXPORT": "10",
+    "FE_CONTINGENCY_DIAN": "10",
+    "FE_CONTINGENCY_ISSUER": "10",
+    "NC": "20",
+    "ND": "30",
+    "DEE_POS": "10",
+    "DS": "10",
+    "DS_ADJUSTMENT": "10",
+}
 
 for _prefix, _uri in NS.items():
     if _prefix:
@@ -66,8 +76,15 @@ def _party(parent: ET.Element, wrapper: str, party: Party) -> None:
     _el(name, "cbc", "Name", party.name or party.id_number)
     tax = _el(p, "cac", "PartyTaxScheme")
     _el(tax, "cbc", "RegistrationName", party.name or party.id_number)
-    _el(tax, "cbc", "CompanyID", party.id_number, schemeAgencyID="195", schemeID=party.check_digit,
-        schemeName=party.id_type)  # fmt: skip
+    _el(
+        tax,
+        "cbc",
+        "CompanyID",
+        party.id_number,
+        schemeAgencyID="195",
+        schemeID=party.check_digit,
+        schemeName=party.id_type,
+    )
     scheme = _el(tax, "cac", "TaxScheme")
     _el(scheme, "cbc", "ID", "01")
     _el(scheme, "cbc", "Name", "IVA")
@@ -175,7 +192,7 @@ def _billing_reference(root: ET.Element, model: FiscalDocumentModel) -> None:
 
 def _serialize(root: ET.Element) -> bytes:
     ET.indent(root, space=" ")
-    return ET.tostring(root, encoding="UTF-8", xml_declaration=True)
+    return bytes(ET.tostring(root, encoding="UTF-8", xml_declaration=True))
 
 
 def _root(tag: str) -> ET.Element:
@@ -196,7 +213,9 @@ def invoice(model: FiscalDocumentModel, unique_code: str, *, environment: str, s
     return _serialize(root)
 
 
-def credit_note(model: FiscalDocumentModel, unique_code: str, *, environment: str, software_id: str, qr_url: str) -> bytes:
+def credit_note(
+    model: FiscalDocumentModel, unique_code: str, *, environment: str, software_id: str, qr_url: str
+) -> bytes:
     """NC (91) and nota de ajuste al documento soporte (``CreditNote`` root)."""
     root = _root("CreditNote")
     _extensions(root, model.number, software_id, qr_url)
@@ -213,7 +232,9 @@ def credit_note(model: FiscalDocumentModel, unique_code: str, *, environment: st
     return _serialize(root)
 
 
-def debit_note(model: FiscalDocumentModel, unique_code: str, *, environment: str, software_id: str, qr_url: str) -> bytes:
+def debit_note(
+    model: FiscalDocumentModel, unique_code: str, *, environment: str, software_id: str, qr_url: str
+) -> bytes:
     root = _root("DebitNote")
     _extensions(root, model.number, software_id, qr_url)
     _head(root, model, unique_code, environment, "")
@@ -231,7 +252,7 @@ def debit_note(model: FiscalDocumentModel, unique_code: str, *, environment: str
 
 def nomina(model: FiscalDocumentModel, unique_code: str, *, environment: str, software_id: str, qr_url: str) -> bytes:
     """NominaIndividual / NominaIndividualDeAjuste (annex v1.0 not obtained: SYNTHETIC layout, B-06)."""
-    assert model.payroll is not None
+    payroll = present(model.payroll, "payroll totals")
     tag = model.root
     ns = ROOT_NS[tag]
     root = ET.Element(f"{{{ns}}}{tag}")
@@ -242,21 +263,38 @@ def nomina(model: FiscalDocumentModel, unique_code: str, *, environment: str, so
     exts = _el(root, "ext", "UBLExtensions")
     _el(_el(exts, "ext", "UBLExtension"), "ext", "ExtensionContent")
     sub(root, "Novedad", CUNENov="")
-    sub(root, "Periodo", FechaLiquidacionInicio=model.payroll.period_start.isoformat(),
-        FechaLiquidacionFin=model.payroll.period_end.isoformat(), FechaGen=model.issue_date.isoformat())  # fmt: skip
+    sub(
+        root,
+        "Periodo",
+        FechaLiquidacionInicio=payroll.period_start.isoformat(),
+        FechaLiquidacionFin=payroll.period_end.isoformat(),
+        FechaGen=model.issue_date.isoformat(),
+    )
     sub(root, "NumeroSecuenciaXML", Numero=model.number)
-    sub(root, "InformacionGeneral", Version="SINTETICO-NO-VERIFICADO", Ambiente=environment, TipoXML=model.type_code,
-        CUNE=unique_code, EncripCUNE="CUNE-SHA384", FechaGen=model.issue_date.isoformat(),
-        HoraGen=model.issue_time)  # fmt: skip
+    sub(
+        root,
+        "InformacionGeneral",
+        Version="SINTETICO-NO-VERIFICADO",
+        Ambiente=environment,
+        TipoXML=model.type_code,
+        CUNE=unique_code,
+        EncripCUNE="CUNE-SHA384",
+        FechaGen=model.issue_date.isoformat(),
+        HoraGen=model.issue_time,
+    )
     if model.billing_reference is not None:
-        sub(root, "Predecesor", NumeroPred=model.billing_reference.number, CUNEPred=model.billing_reference.unique_code,
-            FechaGenPred=model.billing_reference.issue_date.isoformat())  # fmt: skip
-    sub(root, "Empleador", NIT=model.supplier.id_number, DV=model.supplier.check_digit,
-        RazonSocial=model.supplier.name)  # fmt: skip
+        sub(
+            root,
+            "Predecesor",
+            NumeroPred=model.billing_reference.number,
+            CUNEPred=model.billing_reference.unique_code,
+            FechaGenPred=model.billing_reference.issue_date.isoformat(),
+        )
+    sub(root, "Empleador", NIT=model.supplier.id_number, DV=model.supplier.check_digit, RazonSocial=model.supplier.name)
     sub(root, "Trabajador", NumeroDocumento=model.customer.id_number, TipoDocumento=model.customer.id_type)
-    sub(root, "DevengadosTotal").text = amount(model.payroll.devengados)
-    sub(root, "DeduccionesTotal").text = amount(model.payroll.deducciones)
-    sub(root, "ComprobanteTotal").text = amount(model.payroll.total)
+    sub(root, "DevengadosTotal").text = amount(payroll.devengados)
+    sub(root, "DeduccionesTotal").text = amount(payroll.deducciones)
+    sub(root, "ComprobanteTotal").text = amount(payroll.total)
     if model.synthetic:
         sub(root, "Notas").text = "DOCUMENTO SINTÉTICO — SIMULADO, NO CERTIFICADO (DEV)"
     return _serialize(root)

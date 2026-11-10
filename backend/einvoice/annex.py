@@ -64,15 +64,31 @@ FAMILIES: Final[dict[str, tuple[str, str, Code]]] = {
     "FE": ("Invoice", "CUFE", _c("01", "Factura electrónica de Venta")),
     "FE_EXPORT": ("Invoice", "CUFE", _c("02", "Factura electrónica de venta con propósito de exportación")),
     "FE_CONTINGENCY_DIAN": ("Invoice", "CUFE", _c("04", "Factura electrónica de Venta por Contingencia DIAN")),
-    "FE_CONTINGENCY_ISSUER": ("Invoice", "CUFE", _c("03", "Factura de talonario o papel con numeración de contingencia")),
+    "FE_CONTINGENCY_ISSUER": (
+        "Invoice",
+        "CUFE",
+        _c("03", "Factura de talonario o papel con numeración de contingencia"),
+    ),
     "NC": ("CreditNote", "CUDE", _c("91", "Nota Crédito")),
     "ND": ("DebitNote", "CUDE", _c("92", "Nota Débito")),
-    "DEE_POS": ("Invoice", "CUDE", _c("20", "Documento equivalente electrónico tiquete POS", SYNTHETIC, "DEE annex v1.0 not obtained")),
+    "DEE_POS": (
+        "Invoice",
+        "CUDE",
+        _c("20", "Documento equivalente electrónico tiquete POS", SYNTHETIC, "DEE annex v1.0 not obtained"),
+    ),
     "DS": ("Invoice", "CUDS", _c("05", "Documento soporte", SYNTHETIC, "DS annex v1.1 not obtained")),
-    "DS_ADJUSTMENT": ("CreditNote", "CUDS", _c("95", "Nota de ajuste al documento soporte", SYNTHETIC, "DS annex v1.1 not obtained")),
+    "DS_ADJUSTMENT": (
+        "CreditNote",
+        "CUDS",
+        _c("95", "Nota de ajuste al documento soporte", SYNTHETIC, "DS annex v1.1 not obtained"),
+    ),
     "NOMINA": ("NominaIndividual", "CUNE", _c("102", "Nómina individual", SYNTHETIC, "Nómina annex v1.0 not obtained")),
-    "NOMINA_AJUSTE": ("NominaIndividualDeAjuste", "CUNE", _c("103", "Nómina individual de ajuste", SYNTHETIC, "Nómina annex v1.0 not obtained")),
-}  # fmt: skip
+    "NOMINA_AJUSTE": (
+        "NominaIndividualDeAjuste",
+        "CUNE",
+        _c("103", "Nómina individual de ajuste", SYNTHETIC, "Nómina annex v1.0 not obtained"),
+    ),
+}
 
 #: Contingency families (R-FE-05): the issuer-side outage uses the issuer contingency type, a DIAN/PT outage
 #: keeps type 01 transmitted late in the provider flow (decision recorded in the handoff).
@@ -130,7 +146,10 @@ ID_TYPES: Final[dict[str, Code]] = {
 
 #: QR verification URL of the DIAN catalogue (FE v1.8 annex; re-verify for v1.9 — B-06).
 QR_BASE_URL: Final = Code(
-    "https://catalogo-vpfe-hab.dian.gov.co/document/searchqr?documentkey=", "QR (habilitación)", OFFICIAL_PRIOR, ANNEX_FE_18
+    "https://catalogo-vpfe-hab.dian.gov.co/document/searchqr?documentkey=",
+    "QR (habilitación)",
+    OFFICIAL_PRIOR,
+    ANNEX_FE_18,
 )
 
 
@@ -165,12 +184,19 @@ def profile() -> dict[str, object]:
 
     return {
         "versions": [
-            {"family": v.family, "version": v.version, "adopted_by": v.adopted_by,
-             "valid_from": v.valid_from.isoformat() if v.valid_from else None, "files_obtained": v.files_obtained}
+            {
+                "family": v.family,
+                "version": v.version,
+                "adopted_by": v.adopted_by,
+                "valid_from": v.valid_from.isoformat() if v.valid_from else None,
+                "files_obtained": v.files_obtained,
+            }
             for v in ANNEX_VERSIONS
         ],
-        "families": {k: {"root": r, "hash": h, "type_code": t.value, "status": t.status} for k, (r, h, t) in FAMILIES.items()},
+        "families": {
+            k: {"root": r, "hash": h, "type_code": t.value, "status": t.status} for k, (r, h, t) in FAMILIES.items()
+        },
         "radian_events": codes(RADIAN_EVENTS),
         "tax_schemes": codes(TAX_SCHEMES),
         "environments": codes(ENVIRONMENTS),
-    }  # fmt: skip
+    }

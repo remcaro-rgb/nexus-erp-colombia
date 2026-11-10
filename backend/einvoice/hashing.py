@@ -45,41 +45,102 @@ class Formula:
 
 
 _TAXES = (
-    Field("CodImp1", FIXED, "01"), Field("ValImp1", AMOUNT),
-    Field("CodImp2", FIXED, "04"), Field("ValImp2", AMOUNT),
-    Field("CodImp3", FIXED, "03"), Field("ValImp3", AMOUNT),
-)  # fmt: skip
+    Field("CodImp1", FIXED, "01"),
+    Field("ValImp1", AMOUNT),
+    Field("CodImp2", FIXED, "04"),
+    Field("ValImp2", AMOUNT),
+    Field("CodImp3", FIXED, "03"),
+    Field("ValImp3", AMOUNT),
+)
 _HEAD = (Field("NumFac"), Field("FecFac"), Field("HorFac"), Field("ValFac", AMOUNT))
 
 FORMULAS: Final[dict[str, Formula]] = {
     "CUFE": Formula(
-        "CUFE", "CUFE-SHA384", annex.OFFICIAL_PRIOR, annex.ANNEX_FE_18 + ".2",
-        (*_HEAD, *_TAXES, Field("ValTot", AMOUNT), Field("NitOFE"), Field("NumAdq"),
-         Field("ClTec", secret=True), Field("TipoAmbiente")),
+        "CUFE",
+        "CUFE-SHA384",
+        annex.OFFICIAL_PRIOR,
+        annex.ANNEX_FE_18 + ".2",
+        (
+            *_HEAD,
+            *_TAXES,
+            Field("ValTot", AMOUNT),
+            Field("NitOFE"),
+            Field("NumAdq"),
+            Field("ClTec", secret=True),
+            Field("TipoAmbiente"),
+        ),
     ),
     "CUDE": Formula(
-        "CUDE", "CUDE-SHA384", annex.OFFICIAL_PRIOR, annex.ANNEX_FE_18 + ".4",
-        (*_HEAD, *_TAXES, Field("ValTot", AMOUNT), Field("NitOFE"), Field("NumAdq"),
-         Field("SoftwarePIN", secret=True), Field("TipoAmbiente")),
+        "CUDE",
+        "CUDE-SHA384",
+        annex.OFFICIAL_PRIOR,
+        annex.ANNEX_FE_18 + ".4",
+        (
+            *_HEAD,
+            *_TAXES,
+            Field("ValTot", AMOUNT),
+            Field("NitOFE"),
+            Field("NumAdq"),
+            Field("SoftwarePIN", secret=True),
+            Field("TipoAmbiente"),
+        ),
     ),
     "CUDE_AR": Formula(
-        "CUDE_AR", "CUDE-SHA384", annex.OFFICIAL_PRIOR, annex.ANNEX_FE_18 + ".5",
-        (Field("NumDE"), Field("FecEmi"), Field("HorEmi"), Field("NitFE"), Field("DocAdq"), Field("ResponseCode"),
-         Field("ID"), Field("DocumentTypeCode"), Field("SoftwarePIN", secret=True)),
+        "CUDE_AR",
+        "CUDE-SHA384",
+        annex.OFFICIAL_PRIOR,
+        annex.ANNEX_FE_18 + ".5",
+        (
+            Field("NumDE"),
+            Field("FecEmi"),
+            Field("HorEmi"),
+            Field("NitFE"),
+            Field("DocAdq"),
+            Field("ResponseCode"),
+            Field("ID"),
+            Field("DocumentTypeCode"),
+            Field("SoftwarePIN", secret=True),
+        ),
     ),
     "CUDS": Formula(
-        "CUDS", "CUDS-SHA384", annex.SYNTHETIC, "DS annex v1.1 not obtained (B-06)",
-        (Field("NumDS"), Field("FecDS"), Field("HorDS"), Field("ValDS", AMOUNT), Field("CodImp", FIXED, "01"),
-         Field("ValImp", AMOUNT), Field("ValTol", AMOUNT), Field("NumSNO"), Field("NITABS"),
-         Field("SoftwarePIN", secret=True), Field("TipoAmbiente")),
+        "CUDS",
+        "CUDS-SHA384",
+        annex.SYNTHETIC,
+        "DS annex v1.1 not obtained (B-06)",
+        (
+            Field("NumDS"),
+            Field("FecDS"),
+            Field("HorDS"),
+            Field("ValDS", AMOUNT),
+            Field("CodImp", FIXED, "01"),
+            Field("ValImp", AMOUNT),
+            Field("ValTol", AMOUNT),
+            Field("NumSNO"),
+            Field("NITABS"),
+            Field("SoftwarePIN", secret=True),
+            Field("TipoAmbiente"),
+        ),
     ),
     "CUNE": Formula(
-        "CUNE", "CUNE-SHA384", annex.SYNTHETIC, "Nómina annex v1.0 not obtained (B-06)",
-        (Field("NumNE"), Field("FecNE"), Field("HorNE"), Field("ValDev", AMOUNT), Field("ValDed", AMOUNT),
-         Field("ValTolNE", AMOUNT), Field("NitNE"), Field("DocEmp"), Field("TipoXML"),
-         Field("SoftwarePIN", secret=True), Field("TipoAmbiente")),
+        "CUNE",
+        "CUNE-SHA384",
+        annex.SYNTHETIC,
+        "Nómina annex v1.0 not obtained (B-06)",
+        (
+            Field("NumNE"),
+            Field("FecNE"),
+            Field("HorNE"),
+            Field("ValDev", AMOUNT),
+            Field("ValDed", AMOUNT),
+            Field("ValTolNE", AMOUNT),
+            Field("NitNE"),
+            Field("DocEmp"),
+            Field("TipoXML"),
+            Field("SoftwarePIN", secret=True),
+            Field("TipoAmbiente"),
+        ),
     ),
-}  # fmt: skip
+}
 
 
 def format_amount(value: object) -> str:
@@ -131,11 +192,15 @@ def formulas_json() -> dict[str, object]:
                 "status": f.status,
                 "source": f.source,
                 "fields": [
-                    {"name": x.name, "kind": x.kind, **({"value": x.value} if x.kind == FIXED else {}),
-                     **({"secret": True} if x.secret else {})}
+                    {
+                        "name": x.name,
+                        "kind": x.kind,
+                        **({"value": x.value} if x.kind == FIXED else {}),
+                        **({"secret": True} if x.secret else {}),
+                    }
                     for x in f.fields
                 ],
             }
             for k, f in FORMULAS.items()
         },
-    }  # fmt: skip
+    }

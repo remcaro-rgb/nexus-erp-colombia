@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import xml.etree.ElementTree as ET
+from dataclasses import replace
 
 from einvoice import mode
 from einvoice.adapters.base import AdapterConfig, NumberingRangeInfo, SubmitRequest, SubmitResult
@@ -28,7 +29,7 @@ def _response(request: SubmitRequest, status: str, messages: tuple[str, ...]) ->
     ET.SubElement(root, "Label").text = LABEL
     for m in messages:
         ET.SubElement(root, "Message").text = m
-    return ET.tostring(root, encoding="UTF-8", xml_declaration=True)
+    return bytes(ET.tostring(root, encoding="UTF-8", xml_declaration=True))
 
 
 class SandboxSimulator:
@@ -41,11 +42,14 @@ class SandboxSimulator:
         self.config = config or AdapterConfig(adapter="simulator")
 
     def _tracking(self, request: SubmitRequest) -> str:
-        return "SIM-" + hashlib.sha256(f"{request.kind}|{request.document_id}|{request.unique_code}".encode()).hexdigest()[:24]
+        return (
+            "SIM-"
+            + hashlib.sha256(f"{request.kind}|{request.document_id}|{request.unique_code}".encode()).hexdigest()[:24]
+        )
 
     def _structural_errors(self, request: SubmitRequest) -> list[str]:
         try:
-            root = ET.fromstring(request.xml)
+            root = ET.fromstring(request.xml)  # noqa: S314 - expat does not resolve external entities (no XXE); bounded own XML
         except ET.ParseError:
             return ["SIM-XML: documento mal formado"]
         errors = []
@@ -69,33 +73,51 @@ class SandboxSimulator:
         errors = self._structural_errors(request)
         outcome = request.fixture_outcome
         if errors:
-            return SubmitResult("REJECTED", tracking, request.unique_code, True, (LABEL,), tuple(errors),
-                                _response(request, "REJECTED", tuple(errors)))  # fmt: skip
+            return SubmitResult(
+                "REJECTED",
+                tracking,
+                request.unique_code,
+                True,
+                (LABEL,),
+                tuple(errors),
+                _response(request, "REJECTED", tuple(errors)),
+            )
         if outcome == "transient" and request.attempt <= 1:
             raise TransientTransmissionError("SIM-503: servicio no disponible (fallo inyectado)")
         if outcome == "reject":
             msgs = ("SIM-RECHAZO: rechazo determinista del simulador (fixture 'reject')",)
-            return SubmitResult("REJECTED", tracking, request.unique_code, True, (LABEL, *msgs), ("SIM-REJ-01",),
-                                _response(request, "REJECTED", msgs))  # fmt: skip
+            return SubmitResult(
+                "REJECTED",
+                tracking,
+                request.unique_code,
+                True,
+                (LABEL, *msgs),
+                ("SIM-REJ-01",),
+                _response(request, "REJECTED", msgs),
+            )
         if outcome == "accept_with_notices":
             msgs = ("SIM-NOTIF: aceptado con notificaciones (fixture)",)
-            return SubmitResult("ACCEPTED_WITH_NOTICES", tracking, request.unique_code, True, (LABEL, *msgs), (),
-                                _response(request, "ACCEPTED_WITH_NOTICES", msgs))  # fmt: skip
-        return SubmitResult("ACCEPTED", tracking, request.unique_code, True, (LABEL,), (),
-                            _response(request, "ACCEPTED", ()))  # fmt: skip
+            return SubmitResult(
+                "ACCEPTED_WITH_NOTICES",
+                tracking,
+                request.unique_code,
+                True,
+                (LABEL, *msgs),
+                (),
+                _response(request, "ACCEPTED_WITH_NOTICES", msgs),
+            )
+        return SubmitResult(
+            "ACCEPTED", tracking, request.unique_code, True, (LABEL,), (), _response(request, "ACCEPTED", ())
+        )
 
     def status(self, request: SubmitRequest, tracking_id: str) -> SubmitResult:
         io_guard.check("dian-simulator")
         if tracking_id != self._tracking(request):
             return SubmitResult("REJECTED", tracking_id, None, True, (LABEL,), ("SIM-NOTFOUND",))
-        return self.submit(SubmitRequest(**{**_fields(request), "attempt": max(request.attempt, 2)}))
+        return self.submit(replace(request, attempt=max(request.attempt, 2)))
 
     def numbering_ranges(self, company_nit: str, software_id: str) -> list[NumberingRangeInfo]:
         io_guard.check("dian-simulator")
         raise AdapterNotSupported(
             "the simulator has no DIAN numbering ranges: load the resolution manually (synthetic in DEV)"
         )
-
-
-def _fields(request: SubmitRequest) -> dict[str, object]:
-    return {name: getattr(request, name) for name in request.__dataclass_fields__}

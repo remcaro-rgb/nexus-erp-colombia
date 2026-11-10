@@ -12,18 +12,18 @@ from __future__ import annotations
 import datetime as dt
 import uuid
 from dataclasses import replace
-from decimal import Decimal
 from typing import Any
 
 from einvoice import service
 from einvoice.adapters.contract import sample_model
-from einvoice.model import BillingReference
+from einvoice.errors import of_type
+from einvoice.model import BillingReference, FiscalDocumentModel
 from einvoice.models import FiscalDocument, HabilitationTestSet, NumberingRange
 from kernel import clock, ids, tenancy
 from kernel.errors import ValidationFailed
 from kernel.interfaces.common import DocumentRef
 from kernel.tenancy import TenantContext
-from kernel.uow import run_in_unit_of_work
+from kernel.uow import UnitOfWork, run_in_unit_of_work
 
 SYNTHETIC_REQUIRED = {"FE": 2, "NC": 1, "ND": 1}
 SUPPORTED = ("FE", "NC", "ND")
@@ -35,15 +35,22 @@ def _ensure_test_range(ctx: TenantContext, company_id: uuid.UUID) -> NumberingRa
         rng = NumberingRange.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, code="HAB-SETT").first()
         if rng is None:
             rng = NumberingRange.objects.create(
-                tenant_id=ctx.tenant_id, company_id=company_id, code="HAB-SETT", family="FE", prefix=TEST_PREFIX,
-                from_number=1, to_number=5_000_000, resolution="SINTETICO-HABILITACION",
-                valid_to=dt.date(2099, 12, 31), synthetic=True, created_by=ctx.principal_id,
-            )  # fmt: skip
+                tenant_id=ctx.tenant_id,
+                company_id=company_id,
+                code="HAB-SETT",
+                family="FE",
+                prefix=TEST_PREFIX,
+                from_number=1,
+                to_number=5_000_000,
+                resolution="SINTETICO-HABILITACION",
+                valid_to=dt.date(2099, 12, 31),
+                synthetic=True,
+                created_by=ctx.principal_id,
+            )
         return rng
 
     out = run_in_unit_of_work(fn, ctx)
-    assert isinstance(out, NumberingRange)
-    return out
+    return of_type(out, NumberingRange)
 
 
 def run(ctx: TenantContext, test_set: HabilitationTestSet, required: dict[str, int] | None = None) -> dict[str, Any]:
@@ -55,8 +62,9 @@ def run(ctx: TenantContext, test_set: HabilitationTestSet, required: dict[str, i
     company_id = test_set.company_id
     _ensure_test_range(ctx, company_id)
     with tenancy.scope(ctx):
-        used = FiscalDocument.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id,
-                                             number__startswith=TEST_PREFIX, family="FE").count()  # fmt: skip
+        used = FiscalDocument.objects.filter(
+            tenant_id=ctx.tenant_id, company_id=company_id, number__startswith=TEST_PREFIX, family="FE"
+        ).count()
     rows: list[dict[str, Any]] = []
     base_invoice: FiscalDocument | None = None
     seq = used + 1
@@ -70,22 +78,38 @@ def run(ctx: TenantContext, test_set: HabilitationTestSet, required: dict[str, i
             model = replace(sample_model(number), issue_date=clock.business_date(), fixture_outcome="accept")
             if family != "FE":
                 if base_invoice is None:
-                    raise ValidationFailed("notes need at least one invoice in the test set", field="parameters.required")
-                model = replace(model, family=family, concept_code="2" if family == "NC" else "4",
-                                billing_reference=BillingReference(base_invoice.number, base_invoice.unique_code,
-                                                                   base_invoice.issue_date))  # fmt: skip
+                    raise ValidationFailed(
+                        "notes need at least one invoice in the test set", field="parameters.required"
+                    )
+                model = replace(
+                    model,
+                    family=family,
+                    concept_code="2" if family == "NC" else "4",
+                    billing_reference=BillingReference(
+                        base_invoice.number, base_invoice.unique_code, base_invoice.issue_date
+                    ),
+                )
             model.validate()
             source = DocumentRef("einvoice.habilitation", ids.new_id(), number)
-            doc = run_in_unit_of_work(
-                lambda u, m=model, s=source: service.register_document(u, company_id, s, m, test_set_id=test_set.test_set_id),
-                ctx,
-            )
-            assert isinstance(doc, FiscalDocument)
+
+            def register(u: UnitOfWork, m: FiscalDocumentModel = model, s: DocumentRef = source) -> FiscalDocument:
+                return service.register_document(u, company_id, s, m, test_set_id=test_set.test_set_id)
+
+            doc = of_type(run_in_unit_of_work(register, ctx), FiscalDocument)
             doc = service.transmit(ctx, doc.id)
             if family == "FE" and base_invoice is None:
                 base_invoice = doc
-            rows.append({"family": family, "number": doc.number, "unique_code": doc.unique_code, "status": doc.status,
-                         "tracking_id": doc.tracking_id, "adapter": doc.adapter_key, "simulated": doc.simulated})  # fmt: skip
+            rows.append(
+                {
+                    "family": family,
+                    "number": doc.number,
+                    "unique_code": doc.unique_code,
+                    "status": doc.status,
+                    "tracking_id": doc.tracking_id,
+                    "adapter": doc.adapter_key,
+                    "simulated": doc.simulated,
+                }
+            )
     accepted = sum(1 for r in rows if r["status"] in ("accepted", "accepted_with_notices"))
     return {
         "required": plan,

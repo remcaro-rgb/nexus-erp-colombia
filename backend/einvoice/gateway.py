@@ -9,23 +9,25 @@ from __future__ import annotations
 
 import json
 import uuid
+from typing import cast
 
 from einvoice import lifecycle, service
+from einvoice.errors import of_type
 from einvoice.model import FiscalDocumentModel
 from einvoice.models import FiscalDocument
 from kernel import tenancy
 from kernel.errors import ValidationFailed
 from kernel.interfaces.common import DocumentRef
-from kernel.interfaces.fiscal import FiscalStatusInfo
+from kernel.interfaces.fiscal import FiscalStatus, FiscalStatusInfo
 from kernel.uow import run_in_unit_of_work
 
 
 def _info(document: DocumentRef, doc: FiscalDocument | None) -> FiscalStatusInfo:
     if doc is None:
         return FiscalStatusInfo(document, "DRAFT", None, simulated=True)
-    status = lifecycle.KERNEL_STATUS[lifecycle.FISCAL_STATUS[doc.status]]
+    status = cast(FiscalStatus, lifecycle.KERNEL_STATUS[lifecycle.FISCAL_STATUS[doc.status]])
     message = "SIMULADO — NO CERTIFICADO" if doc.simulated else ""
-    return FiscalStatusInfo(document, status, doc.unique_code, simulated=doc.simulated, message=message)  # type: ignore[arg-type]
+    return FiscalStatusInfo(document, status, doc.unique_code, simulated=doc.simulated, message=message)
 
 
 def _find(company_id: uuid.UUID, document: DocumentRef) -> FiscalDocument | None:
@@ -46,7 +48,7 @@ class EinvoiceFiscalGateway:
         except (UnicodeDecodeError, json.JSONDecodeError):
             raise ValidationFailed("payload must be the JSON of a FiscalDocumentModel") from None
         doc = run_in_unit_of_work(lambda u: service.register_document(u, company_id, document, model), ctx)
-        assert isinstance(doc, FiscalDocument)
+        doc = of_type(doc, FiscalDocument)
         return _info(document, service.transmit(ctx, doc.id))
 
     def poll(self, company_id: uuid.UUID, document: DocumentRef) -> FiscalStatusInfo:
@@ -67,7 +69,14 @@ class EinvoiceFiscalDocuments:
                 return []
             out = []
             for t in doc.transitions.order_by("at", "id"):
-                status = lifecycle.KERNEL_STATUS[lifecycle.FISCAL_STATUS[t.to_state]]
-                out.append(FiscalStatusInfo(document, status, doc.unique_code, simulated=doc.simulated,  # type: ignore[arg-type]
-                                            message=t.reason))  # fmt: skip
+                status = cast(FiscalStatus, lifecycle.KERNEL_STATUS[lifecycle.FISCAL_STATUS[t.to_state]])
+                out.append(
+                    FiscalStatusInfo(
+                        document,
+                        status,
+                        doc.unique_code,
+                        simulated=doc.simulated,
+                        message=t.reason,
+                    )
+                )
             return out

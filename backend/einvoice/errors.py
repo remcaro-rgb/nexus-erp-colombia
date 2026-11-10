@@ -41,3 +41,19 @@ class TransientTransmissionError(Exception):
 
 class AdapterNotSupported(DomainError):
     code, status, title = "provider_not_configured", 422, "Operation not supported by the adapter"
+
+
+class InvariantViolated(RuntimeError):
+    """An internal invariant does not hold (programming error); explicit, unlike ``assert`` under ``python -O``."""
+
+
+def present[T](value: T | None, what: str) -> T:
+    if value is None:
+        raise InvariantViolated(f"{what} is missing")
+    return value
+
+
+def of_type[T](value: object, cls: type[T]) -> T:
+    if not isinstance(value, cls):
+        raise InvariantViolated(f"expected {cls.__name__}, got {type(value).__name__}")
+    return value

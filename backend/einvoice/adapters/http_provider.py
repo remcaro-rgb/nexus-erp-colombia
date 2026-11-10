@@ -40,7 +40,9 @@ class HttpResponse:
 
 
 class Transport(Protocol):
-    def send(self, method: str, url: str, headers: dict[str, str], body: bytes | None, timeout: float) -> HttpResponse: ...
+    def send(
+        self, method: str, url: str, headers: dict[str, str], body: bytes | None, timeout: float
+    ) -> HttpResponse: ...
 
 
 class UrllibTransport:
@@ -63,11 +65,15 @@ class Mapping(Protocol):
         """(method, path, headers, body) — the adapter adds the Authorization header."""
         ...
 
-    def status_request(self, config: AdapterConfig, request: SubmitRequest, tracking_id: str) -> tuple[str, str, dict[str, str], bytes | None]: ...
+    def status_request(
+        self, config: AdapterConfig, request: SubmitRequest, tracking_id: str
+    ) -> tuple[str, str, dict[str, str], bytes | None]: ...
 
     def parse_result(self, request: SubmitRequest, response: HttpResponse) -> SubmitResult: ...
 
-    def numbering_request(self, config: AdapterConfig, company_nit: str, software_id: str) -> tuple[str, str] | None: ...
+    def numbering_request(
+        self, config: AdapterConfig, company_nit: str, software_id: str
+    ) -> tuple[str, str] | None: ...
 
     def parse_numbering(self, response: HttpResponse) -> list[NumberingRangeInfo]: ...
 
@@ -96,7 +102,9 @@ class GenericJsonMapping:
         }
         return "POST", "/documents", headers, json.dumps(body, sort_keys=True).encode("utf-8")
 
-    def status_request(self, config: AdapterConfig, request: SubmitRequest, tracking_id: str) -> tuple[str, str, dict[str, str], bytes | None]:
+    def status_request(
+        self, config: AdapterConfig, request: SubmitRequest, tracking_id: str
+    ) -> tuple[str, str, dict[str, str], bytes | None]:
         return "GET", f"/documents/{urllib.parse.quote(tracking_id)}", {"Accept": "application/json"}, None
 
     def parse_result(self, request: SubmitRequest, response: HttpResponse) -> SubmitResult:
@@ -108,14 +116,22 @@ class GenericJsonMapping:
             raise TransientTransmissionError("provider returned a non-JSON body") from None
         if response.status >= 400:
             codes = tuple(str(c) for c in data.get("errors") or [f"HTTP-{response.status}"])
-            return SubmitResult("REJECTED", str(data.get("tracking_id", "")), None, bool(data.get("simulated", False)),
-                                tuple(redact(m) for m in data.get("messages") or ()), codes)  # fmt: skip
+            return SubmitResult(
+                "REJECTED",
+                str(data.get("tracking_id", "")),
+                None,
+                bool(data.get("simulated", False)),
+                tuple(redact(m) for m in data.get("messages") or ()),
+                codes,
+            )
         status = str(data.get("status", ""))
         if status not in ("ACCEPTED", "ACCEPTED_WITH_NOTICES", "REJECTED", "RETRYABLE"):
             raise TransientTransmissionError(f"provider returned an unknown status {status[:40]!r}")
         if status == "RETRYABLE":
             raise TransientTransmissionError("provider asked to retry")
-        response_xml = base64.b64decode(data["application_response_base64"]) if data.get("application_response_base64") else b""
+        response_xml = (
+            base64.b64decode(data["application_response_base64"]) if data.get("application_response_base64") else b""
+        )
         return SubmitResult(
             status,  # type: ignore[arg-type]  # validated against the literal set above
             str(data.get("tracking_id", "")),
@@ -142,9 +158,15 @@ class GenericJsonMapping:
             key = str(row.get("technical_key") or "")
             register_sensitive(key)
             out.append(
-                NumberingRangeInfo(str(row["prefix"]), int(row["from"]), int(row["to"]), str(row["resolution"]),
-                                   dt.date.fromisoformat(row["valid_from"]), dt.date.fromisoformat(row["valid_to"]),
-                                   Secret("technical_key", key) if key else None)  # fmt: skip
+                NumberingRangeInfo(
+                    str(row["prefix"]),
+                    int(row["from"]),
+                    int(row["to"]),
+                    str(row["resolution"]),
+                    dt.date.fromisoformat(row["valid_from"]),
+                    dt.date.fromisoformat(row["valid_to"]),
+                    Secret("technical_key", key) if key else None,
+                )
             )
         return out
 
@@ -225,5 +247,10 @@ def _with_latency(result: SubmitResult, started: float) -> SubmitResult:
 
 def describe(config: AdapterConfig) -> dict[str, Any]:
     """Masked description (never the credentials)."""
-    return {"adapter": config.adapter, "base_url": config.base_url, "environment": config.environment,
-            "mapping_version": config.mapping_version, "credentials": "***" if config.credentials else None}  # fmt: skip
+    return {
+        "adapter": config.adapter,
+        "base_url": config.base_url,
+        "environment": config.environment,
+        "mapping_version": config.mapping_version,
+        "credentials": "***" if config.credentials else None,
+    }

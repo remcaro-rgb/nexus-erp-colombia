@@ -25,16 +25,24 @@ EVENT = "einvoice.document.status_changed.v1"
 
 
 def worker_context(tenant_id: uuid.UUID, company_id: uuid.UUID, actor_id: uuid.UUID) -> TenantContext:
-    return TenantContext(tenant_id=tenant_id, company_ids=frozenset({company_id}), principal_id=actor_id,
-                         principal_type=PrincipalType.SERVICE, channel=Channel.JOB)  # fmt: skip
+    return TenantContext(
+        tenant_id=tenant_id,
+        company_ids=frozenset({company_id}),
+        principal_id=actor_id,
+        principal_type=PrincipalType.SERVICE,
+        channel=Channel.JOB,
+    )
 
 
 def handle_status_changed(envelope: dict[str, Any]) -> None:
     payload = envelope.get("payload") or {}
     if payload.get("to_status") != FiscalDocument.State.BUILT:
         return
-    ctx = worker_context(uuid.UUID(envelope["tenant_id"]), uuid.UUID(envelope["company_id"]),
-                         uuid.UUID(str(envelope.get("actor", {}).get("id") or envelope.get("actor_id"))))  # fmt: skip
+    ctx = worker_context(
+        uuid.UUID(envelope["tenant_id"]),
+        uuid.UUID(envelope["company_id"]),
+        uuid.UUID(str(envelope.get("actor", {}).get("id") or envelope.get("actor_id"))),
+    )
     doc = service.transmit(ctx, uuid.UUID(payload["document_id"]))
     log.info("einvoice.transmitted", document_id=str(doc.id), status=doc.status, attempt=doc.attempts)
 
@@ -43,10 +51,13 @@ def process_due(ctx: TenantContext, company_id: uuid.UUID | None = None) -> dict
     with tenancy.scope(ctx):
         ids = service.due_documents(ctx, company_id)
         events = list(
-            RadianEvent.objects.filter(tenant_id=ctx.tenant_id, company_id__in=list(ctx.company_ids),
-                                       direction=RadianEvent.Direction.EMITTED, status=RadianEvent.Status.PENDING)
-            .values_list("id", flat=True)[:500]
-        )  # fmt: skip
+            RadianEvent.objects.filter(
+                tenant_id=ctx.tenant_id,
+                company_id__in=list(ctx.company_ids),
+                direction=RadianEvent.Direction.EMITTED,
+                status=RadianEvent.Status.PENDING,
+            ).values_list("id", flat=True)[:500]
+        )
     counts: dict[str, int] = {}
     for doc_id in ids:
         doc = service.transmit(ctx, doc_id)

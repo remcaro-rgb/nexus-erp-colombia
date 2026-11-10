@@ -44,7 +44,9 @@ class TechnologyProvider(CompanyModel, AuditedModel):
 
     class Meta:
         db_table = "einvoice_provider"
-        constraints = [models.UniqueConstraint(fields=["tenant_id", "company_id", "code"], name="einvoice_provider_code_uq")]
+        constraints = [
+            models.UniqueConstraint(fields=["tenant_id", "company_id", "code"], name="einvoice_provider_code_uq")
+        ]
 
 
 class EinvoiceSettings(CompanyModel, AuditedModel):
@@ -59,7 +61,9 @@ class EinvoiceSettings(CompanyModel, AuditedModel):
     software_pin_ref = models.CharField(max_length=255, blank=True, default="")
     environment = models.CharField(max_length=2, default="2")
     #: Provider switch waiting for a second administrator (F-PT-OPEN: switching requires approval).
-    pending_provider = models.ForeignKey(TechnologyProvider, null=True, blank=True, on_delete=models.PROTECT, related_name="+")
+    pending_provider = models.ForeignKey(
+        TechnologyProvider, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
     pending_requested_by = models.UUIDField(null=True, blank=True)
 
     class Meta:
@@ -90,7 +94,9 @@ class NumberingRange(CompanyModel, AuditedModel):
         db_table = "einvoice_numbering_range"
         constraints = [
             models.UniqueConstraint(fields=["tenant_id", "company_id", "code"], name="einvoice_range_code_uq"),
-            models.CheckConstraint(condition=models.Q(from_number__lte=models.F("to_number")), name="einvoice_range_ck"),
+            models.CheckConstraint(
+                condition=models.Q(from_number__lte=models.F("to_number")), name="einvoice_range_ck"
+            ),
         ]
 
 
@@ -136,9 +142,12 @@ class FiscalDocument(CompanyModel, AuditedModel):
     class Meta:
         db_table = "einvoice_document"
         constraints = [
-            models.UniqueConstraint(fields=["tenant_id", "company_id", "family", "number"], name="einvoice_doc_number_uq"),
-            models.UniqueConstraint(fields=["tenant_id", "company_id", "source_type", "source_id", "family"],
-                                    name="einvoice_doc_source_uq"),  # fmt: skip
+            models.UniqueConstraint(
+                fields=["tenant_id", "company_id", "family", "number"], name="einvoice_doc_number_uq"
+            ),
+            models.UniqueConstraint(
+                fields=["tenant_id", "company_id", "source_type", "source_id", "family"], name="einvoice_doc_source_uq"
+            ),
         ]
         indexes = [models.Index(fields=["tenant_id", "company_id", "status"], name="einvoice_doc_status_ix")]
 
@@ -250,8 +259,10 @@ class RadianEvent(CompanyModel, AuditedModel):
     class Meta:
         db_table = "einvoice_radian_event"
         constraints = [
-            models.UniqueConstraint(fields=["tenant_id", "company_id", "document_type", "document_id", "event_code",
-                                            "direction"], name="einvoice_radian_once_uq"),  # fmt: skip
+            models.UniqueConstraint(
+                fields=["tenant_id", "company_id", "document_type", "document_id", "event_code", "direction"],
+                name="einvoice_radian_once_uq",
+            ),
         ]
 
 

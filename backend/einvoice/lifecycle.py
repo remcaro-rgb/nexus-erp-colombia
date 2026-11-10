@@ -35,23 +35,35 @@ TRANSITIONS: Final[dict[str, frozenset[str]]] = {
 
 #: Contract enum ``FiscalDocument.fiscal_status``.
 FISCAL_STATUS: Final[dict[str, str]] = {
-    S.PENDING_BUILD: "PENDING", S.BUILT: "PENDING", S.SIGNED: "PENDING",
-    S.SUBMITTED: "SENT", S.ERROR_RETRYABLE: "SENT", S.TRANSMITTED_LATE: "SENT",
-    S.ACCEPTED: "ACCEPTED", S.ACCEPTED_WITH_NOTICES: "ACCEPTED", S.REJECTED: "REJECTED",
+    S.PENDING_BUILD: "PENDING",
+    S.BUILT: "PENDING",
+    S.SIGNED: "PENDING",
+    S.SUBMITTED: "SENT",
+    S.ERROR_RETRYABLE: "SENT",
+    S.TRANSMITTED_LATE: "SENT",
+    S.ACCEPTED: "ACCEPTED",
+    S.ACCEPTED_WITH_NOTICES: "ACCEPTED",
+    S.REJECTED: "REJECTED",
     S.CONTINGENCY_ISSUED: "CONTINGENCY",
-}  # fmt: skip
+}
 
 #: ``kernel.interfaces.fiscal.FiscalStatus``.
 KERNEL_STATUS: Final[dict[str, str]] = {
-    "PENDING": "QUEUED", "SENT": "SUBMITTED", "ACCEPTED": "ACCEPTED", "REJECTED": "REJECTED",
+    "PENDING": "QUEUED",
+    "SENT": "SUBMITTED",
+    "ACCEPTED": "ACCEPTED",
+    "REJECTED": "REJECTED",
     "CONTINGENCY": "CONTINGENCY",
-}  # fmt: skip
+}
 
 #: Backoff for retryable errors (attempt → delay); after the last step retries are manual only.
 BACKOFF: Final[tuple[dt.timedelta, ...]] = (
-    dt.timedelta(minutes=1), dt.timedelta(minutes=5), dt.timedelta(minutes=15), dt.timedelta(hours=1),
+    dt.timedelta(minutes=1),
+    dt.timedelta(minutes=5),
+    dt.timedelta(minutes=15),
+    dt.timedelta(hours=1),
     dt.timedelta(hours=4),
-)  # fmt: skip
+)
 #: Consecutive transport failures of the active provider that switch the company to contingency automatically.
 AUTO_CONTINGENCY_AFTER: Final = 3
 
@@ -82,17 +94,26 @@ def transition(
     doc.status = to_state
     doc.save_versioned(uow.ctx.principal_id, ["status", *fields])
     row = FiscalTransition.objects.create(
-        tenant_id=doc.tenant_id, company_id=doc.company_id, document=doc, from_state=from_state, to_state=to_state,
-        actor_id=uow.ctx.principal_id, attempt=doc.attempts, reason=reason[:1000], evidence=evidence,
-    )  # fmt: skip
+        tenant_id=doc.tenant_id,
+        company_id=doc.company_id,
+        document=doc,
+        from_state=from_state,
+        to_state=to_state,
+        actor_id=uow.ctx.principal_id,
+        attempt=doc.attempts,
+        reason=reason[:1000],
+        evidence=evidence,
+    )
     uow.emit(
         "einvoice.document.status_changed.v1",
         {
             # contracts/events/einvoice/einvoice.document.status_changed.v1.json (additionalProperties: false)
             "document_id": str(doc.id),
             "source": {"type": doc.source_type, "id": str(doc.source_id), "number": doc.number},
-            "from_status": from_state, "to_status": to_state, "cufe": doc.unique_code,
+            "from_status": from_state,
+            "to_status": to_state,
+            "cufe": doc.unique_code,
         },
         company_id=doc.company_id,
-    )  # fmt: skip
+    )
     return row

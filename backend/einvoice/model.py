@@ -13,6 +13,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from einvoice import annex
+from einvoice.errors import present
 from kernel.errors import ValidationFailed
 
 CENT = Decimal("0.01")
@@ -20,7 +21,7 @@ FIXTURE_OUTCOMES = ("accept", "accept_with_notices", "reject", "transient")
 
 
 def dec(value: Any, name: str) -> Decimal:
-    if isinstance(value, float) or isinstance(value, bool):
+    if isinstance(value, float | bool):
         raise ValidationFailed(f"{name} must be a decimal string, not {type(value).__name__}", field=name)
     try:
         out = value if isinstance(value, Decimal) else Decimal(str(value))
@@ -53,8 +54,9 @@ class Party:
         id_type = str(data.get("id_type", "31"))
         if id_type not in annex.ID_TYPES:
             raise ValidationFailed(f"{prefix}id_type {id_type!r} not in the code list", field=f"{prefix}id_type")
-        return cls(id_number, id_type, str(data.get("check_digit", "")), str(data.get("name", "")),
-                   str(data.get("email", "")))  # fmt: skip
+        return cls(
+            id_number, id_type, str(data.get("check_digit", "")), str(data.get("name", "")), str(data.get("email", ""))
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -152,32 +154,48 @@ class FiscalDocumentModel:
                 scheme = str(_req(t, "scheme", f"{p}taxes[{j}]."))
                 if scheme not in annex.TAX_SCHEMES:
                     raise ValidationFailed(f"{p}taxes[{j}].scheme {scheme!r} not supported", field=f"{p}taxes")
-                taxes.append(TaxLine(scheme, dec(t.get("rate", "0"), f"{p}rate"), dec(_req(t, "taxable", p), f"{p}taxable"),
-                                     dec(_req(t, "amount", p), f"{p}amount")))  # fmt: skip
+                taxes.append(
+                    TaxLine(
+                        scheme,
+                        dec(t.get("rate", "0"), f"{p}rate"),
+                        dec(_req(t, "taxable", p), f"{p}taxable"),
+                        dec(_req(t, "amount", p), f"{p}amount"),
+                    )
+                )
             lines.append(
-                Line(str(_req(raw, "description", p)), dec(_req(raw, "quantity", p), f"{p}quantity"),
-                     dec(_req(raw, "unit_price", p), f"{p}unit_price"),
-                     dec(_req(raw, "line_extension", p), f"{p}line_extension"), tuple(taxes),
-                     str(raw.get("unit_code", "94")))  # fmt: skip
+                Line(
+                    str(_req(raw, "description", p)),
+                    dec(_req(raw, "quantity", p), f"{p}quantity"),
+                    dec(_req(raw, "unit_price", p), f"{p}unit_price"),
+                    dec(_req(raw, "line_extension", p), f"{p}line_extension"),
+                    tuple(taxes),
+                    str(raw.get("unit_code", "94")),
+                )
             )
         ref = data.get("billing_reference")
         billing = None
         if ref:
-            billing = BillingReference(str(_req(ref, "number", "billing_reference.")),
-                                       str(_req(ref, "unique_code", "billing_reference.")),
-                                       dt.date.fromisoformat(str(_req(ref, "issue_date", "billing_reference."))),
-                                       str(ref.get("scheme_name", "CUFE-SHA384")))  # fmt: skip
+            billing = BillingReference(
+                str(_req(ref, "number", "billing_reference.")),
+                str(_req(ref, "unique_code", "billing_reference.")),
+                dt.date.fromisoformat(str(_req(ref, "issue_date", "billing_reference."))),
+                str(ref.get("scheme_name", "CUFE-SHA384")),
+            )
         pay = data.get("payroll")
         payroll = None
         if pay:
-            payroll = PayrollTotals(dec(_req(pay, "devengados", "payroll."), "payroll.devengados"),
-                                    dec(_req(pay, "deducciones", "payroll."), "payroll.deducciones"),
-                                    dec(_req(pay, "total", "payroll."), "payroll.total"),
-                                    dt.date.fromisoformat(str(_req(pay, "period_start", "payroll."))),
-                                    dt.date.fromisoformat(str(_req(pay, "period_end", "payroll."))))  # fmt: skip
+            payroll = PayrollTotals(
+                dec(_req(pay, "devengados", "payroll."), "payroll.devengados"),
+                dec(_req(pay, "deducciones", "payroll."), "payroll.deducciones"),
+                dec(_req(pay, "total", "payroll."), "payroll.total"),
+                dt.date.fromisoformat(str(_req(pay, "period_start", "payroll."))),
+                dt.date.fromisoformat(str(_req(pay, "period_end", "payroll."))),
+            )
         outcome = str(data.get("fixture_outcome", "accept"))
         if outcome not in FIXTURE_OUTCOMES:
-            raise ValidationFailed(f"fixture_outcome must be one of {', '.join(FIXTURE_OUTCOMES)}", field="fixture_outcome")
+            raise ValidationFailed(
+                f"fixture_outcome must be one of {', '.join(FIXTURE_OUTCOMES)}", field="fixture_outcome"
+            )
         model = cls(
             family=family,
             number=str(_req(data, "number")),
@@ -224,9 +242,13 @@ class FiscalDocumentModel:
         if self.tax_exclusive + taxes != self.tax_inclusive:
             raise ValidationFailed("tax_inclusive must equal tax_exclusive + taxes", field="tax_inclusive")
         if self.payable != self.tax_inclusive:
-            raise ValidationFailed("payable must equal tax_inclusive (no prepaid/charges in this profile)", field="payable")
+            raise ValidationFailed(
+                "payable must equal tax_inclusive (no prepaid/charges in this profile)", field="payable"
+            )
         if self.family in ("NC", "ND", "DS_ADJUSTMENT") and self.billing_reference is None:
-            raise ValidationFailed("a note needs the referenced document (billing_reference)", field="billing_reference")
+            raise ValidationFailed(
+                "a note needs the referenced document (billing_reference)", field="billing_reference"
+            )
         if self.family == "NC" and self.concept_code not in annex.CREDIT_NOTE_CONCEPTS:
             raise ValidationFailed("concept_code must be a credit-note concept", field="concept_code")
         if self.family == "ND" and self.concept_code not in annex.DEBIT_NOTE_CONCEPTS:
@@ -237,54 +259,105 @@ class FiscalDocumentModel:
         kind = self.hash_kind
         if kind in ("CUFE", "CUDE"):
             values: dict[str, object] = {
-                "NumFac": self.number, "FecFac": self.issue_date.isoformat(), "HorFac": self.issue_time,
-                "ValFac": self.line_extension, "ValImp1": self.tax_total("01"), "ValImp2": self.tax_total("04"),
-                "ValImp3": self.tax_total("03"), "ValTot": self.payable, "NitOFE": self.supplier.id_number,
-                "NumAdq": self.customer.id_number, "TipoAmbiente": environment,
-            }  # fmt: skip
+                "NumFac": self.number,
+                "FecFac": self.issue_date.isoformat(),
+                "HorFac": self.issue_time,
+                "ValFac": self.line_extension,
+                "ValImp1": self.tax_total("01"),
+                "ValImp2": self.tax_total("04"),
+                "ValImp3": self.tax_total("03"),
+                "ValTot": self.payable,
+                "NitOFE": self.supplier.id_number,
+                "NumAdq": self.customer.id_number,
+                "TipoAmbiente": environment,
+            }
             values["ClTec" if kind == "CUFE" else "SoftwarePIN"] = secret
             return values
         if kind == "CUDS":
             return {
-                "NumDS": self.number, "FecDS": self.issue_date.isoformat(), "HorDS": self.issue_time,
-                "ValDS": self.line_extension, "ValImp": self.tax_total("01"), "ValTol": self.payable,
-                "NumSNO": self.customer.id_number, "NITABS": self.supplier.id_number, "SoftwarePIN": secret,
+                "NumDS": self.number,
+                "FecDS": self.issue_date.isoformat(),
+                "HorDS": self.issue_time,
+                "ValDS": self.line_extension,
+                "ValImp": self.tax_total("01"),
+                "ValTol": self.payable,
+                "NumSNO": self.customer.id_number,
+                "NITABS": self.supplier.id_number,
+                "SoftwarePIN": secret,
                 "TipoAmbiente": environment,
-            }  # fmt: skip
-        assert self.payroll is not None  # validated above (nómina families)
+            }
+        payroll = present(self.payroll, "payroll totals")
         return {
-            "NumNE": self.number, "FecNE": self.issue_date.isoformat(), "HorNE": self.issue_time,
-            "ValDev": self.payroll.devengados, "ValDed": self.payroll.deducciones, "ValTolNE": self.payroll.total,
-            "NitNE": self.supplier.id_number, "DocEmp": self.customer.id_number, "TipoXML": self.type_code,
-            "SoftwarePIN": secret, "TipoAmbiente": environment,
-        }  # fmt: skip
+            "NumNE": self.number,
+            "FecNE": self.issue_date.isoformat(),
+            "HorNE": self.issue_time,
+            "ValDev": payroll.devengados,
+            "ValDed": payroll.deducciones,
+            "ValTolNE": payroll.total,
+            "NitNE": self.supplier.id_number,
+            "DocEmp": self.customer.id_number,
+            "TipoXML": self.type_code,
+            "SoftwarePIN": secret,
+            "TipoAmbiente": environment,
+        }
 
     def to_dict(self) -> dict[str, Any]:
         def party(p: Party) -> dict[str, str]:
-            return {"id_number": p.id_number, "id_type": p.id_type, "check_digit": p.check_digit, "name": p.name,
-                    "email": p.email}  # fmt: skip
+            return {
+                "id_number": p.id_number,
+                "id_type": p.id_type,
+                "check_digit": p.check_digit,
+                "name": p.name,
+                "email": p.email,
+            }
 
         out: dict[str, Any] = {
-            "family": self.family, "number": self.number, "issue_date": self.issue_date.isoformat(),
-            "issue_time": self.issue_time, "supplier": party(self.supplier), "customer": party(self.customer),
-            "currency": self.currency, "line_extension": str(self.line_extension),
-            "tax_exclusive": str(self.tax_exclusive), "tax_inclusive": str(self.tax_inclusive),
-            "payable": str(self.payable), "concept_code": self.concept_code, "notes": list(self.notes),
-            "fixture_outcome": self.fixture_outcome, "synthetic": self.synthetic, "extras": dict(self.extras),
+            "family": self.family,
+            "number": self.number,
+            "issue_date": self.issue_date.isoformat(),
+            "issue_time": self.issue_time,
+            "supplier": party(self.supplier),
+            "customer": party(self.customer),
+            "currency": self.currency,
+            "line_extension": str(self.line_extension),
+            "tax_exclusive": str(self.tax_exclusive),
+            "tax_inclusive": str(self.tax_inclusive),
+            "payable": str(self.payable),
+            "concept_code": self.concept_code,
+            "notes": list(self.notes),
+            "fixture_outcome": self.fixture_outcome,
+            "synthetic": self.synthetic,
+            "extras": dict(self.extras),
             "lines": [
-                {"description": ln.description, "quantity": str(ln.quantity), "unit_price": str(ln.unit_price),
-                 "line_extension": str(ln.line_extension), "unit_code": ln.unit_code,
-                 "taxes": [{"scheme": t.scheme, "rate": str(t.rate), "taxable": str(t.taxable), "amount": str(t.amount)}
-                           for t in ln.taxes]}
+                {
+                    "description": ln.description,
+                    "quantity": str(ln.quantity),
+                    "unit_price": str(ln.unit_price),
+                    "line_extension": str(ln.line_extension),
+                    "unit_code": ln.unit_code,
+                    "taxes": [
+                        {"scheme": t.scheme, "rate": str(t.rate), "taxable": str(t.taxable), "amount": str(t.amount)}
+                        for t in ln.taxes
+                    ],
+                }
                 for ln in self.lines
             ],
-        }  # fmt: skip
+        }
         if self.billing_reference:
             b = self.billing_reference
-            out["billing_reference"] = {"number": b.number, "unique_code": b.unique_code,
-                                        "issue_date": b.issue_date.isoformat(), "scheme_name": b.scheme_name}  # fmt: skip
+            out["billing_reference"] = {
+                "number": b.number,
+                "unique_code": b.unique_code,
+                "issue_date": b.issue_date.isoformat(),
+                "scheme_name": b.scheme_name,
+            }
         if self.payroll:
             p = self.payroll
-            out["payroll"] = {"devengados": str(p.devengados), "deducciones": str(p.deducciones), "total": str(p.total),
-                              "period_start": p.period_start.isoformat(), "period_end": p.period_end.isoformat()}  # fmt: skip
+            out["payroll"] = {
+                "devengados": str(p.devengados),
+                "deducciones": str(p.deducciones),
+                "total": str(p.total),
+                "period_start": p.period_start.isoformat(),
+                "period_end": p.period_end.isoformat(),
+            }
         return out

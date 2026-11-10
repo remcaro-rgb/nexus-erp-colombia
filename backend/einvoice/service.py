@@ -36,6 +36,8 @@ from einvoice.errors import (
     ProviderContractTestFailed,
     ProviderNotConfigured,
     TransientTransmissionError,
+    of_type,
+    present,
 )
 from einvoice.model import FiscalDocumentModel, Party
 from einvoice.models import (
@@ -72,11 +74,20 @@ CERT_ALERT_DAYS = (30, 15, 7)
 # ============================================================================ helpers
 
 
-def _audit(uow: UnitOfWork, action: str, resource_type: str, resource_id: uuid.UUID | None, company_id: uuid.UUID,
-           changes: dict[str, Any] | None = None, reason: str = "") -> None:  # fmt: skip
+def _audit(
+    uow: UnitOfWork,
+    action: str,
+    resource_type: str,
+    resource_id: uuid.UUID | None,
+    company_id: uuid.UUID,
+    changes: dict[str, Any] | None = None,
+    reason: str = "",
+) -> None:
     audit = services.optional(AuditService)
     if audit is not None:
-        audit.record(uow, AuditEntry(action, resource_type, resource_id, company_id, sec.redact_obj(changes or {}), reason))
+        audit.record(
+            uow, AuditEntry(action, resource_type, resource_id, company_id, sec.redact_obj(changes or {}), reason)
+        )
 
 
 def retention_until(day: dt.date) -> dt.date:
@@ -89,14 +100,23 @@ def retention_until(day: dt.date) -> dt.date:
 def store_evidence(
     doc: FiscalDocument | None, kind: str, content: bytes, *, event: RadianEvent | None = None
 ) -> FiscalEvidence:
-    owner = doc or event
-    assert owner is not None
-    issued = doc.issue_date if doc is not None else clock.business_date()
+    if doc is not None:
+        tenant_id, company_id, issued = doc.tenant_id, doc.company_id, doc.issue_date
+    else:
+        ev = present(event, "evidence owner")
+        tenant_id, company_id, issued = ev.tenant_id, ev.company_id, clock.business_date()
     return FiscalEvidence.objects.create(
-        tenant_id=owner.tenant_id, company_id=owner.company_id, document=doc, radian_event=event, kind=kind,
-        sha256=hashlib.sha256(content).hexdigest(), size=len(content), content=crypto.encrypt(content),
-        retention_until=retention_until(issued), legal_hold=True,
-    )  # fmt: skip
+        tenant_id=tenant_id,
+        company_id=company_id,
+        document=doc,
+        radian_event=event,
+        kind=kind,
+        sha256=hashlib.sha256(content).hexdigest(),
+        size=len(content),
+        content=crypto.encrypt(content),
+        retention_until=retention_until(issued),
+        legal_hold=True,
+    )
 
 
 def read_evidence(evidence: FiscalEvidence) -> bytes:
@@ -118,20 +138,33 @@ def get_settings(uow: UnitOfWork, company_id: uuid.UUID) -> EinvoiceSettings:
     uow.ctx.require_company(company_id)
     row = EinvoiceSettings.objects.filter(tenant_id=uow.ctx.tenant_id, company_id=company_id).first()
     if row is None:
-        row = EinvoiceSettings.objects.create(tenant_id=uow.ctx.tenant_id, company_id=company_id,
-                                              created_by=uow.ctx.principal_id, updated_by=uow.ctx.principal_id)  # fmt: skip
+        row = EinvoiceSettings.objects.create(
+            tenant_id=uow.ctx.tenant_id,
+            company_id=company_id,
+            created_by=uow.ctx.principal_id,
+            updated_by=uow.ctx.principal_id,
+        )
     return row
 
 
 def read_settings(ctx: TenantContext, company_id: uuid.UUID) -> EinvoiceSettings | None:
-    return EinvoiceSettings.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id).select_related("provider").first()
+    return (
+        EinvoiceSettings.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id)
+        .select_related("provider")
+        .first()
+    )
 
 
 def provider_config(provider: TechnologyProvider, *, resolve_secret: bool = True) -> AdapterConfig:
     credentials = sec.resolve(provider.credentials_ref) if (resolve_secret and provider.credentials_ref) else None
-    return AdapterConfig(adapter=provider.adapter, provider_code=provider.code, base_url=provider.base_url,
-                         environment=provider.environment, credentials=credentials,
-                         mapping_version=provider.contract_version)  # fmt: skip
+    return AdapterConfig(
+        adapter=provider.adapter,
+        provider_code=provider.code,
+        base_url=provider.base_url,
+        environment=provider.environment,
+        credentials=credentials,
+        mapping_version=provider.contract_version,
+    )
 
 
 def adapter_for(settings_row: EinvoiceSettings | None) -> tuple[ProviderAdapter, str]:
@@ -180,7 +213,11 @@ def find_range(ctx: TenantContext, company_id: uuid.UUID, family: str, number: s
 
 
 def active_contingency(ctx: TenantContext, company_id: uuid.UUID) -> Contingency | None:
-    return Contingency.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, active=True).order_by("-since").first()
+    return (
+        Contingency.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, active=True)
+        .order_by("-since")
+        .first()
+    )
 
 
 def _qr(unique_code: str) -> str:
@@ -201,16 +238,25 @@ def register_document(
     """Create the fiscal document for ``source`` (idempotent per source). No external I/O."""
     ctx = uow.ctx
     ctx.require_company(company_id)
-    existing = FiscalDocument.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, source_type=source.type,
-                                             source_id=source.id, family=model.family).first()  # fmt: skip
+    existing = FiscalDocument.objects.filter(
+        tenant_id=ctx.tenant_id,
+        company_id=company_id,
+        source_type=source.type,
+        source_id=source.id,
+        family=model.family,
+    ).first()
     if existing is not None:
         if existing.number != model.number:
-            raise Conflict("the source document already has a fiscal document with another number",
-                           code="validation_failed")  # fmt: skip
+            raise Conflict(
+                "the source document already has a fiscal document with another number", code="validation_failed"
+            )
         return existing
-    if FiscalDocument.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, family=model.family,
-                                     number=model.number).exists():  # fmt: skip
-        raise Conflict(f"fiscal number {model.number} is already used (numbers are never reused)", code="validation_failed")
+    if FiscalDocument.objects.filter(
+        tenant_id=ctx.tenant_id, company_id=company_id, family=model.family, number=model.number
+    ).exists():
+        raise Conflict(
+            f"fiscal number {model.number} is already used (numbers are never reused)", code="validation_failed"
+        )
     settings_row = get_settings(uow, company_id)
     contingency = active_contingency(ctx, company_id)
     if contingency is not None and contingency.kind == Contingency.Kind.ISSUER_OUTAGE and model.family == "FE":
@@ -232,41 +278,91 @@ def register_document(
     software_id = settings_row.software_id or DEV_SOFTWARE_ID
     xml = builders.build(model, unique_code, environment=environment, software_id=software_id, qr_url=_qr(unique_code))
     doc = FiscalDocument.objects.create(
-        tenant_id=ctx.tenant_id, company_id=company_id, source_type=source.type, source_id=source.id,
-        family=model.family, number=model.number, issue_date=model.issue_date, unique_code=unique_code,
-        model=model.to_dict(), test_set_id=test_set_id, synthetic=model.synthetic, payable=model.payable,
-        simulated=settings_row.adapter == "simulator", created_by=ctx.principal_id, updated_by=ctx.principal_id,
-    )  # fmt: skip
-    FiscalTransition.objects.create(tenant_id=doc.tenant_id, company_id=company_id, document=doc, to_state=S.PENDING_BUILD,
-                                    actor_id=ctx.principal_id, reason="registered")  # fmt: skip
+        tenant_id=ctx.tenant_id,
+        company_id=company_id,
+        source_type=source.type,
+        source_id=source.id,
+        family=model.family,
+        number=model.number,
+        issue_date=model.issue_date,
+        unique_code=unique_code,
+        model=model.to_dict(),
+        test_set_id=test_set_id,
+        synthetic=model.synthetic,
+        payable=model.payable,
+        simulated=settings_row.adapter == "simulator",
+        created_by=ctx.principal_id,
+        updated_by=ctx.principal_id,
+    )
+    FiscalTransition.objects.create(
+        tenant_id=doc.tenant_id,
+        company_id=company_id,
+        document=doc,
+        to_state=S.PENDING_BUILD,
+        actor_id=ctx.principal_id,
+        reason="registered",
+    )
     evidence = store_evidence(doc, FiscalEvidence.Kind.UNSIGNED_XML, xml)
     lifecycle.transition(uow, doc, S.BUILT, reason=f"UBL built (annex {builders.CURRENT_VERSION})", evidence=evidence)
-    _audit(uow, "einvoice.document.registered", "einvoice.document", doc.id, company_id,
-           {"family": doc.family, "number": doc.number})  # fmt: skip
+    _audit(
+        uow,
+        "einvoice.document.registered",
+        "einvoice.document",
+        doc.id,
+        company_id,
+        {"family": doc.family, "number": doc.number},
+    )
     return doc
 
 
 def register_received_document(
-    uow: UnitOfWork, company_id: uuid.UUID, source: DocumentRef, *, number: str, unique_code: str,
-    issuer: Party, issue_date: dt.date,
-) -> FiscalDocument:  # fmt: skip
+    uow: UnitOfWork,
+    company_id: uuid.UUID,
+    source: DocumentRef,
+    *,
+    number: str,
+    unique_code: str,
+    issuer: Party,
+    issue_date: dt.date,
+) -> FiscalDocument:
     """A supplier invoice received by the company (buyer side), so RADIAN events can reference it."""
     ctx = uow.ctx
     ctx.require_company(company_id)
     family = "FE_RECEIVED"
-    existing = FiscalDocument.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, source_type=source.type,
-                                             source_id=source.id, family=family).first()  # fmt: skip
+    existing = FiscalDocument.objects.filter(
+        tenant_id=ctx.tenant_id, company_id=company_id, source_type=source.type, source_id=source.id, family=family
+    ).first()
     if existing is not None:
         return existing
     doc = FiscalDocument.objects.create(
-        tenant_id=ctx.tenant_id, company_id=company_id, source_type=source.type, source_id=source.id, family=family,
-        number=f"{issuer.id_number}:{number}", issue_date=issue_date, unique_code=unique_code, status=S.ACCEPTED,
-        model={"family": family, "number": number, "supplier": {"id_number": issuer.id_number, "name": issuer.name},
-               "received": True},
-        simulated=True, created_by=ctx.principal_id, updated_by=ctx.principal_id, accepted_at=clock.now(),
-    )  # fmt: skip
-    FiscalTransition.objects.create(tenant_id=doc.tenant_id, company_id=company_id, document=doc, to_state=S.ACCEPTED,
-                                    actor_id=ctx.principal_id, reason="received from the supplier")  # fmt: skip
+        tenant_id=ctx.tenant_id,
+        company_id=company_id,
+        source_type=source.type,
+        source_id=source.id,
+        family=family,
+        number=f"{issuer.id_number}:{number}",
+        issue_date=issue_date,
+        unique_code=unique_code,
+        status=S.ACCEPTED,
+        model={
+            "family": family,
+            "number": number,
+            "supplier": {"id_number": issuer.id_number, "name": issuer.name},
+            "received": True,
+        },
+        simulated=True,
+        created_by=ctx.principal_id,
+        updated_by=ctx.principal_id,
+        accepted_at=clock.now(),
+    )
+    FiscalTransition.objects.create(
+        tenant_id=doc.tenant_id,
+        company_id=company_id,
+        document=doc,
+        to_state=S.ACCEPTED,
+        actor_id=ctx.principal_id,
+        reason="received from the supplier",
+    )
     return doc
 
 
@@ -289,12 +385,15 @@ def _signing_material(ctx: TenantContext, company_id: uuid.UUID) -> tuple[sec.Se
     if mode.is_production():
         raise CertificateMissing("no signing certificate (EG-2)")
     key = sec.ensure_dev_fixture()
-    return key, signing.CertificateInfo("CN=CERTIFICADO SINTETICO (FIXTURE_NOT_CERTIFIED)",
-                                        hashlib.sha256(b"fixture-cert").hexdigest(), "0")  # fmt: skip
+    return key, signing.CertificateInfo(
+        "CN=CERTIFICADO SINTETICO (FIXTURE_NOT_CERTIFIED)", hashlib.sha256(b"fixture-cert").hexdigest(), "0"
+    )
 
 
 def gate_records(ctx: TenantContext, company_id: uuid.UUID) -> frozenset[str]:
-    return frozenset(GateRecord.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id).values_list("gate", flat=True))
+    return frozenset(
+        GateRecord.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id).values_list("gate", flat=True)
+    )
 
 
 def _sign(uow: UnitOfWork, doc: FiscalDocument) -> None:
@@ -318,7 +417,9 @@ def _prepare(uow: UnitOfWork, document_id: uuid.UUID, force: bool) -> SubmitRequ
     contingency = active_contingency(uow.ctx, doc.company_id)
     if doc.status in (S.SIGNED, S.ERROR_RETRYABLE) and contingency is not None:
         doc.contingency = contingency
-        lifecycle.transition(uow, doc, S.CONTINGENCY_ISSUED, reason=f"contingency {contingency.kind}", fields=("contingency",))
+        lifecycle.transition(
+            uow, doc, S.CONTINGENCY_ISSUED, reason=f"contingency {contingency.kind}", fields=("contingency",)
+        )
         return None
     if doc.status == S.CONTINGENCY_ISSUED:
         if contingency is not None:
@@ -331,18 +432,28 @@ def _prepare(uow: UnitOfWork, document_id: uuid.UUID, force: bool) -> SubmitRequ
     else:  # submitted / transmitted_late: another worker owns the attempt
         return None
     signed = latest_evidence(doc, FiscalEvidence.Kind.SIGNED_XML)
-    assert signed is not None
+    signed = present(signed, "signed XML evidence")
     doc.attempts += 1
     doc.submitted_at = clock.now()
     doc.next_attempt_at = None
-    lifecycle.transition(uow, doc, target, reason=f"attempt {doc.attempts}",
-                         fields=("attempts", "submitted_at", "next_attempt_at"))  # fmt: skip
+    lifecycle.transition(
+        uow, doc, target, reason=f"attempt {doc.attempts}", fields=("attempts", "submitted_at", "next_attempt_at")
+    )
     model = doc.model or {}
     settings_row = read_settings(uow.ctx, doc.company_id)
     environment = settings_row.environment if settings_row is not None else annex.TEST_ENVIRONMENT
-    return SubmitRequest(doc.id, doc.company_id, doc.family, doc.number, doc.unique_code, read_evidence(signed),
-                         environment, str(model.get("fixture_outcome", "accept")), doc.attempts,
-                         doc.test_set_id)  # fmt: skip
+    return SubmitRequest(
+        doc.id,
+        doc.company_id,
+        doc.family,
+        doc.number,
+        doc.unique_code,
+        read_evidence(signed),
+        environment,
+        str(model.get("fixture_outcome", "accept")),
+        doc.attempts,
+        doc.test_set_id,
+    )
 
 
 def _consecutive_transient(ctx: TenantContext, company_id: uuid.UUID) -> int:
@@ -359,28 +470,49 @@ def _consecutive_transient(ctx: TenantContext, company_id: uuid.UUID) -> int:
 
 
 def _record(
-    uow: UnitOfWork, request: SubmitRequest, adapter_key: str, provider_code: str,
-    result: SubmitResult | None, error: str, config_error: bool,
-) -> FiscalDocument:  # fmt: skip
+    uow: UnitOfWork,
+    request: SubmitRequest,
+    adapter_key: str,
+    provider_code: str,
+    result: SubmitResult | None,
+    error: str,
+    config_error: bool,
+) -> FiscalDocument:
     doc = FiscalDocument.objects.select_for_update().get(pk=request.document_id)
     if doc.status not in (S.SUBMITTED, S.TRANSMITTED_LATE) or doc.attempts != request.attempt:
         return doc  # this attempt was already recorded (duplicate delivery of the worker job)
     outcome = result.status if result is not None else ("CONFIG_ERROR" if config_error else "TRANSIENT")
-    TransmissionLog.objects.create(tenant_id=doc.tenant_id, company_id=doc.company_id, document=doc,
-                                   provider_code=provider_code, adapter_key=adapter_key, attempt=request.attempt,
-                                   outcome=outcome, latency_ms=result.latency_ms if result else 0,
-                                   error=sec.redact(error)[:1000])  # fmt: skip
+    TransmissionLog.objects.create(
+        tenant_id=doc.tenant_id,
+        company_id=doc.company_id,
+        document=doc,
+        provider_code=provider_code,
+        adapter_key=adapter_key,
+        attempt=request.attempt,
+        outcome=outcome,
+        latency_ms=result.latency_ms if result else 0,
+        error=sec.redact(error)[:1000],
+    )
     doc.adapter_key, doc.provider_code = adapter_key, provider_code
     if result is None:
         doc.last_error = sec.redact(error)[:1000]
         doc.next_attempt_at = None if config_error else lifecycle.next_attempt(doc.attempts)
-        lifecycle.transition(uow, doc, S.ERROR_RETRYABLE, reason=doc.last_error,
-                             fields=("last_error", "next_attempt_at", "adapter_key", "provider_code"))  # fmt: skip
-        if not config_error and _consecutive_transient(uow.ctx, doc.company_id) >= lifecycle.AUTO_CONTINGENCY_AFTER:
-            if active_contingency(uow.ctx, doc.company_id) is None:
-                declare_contingency(uow, doc.company_id, Contingency.Kind.PROVIDER_OUTAGE,
-                                    f"automatic: {lifecycle.AUTO_CONTINGENCY_AFTER} consecutive transmission failures",
-                                    automatic=True)  # fmt: skip
+        lifecycle.transition(
+            uow,
+            doc,
+            S.ERROR_RETRYABLE,
+            reason=doc.last_error,
+            fields=("last_error", "next_attempt_at", "adapter_key", "provider_code"),
+        )
+        failures = 0 if config_error else _consecutive_transient(uow.ctx, doc.company_id)
+        if failures >= lifecycle.AUTO_CONTINGENCY_AFTER and active_contingency(uow.ctx, doc.company_id) is None:
+            declare_contingency(
+                uow,
+                doc.company_id,
+                Contingency.Kind.PROVIDER_OUTAGE,
+                f"automatic: {lifecycle.AUTO_CONTINGENCY_AFTER} consecutive transmission failures",
+                automatic=True,
+            )
         return doc
     evidence = store_evidence(doc, FiscalEvidence.Kind.RESPONSE, result.response_xml) if result.response_xml else None
     doc.tracking_id = result.tracking_id[:200]
@@ -388,19 +520,24 @@ def _record(
     doc.error_codes = list(result.error_codes)
     doc.simulated = result.simulated
     doc.last_error = "" if result.status != "REJECTED" else "; ".join(result.error_codes)[:1000]
-    target = {"ACCEPTED": S.ACCEPTED, "ACCEPTED_WITH_NOTICES": S.ACCEPTED_WITH_NOTICES, "REJECTED": S.REJECTED}[result.status]
+    target = {"ACCEPTED": S.ACCEPTED, "ACCEPTED_WITH_NOTICES": S.ACCEPTED_WITH_NOTICES, "REJECTED": S.REJECTED}[
+        result.status
+    ]
     fields = ["tracking_id", "messages", "error_codes", "simulated", "last_error", "adapter_key", "provider_code"]
     if target != S.REJECTED:
         doc.accepted_at = clock.now()
         fields.append("accepted_at")
-    lifecycle.transition(uow, doc, target, reason=f"{result.status} by {adapter_key}", evidence=evidence, fields=tuple(fields))
+    lifecycle.transition(
+        uow, doc, target, reason=f"{result.status} by {adapter_key}", evidence=evidence, fields=tuple(fields)
+    )
     if target != S.REJECTED:
         queue_delivery(uow, doc, result.response_xml)
     return doc
 
 
-def transmit(ctx: TenantContext, document_id: uuid.UUID, *, force: bool = False,
-             adapter: ProviderAdapter | None = None) -> FiscalDocument:  # fmt: skip
+def transmit(
+    ctx: TenantContext, document_id: uuid.UUID, *, force: bool = False, adapter: ProviderAdapter | None = None
+) -> FiscalDocument:
     """Worker entry point: sign + submit one document. Never inside a unit of work."""
     request = run_in_unit_of_work(lambda u: _prepare(u, document_id, force), ctx)
     if request is None or not isinstance(request, SubmitRequest):
@@ -424,16 +561,16 @@ def transmit(ctx: TenantContext, document_id: uuid.UUID, *, force: bool = False,
     recorded = run_in_unit_of_work(
         lambda u: _record(u, request, adapter_key, provider_code, result, error, config_error), ctx
     )
-    assert isinstance(recorded, FiscalDocument)
-    return recorded
+    return of_type(recorded, FiscalDocument)
 
 
 def retry(uow: UnitOfWork, doc: FiscalDocument) -> FiscalDocument:
     """Manual retry (role-restricted): re-queues the same signed document, same number."""
     doc = FiscalDocument.objects.select_for_update().get(pk=doc.pk)
     if doc.status == S.REJECTED:
-        raise InvalidTransition("a rejected document is final: correct it with a note or a new document",
-                                code="fiscal_rejected")  # fmt: skip
+        raise InvalidTransition(
+            "a rejected document is final: correct it with a note or a new document", code="fiscal_rejected"
+        )
     if doc.status not in (S.ERROR_RETRYABLE, S.BUILT, S.SIGNED, S.CONTINGENCY_ISSUED):
         raise InvalidTransition(f"nothing to retry in state {doc.status}")
     doc.next_attempt_at = clock.now()
@@ -473,17 +610,27 @@ def queue_delivery(uow: UnitOfWork, doc: FiscalDocument, response_xml: bytes) ->
     customer = model.get("customer") or {}
     supplier = model.get("supplier") or {}
     if signed is None or not customer:
-        return DeliveryLog.objects.create(tenant_id=doc.tenant_id, company_id=doc.company_id, document=doc,
-                                          status="SKIPPED", detail="no buyer data / signed XML")  # fmt: skip
+        return DeliveryLog.objects.create(
+            tenant_id=doc.tenant_id,
+            company_id=doc.company_id,
+            document=doc,
+            status="SKIPPED",
+            detail="no buyer data / signed XML",
+        )
     from einvoice.builders import ubl
 
     attached = ubl.attached_document(
-        number=f"AD-{doc.number}", issue_date=doc.issue_date, issue_time=str(model.get("issue_time", "00:00:00-05:00")),
+        number=f"AD-{doc.number}",
+        issue_date=doc.issue_date,
+        issue_time=str(model.get("issue_time", "00:00:00-05:00")),
         sender=Party(str(supplier.get("id_number", "")), name=str(supplier.get("name", ""))),
         receiver=Party(str(customer.get("id_number", "")), name=str(customer.get("name", ""))),
-        document_number=doc.number, document_unique_code=doc.unique_code, signed_document=read_evidence(signed),
-        validation_response=response_xml or b"<SinRespuesta/>", environment="2",
-    )  # fmt: skip
+        document_number=doc.number,
+        document_unique_code=doc.unique_code,
+        signed_document=read_evidence(signed),
+        validation_response=response_xml or b"<SinRespuesta/>",
+        environment="2",
+    )
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         info = zipfile.ZipInfo(f"ad{doc.number}.xml", date_time=(2026, 1, 1, 0, 0, 0))
@@ -491,10 +638,18 @@ def queue_delivery(uow: UnitOfWork, doc: FiscalDocument, response_xml: bytes) ->
     content = buf.getvalue()
     evidence = store_evidence(doc, FiscalEvidence.Kind.ATTACHED_DOCUMENT, content)
     email = str(customer.get("email", ""))
-    status, detail = ("QUEUED", "local capture (Mailpit) — no real e-mail in DEV") if email else ("SKIPPED", "buyer has no e-mail")
-    return DeliveryLog.objects.create(tenant_id=doc.tenant_id, company_id=doc.company_id, document=doc,
-                                      recipient_masked=_mask_email(email), status=status,
-                                      attachment_sha256=evidence.sha256, detail=detail)  # fmt: skip
+    status, detail = (
+        ("QUEUED", "local capture (Mailpit) — no real e-mail in DEV") if email else ("SKIPPED", "buyer has no e-mail")
+    )
+    return DeliveryLog.objects.create(
+        tenant_id=doc.tenant_id,
+        company_id=doc.company_id,
+        document=doc,
+        recipient_masked=_mask_email(email),
+        status=status,
+        attachment_sha256=evidence.sha256,
+        detail=detail,
+    )
 
 
 def resend_email(uow: UnitOfWork, doc: FiscalDocument) -> DeliveryLog:
@@ -506,8 +661,13 @@ def resend_email(uow: UnitOfWork, doc: FiscalDocument) -> DeliveryLog:
 
 def record_bounce(uow: UnitOfWork, doc: FiscalDocument, detail: str) -> DeliveryLog:
     """Bounce handling: a new BOUNCED row (the delivery log is append-only) and an audit entry."""
-    row = DeliveryLog.objects.create(tenant_id=doc.tenant_id, company_id=doc.company_id, document=doc, status="BOUNCED",
-                                     detail=sec.redact(detail)[:500])  # fmt: skip
+    row = DeliveryLog.objects.create(
+        tenant_id=doc.tenant_id,
+        company_id=doc.company_id,
+        document=doc,
+        status="BOUNCED",
+        detail=sec.redact(detail)[:500],
+    )
     _audit(uow, "einvoice.delivery.bounced", "einvoice.document", doc.id, doc.company_id)
     return row
 
@@ -515,26 +675,48 @@ def record_bounce(uow: UnitOfWork, doc: FiscalDocument, detail: str) -> Delivery
 # ============================================================================ contingency (R-FE-05)
 
 
-def declare_contingency(uow: UnitOfWork, company_id: uuid.UUID, kind: str, reason: str, *, automatic: bool = False) -> Contingency:
+def declare_contingency(
+    uow: UnitOfWork, company_id: uuid.UUID, kind: str, reason: str, *, automatic: bool = False
+) -> Contingency:
     uow.ctx.require_company(company_id)
     if kind not in Contingency.Kind.values:
         raise ValidationFailed(f"kind must be one of {', '.join(Contingency.Kind.values)}", field="kind")
-    current = Contingency.objects.select_for_update().filter(tenant_id=uow.ctx.tenant_id, company_id=company_id,
-                                                             active=True).first()  # fmt: skip
+    current = (
+        Contingency.objects.select_for_update()
+        .filter(tenant_id=uow.ctx.tenant_id, company_id=company_id, active=True)
+        .first()
+    )
     if current is not None:
         return current
-    row = Contingency.objects.create(tenant_id=uow.ctx.tenant_id, company_id=company_id, kind=kind, automatic=automatic,
-                                     reason=reason[:500], declared_by=uow.ctx.principal_id,
-                                     created_by=uow.ctx.principal_id, updated_by=uow.ctx.principal_id)  # fmt: skip
-    _audit(uow, "einvoice.contingency.declared", "einvoice.contingency", row.id, company_id,
-           {"kind": kind, "automatic": automatic}, reason)  # fmt: skip
+    row = Contingency.objects.create(
+        tenant_id=uow.ctx.tenant_id,
+        company_id=company_id,
+        kind=kind,
+        automatic=automatic,
+        reason=reason[:500],
+        declared_by=uow.ctx.principal_id,
+        created_by=uow.ctx.principal_id,
+        updated_by=uow.ctx.principal_id,
+    )
+    _audit(
+        uow,
+        "einvoice.contingency.declared",
+        "einvoice.contingency",
+        row.id,
+        company_id,
+        {"kind": kind, "automatic": automatic},
+        reason,
+    )
     return row
 
 
 def end_contingency(uow: UnitOfWork, company_id: uuid.UUID) -> Contingency:
     """Service restored: the 48 h late-transmission deadline starts now."""
-    row = Contingency.objects.select_for_update().filter(tenant_id=uow.ctx.tenant_id, company_id=company_id,
-                                                         active=True).first()  # fmt: skip
+    row = (
+        Contingency.objects.select_for_update()
+        .filter(tenant_id=uow.ctx.tenant_id, company_id=company_id, active=True)
+        .first()
+    )
     if row is None:
         raise InvalidTransition("no active contingency")
     now = clock.now()
@@ -552,7 +734,9 @@ def deadline_from(restored_at: dt.datetime) -> dt.datetime:
 def contingency_overview(ctx: TenantContext, company_id: uuid.UUID) -> dict[str, Any]:
     now = clock.now()
     current = active_contingency(ctx, company_id)
-    last = current or Contingency.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id).order_by("-since").first()
+    last = (
+        current or Contingency.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id).order_by("-since").first()
+    )
     pending = FiscalDocument.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, status=S.CONTINGENCY_ISSUED)
     deadline = last.deadline_at if last is not None and not last.active else None
     return {
@@ -575,7 +759,9 @@ def contingency_overview(ctx: TenantContext, company_id: uuid.UUID) -> dict[str,
 # ============================================================================ numbering ranges
 
 
-def sync_numbering_ranges(ctx: TenantContext, company_id: uuid.UUID, adapter: ProviderAdapter | None = None) -> list[dict[str, Any]]:
+def sync_numbering_ranges(
+    ctx: TenantContext, company_id: uuid.UUID, adapter: ProviderAdapter | None = None
+) -> list[dict[str, Any]]:
     """GetNumberingRange through the active adapter (outside a UoW); upserted by :func:`apply_synced_ranges`."""
     if adapter is None:
         adapter, _ = adapter_for(read_settings(ctx, company_id))
@@ -590,19 +776,36 @@ def sync_numbering_ranges(ctx: TenantContext, company_id: uuid.UUID, adapter: Pr
             path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
             path.write_text(r.technical_key.reveal(), encoding="utf-8")
             path.chmod(0o600)
-        out.append({"code": f"{r.prefix or 'NP'}-{r.from_number}", "prefix": r.prefix, "from_number": r.from_number,
-                    "to_number": r.to_number, "resolution": r.resolution, "valid_from": r.valid_from,
-                    "valid_to": r.valid_to, "technical_key_ref": ref})  # fmt: skip
+        out.append(
+            {
+                "code": f"{r.prefix or 'NP'}-{r.from_number}",
+                "prefix": r.prefix,
+                "from_number": r.from_number,
+                "to_number": r.to_number,
+                "resolution": r.resolution,
+                "valid_from": r.valid_from,
+                "valid_to": r.valid_to,
+                "technical_key_ref": ref,
+            }
+        )
     return out
 
 
 def apply_synced_ranges(uow: UnitOfWork, company_id: uuid.UUID, rows: list[dict[str, Any]]) -> list[NumberingRange]:
     out = []
     for row in rows:
-        obj = NumberingRange.objects.filter(tenant_id=uow.ctx.tenant_id, company_id=company_id, code=row["code"]).first()
+        obj = NumberingRange.objects.filter(
+            tenant_id=uow.ctx.tenant_id, company_id=company_id, code=row["code"]
+        ).first()
         if obj is None:
-            obj = NumberingRange.objects.create(tenant_id=uow.ctx.tenant_id, company_id=company_id, source="SYNC",
-                                                synthetic=False, created_by=uow.ctx.principal_id, **row)  # fmt: skip
+            obj = NumberingRange.objects.create(
+                tenant_id=uow.ctx.tenant_id,
+                company_id=company_id,
+                source="SYNC",
+                synthetic=False,
+                created_by=uow.ctx.principal_id,
+                **row,
+            )
         out.append(obj)
     return out
 
@@ -612,8 +815,13 @@ def range_usage(rng: NumberingRange) -> dict[str, Any]:
     used = 0 if rng.last_used_number is None else rng.last_used_number - rng.from_number + 1
     remaining = size - used
     pct = (used * 100) // size if size else 100
-    return {"size": size, "used": used, "remaining": remaining, "used_pct": pct,
-            "alert": "EXHAUSTED" if remaining <= 0 else "95" if pct >= 95 else "80" if pct >= 80 else None}  # fmt: skip
+    return {
+        "size": size,
+        "used": used,
+        "remaining": remaining,
+        "used_pct": pct,
+        "alert": "EXHAUSTED" if remaining <= 0 else "95" if pct >= 95 else "80" if pct >= 80 else None,
+    }
 
 
 # ============================================================================ certificates (EG-2)
@@ -623,7 +831,9 @@ def certificate_alerts(uow: UnitOfWork, company_id: uuid.UUID, today: dt.date | 
     """30/15/7-day expiry alerts (each threshold once per certificate, audited)."""
     day = today or clock.business_date()
     alerts = []
-    for cert in SigningCertificate.objects.select_for_update().filter(tenant_id=uow.ctx.tenant_id, company_id=company_id):
+    for cert in SigningCertificate.objects.select_for_update().filter(
+        tenant_id=uow.ctx.tenant_id, company_id=company_id
+    ):
         left = (cert.valid_to - day).days
         if left < 0 and cert.status != SigningCertificate.Status.EXPIRED:
             cert.status = SigningCertificate.Status.EXPIRED
@@ -636,8 +846,14 @@ def certificate_alerts(uow: UnitOfWork, company_id: uuid.UUID, today: dt.date | 
         threshold = min(due)
         cert.alerts_sent = sorted({*cert.alerts_sent, *due}, reverse=True)
         cert.save_versioned(uow.ctx.principal_id, ["alerts_sent"])
-        _audit(uow, "einvoice.certificate.expiry_alert", "einvoice.certificate", cert.id, company_id,
-               {"threshold": threshold, "days_left": left})  # fmt: skip
+        _audit(
+            uow,
+            "einvoice.certificate.expiry_alert",
+            "einvoice.certificate",
+            cert.id,
+            company_id,
+            {"threshold": threshold, "days_left": left},
+        )
         alerts.append({"certificate_id": str(cert.id), "threshold": threshold, "days_left": left})
     return alerts
 
@@ -646,8 +862,15 @@ def certificate_alerts(uow: UnitOfWork, company_id: uuid.UUID, today: dt.date | 
 
 
 def provider_fingerprint(provider: TechnologyProvider) -> str:
-    raw = "|".join([provider.adapter, provider.base_url, provider.environment, provider.contract_version,
-                    hashlib.sha256(provider.credentials_ref.encode()).hexdigest()])  # fmt: skip
+    raw = "|".join(
+        [
+            provider.adapter,
+            provider.base_url,
+            provider.environment,
+            provider.contract_version,
+            hashlib.sha256(provider.credentials_ref.encode()).hexdigest(),
+        ]
+    )
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
@@ -675,14 +898,24 @@ def record_provider_test(uow: UnitOfWork, provider: TechnologyProvider, report: 
             provider.config_state = TechnologyProvider.ConfigState.TESTED
             fields.append("config_state")
     provider.save_versioned(uow.ctx.principal_id, fields)
-    uow.emit("einvoice.provider.tested.v1", {"provider_id": str(provider.id), "passed": bool(report.get("passed"))},
-             company_id=provider.company_id)  # fmt: skip
-    _audit(uow, "einvoice.provider.tested", "einvoice.provider", provider.id, provider.company_id,
-           {"passed": bool(report.get("passed"))})  # fmt: skip
+    uow.emit(
+        "einvoice.provider.tested.v1",
+        {"provider_id": str(provider.id), "passed": bool(report.get("passed"))},
+        company_id=provider.company_id,
+    )
+    _audit(
+        uow,
+        "einvoice.provider.tested",
+        "einvoice.provider",
+        provider.id,
+        provider.company_id,
+        {"passed": bool(report.get("passed"))},
+    )
     if not report.get("passed"):
         failed = [c["case"] for c in report.get("cases", []) if not c.get("passed")]
-        raise ProviderContractTestFailed(f"provider contract suite failed: {', '.join(failed) or 'construct'}",
-                                         cases=report.get("cases", []))  # fmt: skip
+        raise ProviderContractTestFailed(
+            f"provider contract suite failed: {', '.join(failed) or 'construct'}", cases=report.get("cases", [])
+        )
     return provider
 
 
@@ -699,16 +932,34 @@ def select_provider(uow: UnitOfWork, settings_row: EinvoiceSettings, provider: T
     if provider.tested_fingerprint != provider_fingerprint(provider):
         raise ProviderContractTestFailed("the provider configuration changed since its contract test; test it again")
     current = settings_row.provider
-    if current is not None and current.pk != provider.pk and current.config_state == TechnologyProvider.ConfigState.ACTIVE:
-        if settings_row.pending_provider_id != provider.pk or settings_row.pending_requested_by in (None, uow.ctx.principal_id):
-            settings_row.pending_provider = provider
-            settings_row.pending_requested_by = uow.ctx.principal_id
-            settings_row.save_versioned(uow.ctx.principal_id, ["pending_provider", "pending_requested_by"])
-            _audit(uow, "einvoice.provider.switch_requested", "einvoice.provider", provider.id, provider.company_id)
-            return False
-    for other in TechnologyProvider.objects.select_for_update().filter(
-        tenant_id=provider.tenant_id, company_id=provider.company_id, config_state=TechnologyProvider.ConfigState.ACTIVE
-    ).exclude(pk=provider.pk):
+    is_switch = (
+        current is not None
+        and current.pk != provider.pk
+        and current.config_state == TechnologyProvider.ConfigState.ACTIVE
+    )
+    approved_by_second_admin = (
+        settings_row.pending_provider_id == provider.pk
+        and settings_row.pending_requested_by
+        not in (
+            None,
+            uow.ctx.principal_id,
+        )
+    )
+    if is_switch and not approved_by_second_admin:
+        settings_row.pending_provider = provider
+        settings_row.pending_requested_by = uow.ctx.principal_id
+        settings_row.save_versioned(uow.ctx.principal_id, ["pending_provider", "pending_requested_by"])
+        _audit(uow, "einvoice.provider.switch_requested", "einvoice.provider", provider.id, provider.company_id)
+        return False
+    for other in (
+        TechnologyProvider.objects.select_for_update()
+        .filter(
+            tenant_id=provider.tenant_id,
+            company_id=provider.company_id,
+            config_state=TechnologyProvider.ConfigState.ACTIVE,
+        )
+        .exclude(pk=provider.pk)
+    ):
         other.config_state = TechnologyProvider.ConfigState.RETIRED
         other.save_versioned(uow.ctx.principal_id, ["config_state"])
     if provider.config_state != TechnologyProvider.ConfigState.ACTIVE:
@@ -725,8 +976,11 @@ def select_provider(uow: UnitOfWork, settings_row: EinvoiceSettings, provider: T
 
 
 def _event_rules(uow: UnitOfWork, doc: FiscalDocument, code: str) -> None:
-    seen = set(RadianEvent.objects.filter(fiscal_document=doc).exclude(status=RadianEvent.Status.REJECTED)
-               .values_list("event_code", flat=True))  # fmt: skip
+    seen = set(
+        RadianEvent.objects.filter(fiscal_document=doc)
+        .exclude(status=RadianEvent.Status.REJECTED)
+        .values_list("event_code", flat=True)
+    )
     if code in seen:
         raise Conflict(f"RADIAN event {code} already registered for this document", code="validation_failed")
     if code in ("031", "033", "034") and "032" not in seen:
@@ -745,9 +999,14 @@ def resolve_document(ctx: TenantContext, company_id: uuid.UUID, ref: DocumentRef
 
 
 def emit_radian_event(
-    uow: UnitOfWork, company_id: uuid.UUID, ref: DocumentRef, event_code: str, *,
-    claim_concept: str = "", system: bool = False,
-) -> RadianEvent:  # fmt: skip
+    uow: UnitOfWork,
+    company_id: uuid.UUID,
+    ref: DocumentRef,
+    event_code: str,
+    *,
+    claim_concept: str = "",
+    system: bool = False,
+) -> RadianEvent:
     """Build, number and store an ApplicationResponse for ``event_code`` (transmitted by the worker)."""
     code = annex.radian_event(event_code)
     if code.value in annex.SYSTEM_ONLY_EVENTS and not system:
@@ -776,42 +1035,82 @@ def emit_radian_event(
     pin = _software_pin(settings_row)
     doc_number = str(model.get("number", doc.number))
     type_code = "01"
-    unique = hashing.compute("CUDE_AR", {"NumDE": number, "FecEmi": now.date().isoformat(), "HorEmi": issue_time,
-                                         "NitFE": sender.id_number, "DocAdq": receiver.id_number,
-                                         "ResponseCode": event_code, "ID": doc_number, "DocumentTypeCode": type_code,
-                                         "SoftwarePIN": pin.reveal()})  # fmt: skip
+    unique = hashing.compute(
+        "CUDE_AR",
+        {
+            "NumDE": number,
+            "FecEmi": now.date().isoformat(),
+            "HorEmi": issue_time,
+            "NitFE": sender.id_number,
+            "DocAdq": receiver.id_number,
+            "ResponseCode": event_code,
+            "ID": doc_number,
+            "DocumentTypeCode": type_code,
+            "SoftwarePIN": pin.reveal(),
+        },
+    )
     event = RadianEvent.objects.create(
-        tenant_id=uow.ctx.tenant_id, company_id=company_id, document_type=ref.type, document_id=ref.id,
-        fiscal_document=doc, document_number=doc_number, document_unique_code=doc.unique_code, event_code=event_code,
-        direction=RadianEvent.Direction.EMITTED, number=number, unique_code=unique, claim_concept=claim_concept,
-        system_generated=system, created_by=uow.ctx.principal_id, updated_by=uow.ctx.principal_id,
-    )  # fmt: skip
+        tenant_id=uow.ctx.tenant_id,
+        company_id=company_id,
+        document_type=ref.type,
+        document_id=ref.id,
+        fiscal_document=doc,
+        document_number=doc_number,
+        document_unique_code=doc.unique_code,
+        event_code=event_code,
+        direction=RadianEvent.Direction.EMITTED,
+        number=number,
+        unique_code=unique,
+        claim_concept=claim_concept,
+        system_generated=system,
+        created_by=uow.ctx.principal_id,
+        updated_by=uow.ctx.principal_id,
+    )
     from einvoice.builders import ubl
 
     xml = ubl.application_response(
-        number=number, issue_date=now.date(), issue_time=issue_time, unique_code=unique,
-        environment=settings_row.environment, sender=sender, receiver=receiver, response_code=event_code,
-        response_label=code.label, document_number=doc_number, document_unique_code=doc.unique_code,
-        document_type_code=type_code, claim_concept=claim_concept,
+        number=number,
+        issue_date=now.date(),
+        issue_time=issue_time,
+        unique_code=unique,
+        environment=settings_row.environment,
+        sender=sender,
+        receiver=receiver,
+        response_code=event_code,
+        response_label=code.label,
+        document_number=doc_number,
+        document_unique_code=doc.unique_code,
+        document_type_code=type_code,
+        claim_concept=claim_concept,
         software_id=settings_row.software_id or DEV_SOFTWARE_ID,
-    )  # fmt: skip
+    )
     store_evidence(None, FiscalEvidence.Kind.EVENT_XML, xml, event=event)
     _audit(uow, "einvoice.radian.emitted", "einvoice.radian_event", event.id, company_id, {"event_code": event_code})
     return event
 
 
-def record_received_event(uow: UnitOfWork, company_id: uuid.UUID, ref: DocumentRef, event_code: str,
-                          occurred_at: dt.datetime | None = None) -> RadianEvent:  # fmt: skip
+def record_received_event(
+    uow: UnitOfWork, company_id: uuid.UUID, ref: DocumentRef, event_code: str, occurred_at: dt.datetime | None = None
+) -> RadianEvent:
     """An event received from the buyer about one of our invoices (e.g. 032 recibo del bien)."""
     annex.radian_event(event_code)
     doc = resolve_document(uow.ctx, company_id, ref)
     _event_rules(uow, doc, event_code)
     event = RadianEvent.objects.create(
-        tenant_id=uow.ctx.tenant_id, company_id=company_id, document_type=ref.type, document_id=ref.id,
-        fiscal_document=doc, document_number=doc.number, document_unique_code=doc.unique_code, event_code=event_code,
-        direction=RadianEvent.Direction.RECEIVED, status=RadianEvent.Status.RECORDED,
-        occurred_at=occurred_at or clock.now(), created_by=uow.ctx.principal_id, updated_by=uow.ctx.principal_id,
-    )  # fmt: skip
+        tenant_id=uow.ctx.tenant_id,
+        company_id=company_id,
+        document_type=ref.type,
+        document_id=ref.id,
+        fiscal_document=doc,
+        document_number=doc.number,
+        document_unique_code=doc.unique_code,
+        event_code=event_code,
+        direction=RadianEvent.Direction.RECEIVED,
+        status=RadianEvent.Status.RECORDED,
+        occurred_at=occurred_at or clock.now(),
+        created_by=uow.ctx.principal_id,
+        updated_by=uow.ctx.principal_id,
+    )
     return event
 
 
@@ -822,8 +1121,12 @@ def transmit_event(ctx: TenantContext, event_id: uuid.UUID, adapter: ProviderAda
         ev = RadianEvent.objects.select_for_update().get(pk=event_id)
         if ev.status != RadianEvent.Status.PENDING or ev.direction != RadianEvent.Direction.EMITTED:
             return None
-        xml = FiscalEvidence.objects.filter(radian_event=ev, kind=FiscalEvidence.Kind.EVENT_XML).order_by("-created_at").first()
-        assert xml is not None
+        xml = (
+            FiscalEvidence.objects.filter(radian_event=ev, kind=FiscalEvidence.Kind.EVENT_XML)
+            .order_by("-created_at")
+            .first()
+        )
+        xml = present(xml, "event XML evidence")
         key, cert = _signing_material(uow.ctx, ev.company_id)
         signed = signing.sign(read_evidence(xml), key, cert, signature_id=str(ev.id))
         store_evidence(None, FiscalEvidence.Kind.SIGNED_XML, signed, event=ev)
@@ -851,9 +1154,16 @@ def transmit_event(ctx: TenantContext, event_id: uuid.UUID, adapter: ProviderAda
         ev = RadianEvent.objects.select_for_update().get(pk=event_id)
         if ev.status != RadianEvent.Status.SUBMITTED:
             return ev
-        TransmissionLog.objects.create(tenant_id=ev.tenant_id, company_id=ev.company_id, radian_event=ev,
-                                       provider_code=provider_code, adapter_key=adapter_key, attempt=1,
-                                       outcome=result.status if result else "TRANSIENT", error=error[:1000])  # fmt: skip
+        TransmissionLog.objects.create(
+            tenant_id=ev.tenant_id,
+            company_id=ev.company_id,
+            radian_event=ev,
+            provider_code=provider_code,
+            adapter_key=adapter_key,
+            attempt=1,
+            outcome=result.status if result else "TRANSIENT",
+            error=error[:1000],
+        )
         if result is None:
             ev.status = RadianEvent.Status.PENDING
         else:
@@ -866,8 +1176,7 @@ def transmit_event(ctx: TenantContext, event_id: uuid.UUID, adapter: ProviderAda
         return ev
 
     out = run_in_unit_of_work(record, ctx)
-    assert isinstance(out, RadianEvent)
-    return out
+    return of_type(out, RadianEvent)
 
 
 def tacit_acceptance_due(ctx: TenantContext, company_id: uuid.UUID, today: dt.date | None = None) -> list[uuid.UUID]:

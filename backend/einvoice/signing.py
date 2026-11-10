@@ -83,7 +83,7 @@ def _sub(parent: ET.Element, ns: str, tag: str, text: str | None = None, **attrs
 
 def sign(xml: bytes, key: Secret, cert: CertificateInfo, *, signature_id: str) -> bytes:
     """Return ``xml`` with ``ds:Signature`` inserted in the last ``ext:ExtensionContent``."""
-    root = ET.fromstring(xml)
+    root = ET.fromstring(xml)  # noqa: S314 - expat does not resolve external entities (no XXE); bounded own XML
     if _strip_signature(root) is not None:
         raise SignatureInvalid("document is already signed")
     doc_digest = _b64_digest(_c14n(root))
@@ -124,13 +124,13 @@ def sign(xml: bytes, key: Secret, cert: CertificateInfo, *, signature_id: str) -
     _sub(key_info, DS, "KeyName", f"{SIGNATURE_MODE}:{cert.thumbprint[:16]}")
     sig.append(obj)
     _signature_slot(root).append(sig)
-    return ET.tostring(root, encoding="UTF-8", xml_declaration=True)
+    return bytes(ET.tostring(root, encoding="UTF-8", xml_declaration=True))
 
 
 def verify(xml: bytes, key: Secret) -> dict[str, str]:
     """Verify a document signed by :func:`sign`; returns the signed properties. Raises ``SignatureInvalid``."""
     try:
-        root = ET.fromstring(xml)
+        root = ET.fromstring(xml)  # noqa: S314 - expat does not resolve external entities (no XXE); bounded own XML
     except ET.ParseError as exc:
         raise SignatureInvalid(f"not well-formed XML: {exc}") from None
     sig = _strip_signature(root)
