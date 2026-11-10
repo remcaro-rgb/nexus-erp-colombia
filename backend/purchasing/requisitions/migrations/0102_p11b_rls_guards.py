@@ -26,8 +26,13 @@ TABLES = [
     "purchasing_shipment_notice_line",
     "purchasing_supplier_document",
     "purchasing_supplier_invoice_upload",
+    "purchasing_po_acknowledgement",
 ]
-APPEND_ONLY = ["purchasing_sourcing_decision", "purchasing_supplier_profile_change_approval"]
+APPEND_ONLY = [
+    "purchasing_sourcing_decision",
+    "purchasing_supplier_profile_change_approval",
+    "purchasing_po_acknowledgement",
+]
 
 
 class Migration(migrations.Migration):

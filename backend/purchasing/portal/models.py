@@ -176,3 +176,20 @@ class SupplierInvoiceUpload(CompanyModel, AuditedModel):
                 fields=["tenant_id", "company_id", "supplier_id", "number"], name="purchasing_siu_number_uq"
             ),
         ]
+
+
+class PoAcknowledgement(CompanyModel):
+    """Supplier answer to a SENT purchase order: accepted (→ P11a ACKNOWLEDGED) or changes requested."""
+
+    objects: ClassVar[models.Manager[PoAcknowledgement]] = models.Manager()
+
+    supplier_id = models.UUIDField()
+    party_id = models.UUIDField()
+    external_account_id = models.UUIDField()
+    purchase_order_id = models.UUIDField()
+    accepted = models.BooleanField()
+    comment = models.TextField(blank=True, default="")
+    answered_at = models.DateTimeField()
+
+    class Meta:
+        db_table = "purchasing_po_acknowledgement"

@@ -305,7 +305,7 @@ def make_p11b_world(world: World, issuer: LocalIssuer) -> P11bWorld:
             company,
         )
     for role, grants in ROLES.items():
-        world.add_role(role, grants, max_cls="confidential")
+        world.add_role(role, grants, max_cls="restricted-pii" if role == "iam_admin" else "confidential")
     for user, roles in USERS.items():
         world.add_user(user, ["ALFA", "BETA"], subject=str(uuid.uuid4()))
         for role in roles:
@@ -402,3 +402,25 @@ def receive_order(w: P11bWorld, order: dict[str, Any], warehouse: Any, qty: str,
     assert r.status_code == 201, r.content
     r = api.post(f"{PUR}/receipts/{r.json()['id']}:validate")
     assert r.status_code == 200, r.content
+
+
+# --------------------------------------------------------------------------- supplier portal identities (D-018)
+
+PORTAL_PASSWORD = "dev-only-" + uuid.uuid4().hex  # random per run, never printed
+
+
+def onboard_supplier(w: P11bWorld, notifications: Any, supplier: Any, username: str, company: str = "ALFA") -> Api:
+    """Invite (admin) → realm user sets a password → login with ``erp-portal`` → accept; returns the portal API."""
+    admin = w.api("admin", company)
+    r = admin.post(
+        "/api/v1/iam/external-accounts",
+        {"email": f"{username}@example.invalid", "portal_kind": "supplier", "party": {"id": str(supplier.party_id)}},
+    )
+    assert r.status_code == 201, r.content
+    _nid, request = notifications.sent[-1]
+    assert request.template_code == "iam.portal_invitation"
+    w.issuer.register(username, PORTAL_PASSWORD, w.world.tenant_id, groups=("portal-supplier",))
+    portal = Api(w.issuer.login(username, PORTAL_PASSWORD, "erp-portal"))
+    r = portal.post("/api/portal/v1/invitations:accept", {"token": str(request.data["invitation_token"])})
+    assert r.status_code == 200 and r.json()["external_status"] == "ACTIVE", r.content
+    return portal
