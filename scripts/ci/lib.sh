@@ -70,7 +70,9 @@ image_present() { docker image inspect "$1" >/dev/null 2>&1; }
 active_profiles() {
   local p=()
   image_present "erp-api:${ERP_IMAGE_TAG}" && p+=(app)
-  image_present "erp-web:${ERP_IMAGE_TAG}" && p+=(web)
+  # web only when this checkout has the frontend sources (a stale erp-web image of another checkout is never served)
+  image_present "erp-web:${ERP_IMAGE_TAG}" && [[ -f "$NEXUS_REPO_ROOT/package.json" && -f "$NEXUS_REPO_ROOT/pnpm-lock.yaml" \
+    && -f "$NEXUS_REPO_ROOT/frontend/package.json" ]] && p+=(web)
   image_present "erp-mcp:${ERP_IMAGE_TAG}" && p+=(mcp)
   [[ "${NEXUS_OBSERVABILITY:-0}" == "1" ]] && p+=(observability)
   printf '%s\n' "${p[@]:-}"
