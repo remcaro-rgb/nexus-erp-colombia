@@ -32,5 +32,8 @@ urlpatterns = [
     path("providers/<uuid:pk>:test-connection", views.ProviderTestConnection.as_view()),
 ]
 
-#: Mounted at ``api/v1/kpis/facturacion`` by ``EinvoiceConfig.EXTRA_URL_MOUNTS``.
-kpi_urlpatterns = [path("", views.KpiView.as_view(), name="kpis-facturacion")]
+#: Mounted at ``api/v1/kpis/`` by ``EinvoiceConfig.EXTRA_URL_MOUNTS`` (registry api.kpis / api.panel).
+kpi_urlpatterns = [
+    path("facturacion", views.KpiView.as_view(), name="kpis-facturacion"),
+    path("facturacion/panels/<slug:panel_id>", views.KpiPanelView.as_view(), name="kpis-facturacion-panel"),
+]

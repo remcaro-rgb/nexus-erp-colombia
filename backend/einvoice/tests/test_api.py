@@ -95,10 +95,22 @@ def test_T_P15_api_numbering_ranges_and_exhaustion(api: ApiClient, policy: Any, 
     blocked = api.command("patch", f"/api/v1/einvoice/numbering-ranges/{rid}", {"prefix": "OTRO"}, **{"If-Match": etag})
     assert blocked.status_code == 409
     assert api.command("delete", f"/api/v1/einvoice/numbering-ranges/{rid}").status_code == 409  # in use
-    kpi = api.get("/api/v1/kpis/facturacion?period=2026-11").json()
-    assert kpi["kpis"]["numeracion_restante"]["value"] == 1
-    assert kpi["kpis"]["docs_emitidos"]["value"] == 1 and kpi["kpis"]["docs_validados_pct"]["value"] is None
-    assert kpi["kpis"]["docs_validados_pct"]["empty_reason"] == "Sin base para calcular"
+    body = api.get(f"/api/v1/kpis/facturacion?period=2026-11&company_id={company}").json()
+    kpi = {k["id"]: k for k in body["kpis"]}
+    assert set(body) >= {"as_of", "kpis", "generated_at"}
+    assert kpi["numeracion_restante"]["value"] == "1" and kpi["numeracion_restante"]["state"] == "ok"
+    assert kpi["docs_emitidos"]["value"] == "1" and kpi["docs_emitidos"]["delta"] is None  # previous = 0 → '—'
+    assert kpi["docs_validados_pct"]["value"] is None and kpi["docs_validados_pct"]["state"] == "no_data"
+    assert kpi["docs_validados_pct"]["empty_reason"] == "Sin base para calcular"
+    chart = api.get("/api/v1/kpis/facturacion/panels/estado_documentos?period=2026-11").json()
+    assert chart["points"] == [
+        {
+            "label": "built",
+            "values": {"documentos": "1"},
+            "fiscal_status": "PENDING",
+            "drill": "/m/facturacion/documentos?estado=built",
+        }
+    ]
     sync = api.command("post", "/api/v1/einvoice/numbering-ranges:sync", {})
     assert sync.status_code == 202 and sync.json()["status"] == "FAILED"  # the simulator has no ranges (manual load)
 
@@ -112,11 +124,11 @@ def test_T_P15_api_contingency_radian_and_habilitation(
         "post", "/api/v1/einvoice/contingency:declare", {"reason": "corte", "parameters": {"kind": "ISSUER_OUTAGE"}}
     )
     assert on.status_code == 200 and on.json()["active"] is True
-    kpi = api.get("/api/v1/kpis/facturacion").json()
-    assert kpi["panels"]["contingencia"]["active"] is True
+    panel = api.get("/api/v1/kpis/facturacion/panels/contingencia").json()
+    assert panel["contingency"]["active"] is True
     off = api.command("post", "/api/v1/einvoice/contingency:end", {})
     assert off.json()["active"] is False
-    assert api.get("/api/v1/kpis/facturacion").json()["panels"]["contingencia"]["deadline_at"] is not None
+    assert api.get("/api/v1/kpis/facturacion/panels/contingencia").json()["contingency"]["deadline_at"] is not None
 
     create_range(ctx, company)
     doc = service.transmit(ctx, register(ctx, company, invoice_model("SETP990000003")).id)

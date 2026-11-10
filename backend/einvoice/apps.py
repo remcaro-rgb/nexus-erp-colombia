@@ -10,9 +10,9 @@ class EinvoiceConfig(AppConfig):
     label = "einvoice"
     verbose_name = "Facturación electrónica DIAN (simulador en DEV)"
     default_auto_field = "django.db.models.BigAutoField"
-    #: ``erp.discovery``: routes at ``api/v1/einvoice/`` plus ``GET /api/v1/kpis/facturacion``.
+    #: ``erp.discovery``: routes at ``api/v1/einvoice/`` plus ``GET /api/v1/kpis/facturacion[/panels/{id}]``.
     EXTRA_URL_MOUNTS: ClassVar[dict[str, tuple[str, str]]] = {
-        "api/v1/kpis/facturacion": ("einvoice.urls:kpi_urlpatterns", "kpis-facturacion")
+        "api/v1/kpis/": ("einvoice.urls:kpi_urlpatterns", "kpis-facturacion")
     }
 
     def ready(self) -> None:

@@ -890,29 +890,37 @@ class ProviderExport(EinvoiceAPIView):
 # ============================================================================ KPIs
 
 
+def _kpi_company(request: Request, ctx: Any) -> uuid.UUID:
+    raw = request.query_params.get("company_id")
+    if raw:
+        return ctx.require_company(base.parse_uuid(raw, "company_id"))  # type: ignore[no-any-return]
+    return base.company_id(request, ctx)
+
+
+def _kpi_period(request: Request) -> str | None:
+    """``period=YYYY-MM`` (or a ``period_id`` in that form); otherwise the current month (America/Bogota)."""
+    raw = request.query_params.get("period") or request.query_params.get("period_id")
+    return raw if raw and re.fullmatch(r"\d{4}-\d{2}", raw) else None
+
+
 class KpiView(EinvoiceAPIView):
     def get(self, request: Request) -> Response:
         ctx = base.context(request)
-        company = base.company_id(request, ctx)
-        if not any(services_allowed(ctx, p) for p in ("einvoice.document.read", "einvoice.numbering_range.read")):
+        company = _kpi_company(request, ctx)
+        if not (
+            services_allowed(ctx, "einvoice.document.read") or services_allowed(ctx, "einvoice.numbering_range.read")
+        ):
             base.authorize(ctx, "einvoice.document.read")
-        body = kpis.facturacion_kpis(ctx, company, request.query_params.get("period"))
-        if services_allowed(ctx, "einvoice.contingency.read"):
-            over = service.contingency_overview(ctx, company)
-            body["panels"]["contingencia"] = {
-                k: over[k]
-                for k in (
-                    "active",
-                    "kind",
-                    "since",
-                    "restored_at",
-                    "deadline_at",
-                    "remaining_seconds",
-                    "overdue",
-                    "pending_documents",
-                )
-            }
-        return Response(body)
+        return Response(kpis.facturacion_kpis(ctx, company, _kpi_period(request)))
+
+
+class KpiPanelView(EinvoiceAPIView):
+    def get(self, request: Request, panel_id: str) -> Response:
+        ctx = base.context(request)
+        company = _kpi_company(request, ctx)
+        if not (services_allowed(ctx, "einvoice.document.read") or services_allowed(ctx, "einvoice.contingency.read")):
+            base.authorize(ctx, "einvoice.document.read")
+        return Response(kpis.panel(ctx, company, panel_id, _kpi_period(request)))
 
 
 def services_allowed(ctx: Any, permission: str) -> bool:
