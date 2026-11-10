@@ -3,24 +3,25 @@ stock never goes negative and the failed document leaves no moves, reservations 
 
 from __future__ import annotations
 
+import datetime as dt
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
 from inventory.issues import service as issues
 from inventory.issues.models import StockIssue
+from inventory.issues.tests.threads import run_threads
 from inventory.models import ItemValuation, Reservation, StockMove, StockQuant
-from inventory.tests.conftest import TODAY
-from inventory.tests.test_concurrency import run_threads
 from kernel.uow import run_in_unit_of_work
 from ledger.models import JournalEntry
 
 D = Decimal
+TODAY = dt.date(2026, 11, 9)  # = inventory.tests.conftest.TODAY (frozen clock)
 
 
 @pytest.mark.django_db(transaction=True)
-def test_T_INV_ISSUE_03_concurrent_issues_of_last_units_one_succeeds_one_stock_insufficient(iw):
+def test_T_INV_ISSUE_03_concurrent_issues_of_last_units_one_succeeds_one_stock_insufficient(iw: Any) -> None:
     inv = iw.inv
     wh = inv.warehouse("BOG-CONC", branch="BOG")
     alm = inv.bin(wh, "ALMACEN")
@@ -36,7 +37,7 @@ def test_T_INV_ISSUE_03_concurrent_issues_of_last_units_one_succeeds_one_stock_i
             document_date=TODAY,
             lines=(issues.IssueLineInput(item_id=item.id, quantity=D(5), location_id=alm.id if n == 0 else None),),
         )
-        return inv.run(lambda u: issues.create(u, company, data))
+        return cast(StockIssue, inv.run(lambda u: issues.create(u, company, data)))
 
     docs = [draft(0), draft(1)]  # one names the bin, the other uses FEFO picking
 

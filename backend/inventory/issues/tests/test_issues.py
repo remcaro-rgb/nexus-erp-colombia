@@ -32,7 +32,9 @@ def _issue(api: Any, iw: Any, concept: str, wh: Any, lines: list[dict[str, Any]]
     return api.post(f"{BASE}/issues", body)
 
 
-def test_T_INV_ISSUE_01_each_seeded_concept_posts_exact_journal_and_moves_cost_from_layers(iw, clerk, login):
+def test_T_INV_ISSUE_01_each_seeded_concept_posts_exact_journal_and_moves_cost_from_layers(
+    iw: Any, clerk: Any, login: Any
+) -> None:
     inv = iw.inv
     api = login(clerk)
     wh = inv.warehouse("BOG-SAL", branch="BOG")
@@ -43,12 +45,13 @@ def test_T_INV_ISSUE_01_each_seeded_concept_posts_exact_journal_and_moves_cost_f
         inv.line(avg, wh, "10", "1", location=alm, cost="1000"), inv.line(fifo, wh, "5", "2", location=alm, cost="1000")
     )
     inv.receive(
-        inv.line(avg, wh, "10", "1", location=alm, cost="1300"), inv.line(fifo, wh, "20", "2", location=alm, cost="1200")
+        inv.line(avg, wh, "10", "1", location=alm, cost="1300"),
+        inv.line(fifo, wh, "20", "2", location=alm, cost="1200"),
     )
     # average 1150; FIFO layers 5 × 1000, 20 × 1200
 
     cc, project = str(iw.cost_center), str(iw.project)
-    cases = [
+    cases: list[tuple[str, dict[str, Any], str]] = [
         ("CONSUMO", {"dimensions": {"cost_center_id": cc}}, "519595"),
         ("CONSUMO_DIRECTO", {"dimensions": {"cost_center_id": cc, "item_dimension_id": project}}, "729595"),
         ("BAJA", {"reason": "VENCIDO lote de prueba (SINTÉTICO)"}, "539595"),
@@ -124,8 +127,8 @@ def test_T_INV_ISSUE_01_each_seeded_concept_posts_exact_journal_and_moves_cost_f
 
 
 def test_T_INV_ISSUE_02_required_dims_reason_and_approval_threshold_routes_to_workflow(
-    iw, clerk, supervisor, seller, login, issue_services
-):
+    iw: Any, clerk: Any, supervisor: Any, seller: Any, login: Any, issue_services: Any
+) -> None:
     inv = iw.inv
     api, boss, sales = login(clerk), login(supervisor), login(seller)
     wh = inv.warehouse("BOG-DIM", branch="BOG")
@@ -214,7 +217,7 @@ def test_T_INV_ISSUE_02_required_dims_reason_and_approval_threshold_routes_to_wo
     assert api.post(f"{BASE}/issues/{draft['id']}:simulate").json()["data"]["total"]["amount"] == "1000.0000"
 
 
-def test_T_INV_ISSUE_04_reversal_returns_stock_at_original_cost_bin_and_lot(iw, clerk, login):
+def test_T_INV_ISSUE_04_reversal_returns_stock_at_original_cost_bin_and_lot(iw: Any, clerk: Any, login: Any) -> None:
     inv = iw.inv
     api = login(clerk)
     wh = inv.warehouse("BOG-REV", branch="BOG")
@@ -252,7 +255,11 @@ def test_T_INV_ISSUE_04_reversal_returns_stock_at_original_cost_bin_and_lot(iw, 
     r = api.post(f"{BASE}/issues/{doc['id']}:reverse", {"reason": "Baja registrada por error"})
     assert r.status_code == 200, r.content
     rev = r.json()
-    assert rev["status"] == "REVERSED" and rev["reversal_entry_id"] and rev["journal_entry_id"] == posted["journal_entry_id"]
+    assert (
+        rev["status"] == "REVERSED"
+        and rev["reversal_entry_id"]
+        and rev["journal_entry_id"] == posted["journal_entry_id"]
+    )
     with inv.scope():
         ret = StockMove.objects.get(source_type=issues.REVERSAL_SOURCE_TYPE, source_id=doc["id"])
         orig = StockMove.objects.get(source_type=issues.SOURCE_TYPE, source_id=doc["id"])

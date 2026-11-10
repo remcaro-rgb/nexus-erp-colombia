@@ -4,6 +4,7 @@ workflow contract double (P07's real engine is proven at its own gate; D-023 SoD
 
 from __future__ import annotations
 
+import importlib
 import uuid
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -14,16 +15,6 @@ import pytest
 from inventory.issues import registry as issue_registry
 from inventory.issues import service as issues
 from inventory.issues.models import IssueConcept
-from inventory.tests.conftest import (  # noqa: F401 - re-exported fixtures
-    Inv,
-    _issuer_session,
-    clerk,
-    inv,
-    inventory_services,
-    issuer,
-    login,
-    world,
-)
 from kernel import services
 from kernel.interfaces.documents import DocumentRenderer
 from kernel.interfaces.workflow import WorkflowService
@@ -39,12 +30,26 @@ EXPENSE_ACCOUNTS = (
     ("529595", "Otras salidas de inventario (SINTÉTICO)", "INVENTORY_OTHER_ISSUE_EXPENSE"),
 )
 
+# P09a core test module, imported dynamically: its fixtures are re-exported here (pytest collects module
+# attributes of a conftest) and mypy does not type-check the core's excluded test tree through this import.
+_base: Any = importlib.import_module("inventory.tests.conftest")
+Inv = Any
+# P09a fixtures re-exported for this directory (pytest collects module attributes of a conftest)
+_issuer_session = _base._issuer_session
+clerk = _base.clerk
+inv = _base.inv
+inventory_services = _base.inventory_services
+issuer = _base.issuer
+login = _base.login
+world = _base.world
+
 
 @pytest.fixture(autouse=True)
 def issue_services() -> Iterator[dict[str, Any]]:
     workflow = FakeWorkflowService()
-    renderer = FakeDocumentRenderer()
-    stack = [services.override(WorkflowService, workflow), services.override(DocumentRenderer, renderer)]
+    renderer: DocumentRenderer = FakeDocumentRenderer()
+    workflow_svc: WorkflowService = workflow
+    stack = [services.override(WorkflowService, workflow_svc), services.override(DocumentRenderer, renderer)]
     for cm in stack:
         cm.__enter__()
     issue_registry.register_fields()
@@ -69,8 +74,11 @@ class IssueWorld:
 
 
 def _node(inv: Inv, dimension: str, code: str) -> uuid.UUID:
-    data = dims.NodeInput(code=code, description=f"Nodo {code} (SINTÉTICO)", node_type="DETALLE", valid_from="2026-01-01")
-    return inv.run(lambda u: dims.create_node(u, inv.company(), dimension, data)).id
+    data = dims.NodeInput(
+        code=code, description=f"Nodo {code} (SINTÉTICO)", node_type="DETALLE", valid_from="2026-01-01"
+    )
+    node = inv.run(lambda u: dims.create_node(u, inv.company(), dimension, data))
+    return uuid.UUID(str(node.id))
 
 
 @pytest.fixture
