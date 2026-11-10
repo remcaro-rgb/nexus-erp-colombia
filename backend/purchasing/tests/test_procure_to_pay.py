@@ -24,7 +24,9 @@ WAREHOUSE = uuid.uuid5(uuid.NAMESPACE_OID, "bodega-principal")
 CC = uuid.uuid5(uuid.NAMESPACE_OID, "cc-produccion")
 
 
-def setup_order(api: ApiClient, world: World, *, receipt_tol: str = "5", price_tol: str = "2") -> dict[str, Any]:
+def setup_order(
+    api: ApiClient, world: World, *, receipt_tol: str = "5", price_tol: str = "2", cost_center: uuid.UUID = CC
+) -> dict[str, Any]:
     run_in_unit_of_work(
         lambda u: configure(u, world.company, receipt_tolerance_pct=receipt_tol, invoice_price_tolerance_pct=price_tol),
         world.ctx("admin"),
@@ -44,7 +46,7 @@ def setup_order(api: ApiClient, world: World, *, receipt_tol: str = "5", price_t
                     "quantity": {"value": "100", "uom": "KG"},
                     "unit_price": {"amount": "3000", "currency": "COP"},
                     "tax_code": "IVA19",
-                    "dimensions": {"cost_center_id": str(CC)},
+                    "dimensions": {"cost_center_id": str(cost_center)},
                 }
             ],
         },
