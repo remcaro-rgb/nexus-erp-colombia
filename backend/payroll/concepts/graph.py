@@ -27,8 +27,9 @@ from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
 from payroll.concepts.parameters import PARAMETER_INPUTS, is_parameter_input, parameter_code
-from workflow.formula import FormulaDefinition, FormulaGraph, InputSchema
+from workflow.formula import FormulaDefinition, FormulaGraph, InputSchema, analyze
 from workflow.formula.errors import FormulaTypeError, FormulaUnknownIdentifier
+from workflow.formula.functions import NUMBER
 from workflow.formula.schema import check_name
 
 #: name → declared type expected for it (the formula schema must declare the same type).
@@ -111,6 +112,19 @@ def check_input_schema(inputs: Mapping[str, Any] | None) -> InputSchema:
     return schema
 
 
+def check_expression(
+    expression: str, inputs: Mapping[str, Any] | None, depends_on: Iterable[str], result_type: str
+) -> None:
+    """Parse + type check a payroll formula on save (D-008 budgets; adversarial text is rejected).
+
+    The schema must hold only payroll inputs; dependency results are numbers.
+    """
+    if result_type not in NUMERIC_RESULTS:
+        raise FormulaTypeError("a payroll formula must return money or decimal")
+    schema = check_input_schema(inputs)
+    analyze(expression, schema, dependency_types={d: NUMBER for d in depends_on}, result_type=result_type)
+
+
 def definition_for(spec: ConceptSpec) -> FormulaDefinition:
     if spec.formula is None:
         return FormulaDefinition(
@@ -177,6 +191,7 @@ __all__ = [
     "ConceptSpec",
     "FormulaRef",
     "check_concept_code",
+    "check_expression",
     "check_input_schema",
     "compile_graph",
     "definition_for",

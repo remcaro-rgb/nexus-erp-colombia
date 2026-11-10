@@ -31,7 +31,7 @@ PARAM_PREFIX = "param_"
 NOT_LEGALLY_VERIFIED = "NOT LEGALLY VERIFIED"
 CATALOGUE_VERSION = "2026.1"
 
-#: Formula identifier → parameter code (P06 store). Percent values are in percent units ("4" = 4 %).
+#: Formula identifier → parameter code (P06 store).
 PARAMETER_INPUTS: Mapping[str, str] = {
     "param_smmlv": "smmlv",
     "param_aux_transporte": "aux_transporte",
@@ -51,6 +51,17 @@ PARAMETER_INPUTS: Mapping[str, str] = {
     "param_ret_lab_tope_pct": "ret_lab.depuracion.tope_pct",
     "param_ret_lab_tope_uvt": "ret_lab.depuracion.tope_uvt",
 }
+
+
+#: Inputs whose store type is ``percent``: the provider returns the fraction (0.04); formulas receive
+#: percent units (4), the unit the store is written in and the DSL's ``percent(x, p)`` expects.
+PERCENT_INPUTS: frozenset[str] = frozenset(
+    {
+        "param_salud_empleado", "param_salud_empleador", "param_pension_empleado", "param_pension_empleador",
+        "param_fsp_tarifa", "param_ibc_no_salarial_pct", "param_ccf", "param_sena", "param_icbf",
+        "param_ret_lab_tope_pct",
+    }
+)  # fmt: skip
 
 
 def is_parameter_input(name: str) -> bool:
@@ -137,7 +148,8 @@ class ParameterSet:
         snaps: list[dict[str, Any]] = []
         for name in sorted(n for n in names if is_parameter_input(n)):
             pv = self.get(name)
-            values[name] = _as_decimal(pv, name)
+            value = _as_decimal(pv, name)
+            values[name] = value * 100 if name in PERCENT_INPUTS else value
             snaps.append(labelled_snapshot(pv, name))
         return values, snaps
 

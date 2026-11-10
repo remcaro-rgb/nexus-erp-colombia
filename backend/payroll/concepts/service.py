@@ -20,7 +20,7 @@ from payroll.concepts import formulas
 from payroll.concepts.graph import (
     ConceptSpec,
     check_concept_code,
-    check_input_schema,
+    check_expression,
     compile_graph,
     structural_order,
 )
@@ -121,9 +121,9 @@ def _check_formula(ctx: TenantContext, company_id: uuid.UUID, concept: PayrollCo
     if concept.formula_id is None:
         return
     row = formulas.referenced(ctx.tenant_id, company_id, concept.formula_id)
-    check_input_schema(row.inputs)  # unknown inputs / unknown param_* fail closed on save
     if not concept.depends_on and row.depends_on:
         concept.depends_on = sorted(set(row.depends_on))
+    check_expression(row.expression, row.inputs, concept.depends_on or (), row.result_type)
 
 
 def create(uow: UnitOfWork, company_id: uuid.UUID, data: Mapping[str, Any]) -> PayrollConcept:
