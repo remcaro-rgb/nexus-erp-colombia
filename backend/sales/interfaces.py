@@ -91,7 +91,9 @@ def _audit(obj: Any) -> dict[str, Any]:
     }
 
 
-def _project(obj: Any, *, total: Decimal | None, currency: str, doc_status: str, valid_until: Any = None) -> dict[str, Any]:
+def _project(
+    obj: Any, *, total: Decimal | None, currency: str, doc_status: str, valid_until: Any = None
+) -> dict[str, Any]:
     out = {
         "id": str(obj.id),
         "tenant_id": str(obj.tenant_id),
@@ -138,7 +140,9 @@ _QUOTE_VISIBLE = (Quote.Status.SENT, Quote.Status.ACCEPTED, Quote.Status.ORDERED
 
 def portal_quote_json(q: Quote) -> dict[str, Any]:
     status = {"SENT": "SUBMITTED", "ACCEPTED": "APPROVED", "ORDERED": "APPROVED", "CANCELLED": "CANCELLED"}
-    return _project(q, total=q.total, currency=q.currency, doc_status=status.get(q.status, "DRAFT"), valid_until=q.valid_until)
+    return _project(
+        q, total=q.total, currency=q.currency, doc_status=status.get(q.status, "DRAFT"), valid_until=q.valid_until
+    )
 
 
 def portal_quotes(ctx: TenantContext, company_id: uuid.UUID, party_id: uuid.UUID) -> list[dict[str, Any]]:
@@ -247,7 +251,9 @@ def portal_price(
             res = engine.resolve(
                 uow,
                 company_id,
-                engine.PriceRequest(item_id=item_id, quantity=qty, on=day, currency=currency, party=party, channel="portal"),
+                engine.PriceRequest(
+                    item_id=item_id, quantity=qty, on=day, currency=currency, party=party, channel="portal"
+                ),
             )
             out.append({"item_id": str(item_id), "quantity": f"{qty:f}", "unit_price": engine.explain(res)})
         transaction.set_rollback(True)

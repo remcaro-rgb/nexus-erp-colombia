@@ -174,7 +174,7 @@ def post_receipt(uow: UnitOfWork, receipt: Receipt) -> Receipt:
         lines.append(PostingLine(role, "CREDIT" if diff > 0 else "DEBIT", abs(diff), memo=receipt.number))
     entry = services.get(PostingService).post(
         uow,
-        PostingRequest(receipt.company_id, receipt.document_date, source, "customer_receipt", tuple(lines), "RECEIPTS"),
+        PostingRequest(receipt.company_id, receipt.document_date, source, "customer_receipt", tuple(lines), "BANK"),
     )
     receipt.status, receipt.posted, receipt.posted_at, receipt.journal_entry_id = (
         Receipt.Status.POSTED,

@@ -214,11 +214,13 @@ def _readable(ctx: TenantContext, resource: str) -> frozenset[str]:
     return frozenset(services.get(PolicyService).field_mask(ctx, resource).readable)
 
 
-def masked(ctx: TenantContext, resource: str, data: dict[str, Any]) -> dict[str, Any]:
+def masked(
+    ctx: TenantContext, resource: str, data: dict[str, Any], registry: dict[str, dict[str, str]] | None = None
+) -> dict[str, Any]:
     """Drop ``confidential`` / PII fields the principal's field policy cannot read (fail closed)."""
     hidden = {
         k
-        for k, v in FIELDS.get(resource, {}).items()
+        for k, v in (FIELDS if registry is None else registry).get(resource, {}).items()
         if v in ("confidential", "restricted-pii", "sensitive-pii", "secret")
     }
     if not hidden:

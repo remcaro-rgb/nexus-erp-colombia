@@ -36,7 +36,9 @@ def priced(world: World) -> dict[str, Any]:
     def items(u: Any) -> Any:
         masters.create_uom(u, world.company, {"code": "UND", "name": "Unidad", "precision": 0})
         return masters.create_item(
-            u, world.company, {"code": "SKU-1", "name": "Producto (SINTÉTICO)", "base_uom": "UND", "standard_cost": "600"}
+            u,
+            world.company,
+            {"code": "SKU-1", "name": "Producto (SINTÉTICO)", "base_uom": "UND", "standard_cost": "600"},
         )
 
     item = world.run("admin", items)
@@ -44,7 +46,11 @@ def priced(world: World) -> dict[str, Any]:
     world.formula("precio_costo", EXPRESSION, {"cost": "money"}, [{"inputs": {"cost": "600"}, "expected": "827"}])
     world.bind_formula("COSTO-135", "precio_costo")
     mine, other = world.customer("C-MINE"), world.customer("C-OTHER")
-    data = {"party": str(mine.id), "document_date": TODAY.isoformat(), "lines": [{"item_id": str(item.id), "quantity": "3"}]}
+    data = {
+        "party": str(mine.id),
+        "document_date": TODAY.isoformat(),
+        "lines": [{"item_id": str(item.id), "quantity": "3"}],
+    }
     quote = world.run("admin", lambda u: documents.create_quote(u, world.company, data))
     world.run("admin", lambda u: documents.quote_action(u, quote, "send", "", {}))
     data_other = {**data, "party": str(other.id)}
@@ -74,7 +80,10 @@ def test_T_SAL_PRICING_04_portal_quote_never_exposes_cost_or_formula(world: Worl
         world.run("portal", lambda u: portal.portal_quote(ctx, world.company, mine.id, priced["other_quote"].id))
     # the portal price preview returns the final price only
     prices = world.run(
-        "portal", lambda u: portal.portal_price(u, world.company, mine.id, [{"item_id": str(priced["item"].id), "quantity": "1"}])
+        "portal",
+        lambda u: portal.portal_price(
+            u, world.company, mine.id, [{"item_id": str(priced["item"].id), "quantity": "1"}]
+        ),
     )
     assert set(prices[0]) == {"item_id", "quantity", "unit_price"}
     assert set(prices[0]["unit_price"]) == {"unit_price", "currency"}
@@ -85,8 +94,12 @@ def test_T_SAL_PRICING_04_portal_quote_never_exposes_cost_or_formula(world: Worl
         world.run("outsider", lambda u: portal.portal_quotes(world.ctx("outsider"), world.company, mine.id))
 
 
-def test_T_SAL_PRICING_04_internal_api_masks_cost_without_the_cost_role(api: ApiClient, world: World, priced: dict[str, Any]) -> None:
-    body = {"parameters": {"party": str(priced["mine"].id), "items": [{"item_id": str(priced["item"].id), "quantity": "1"}]}}
+def test_T_SAL_PRICING_04_internal_api_masks_cost_without_the_cost_role(
+    api: ApiClient, world: World, priced: dict[str, Any]
+) -> None:
+    body = {
+        "parameters": {"party": str(priced["mine"].id), "items": [{"item_id": str(priced["item"].id), "quantity": "1"}]}
+    }
     seller = api.as_("seller").post("pricing:quote", body)
     assert seller.status_code == 200, seller.content
     explain = seller.json()["data"]["items"][0]["explain"]

@@ -233,7 +233,9 @@ class World:
         svc.submit(self.ctx("admin"), row.id)
         return svc.approve(self.ctx("formula_approver"), row.id, "aprobada (SINTÉTICO)")
 
-    def bind_formula(self, code: str, formula_code: str, *, scope: dict[str, Any] | None = None, priority: int = 0) -> Any:
+    def bind_formula(
+        self, code: str, formula_code: str, *, scope: dict[str, Any] | None = None, priority: int = 0
+    ) -> Any:
         from sales.pricing.service import create_price_formula
 
         data = {
@@ -269,7 +271,12 @@ def _companies(w: World) -> None:
         ctx = make_context(tenant_id=w.tenant_id, company_ids=[cid])
         with unit_of_work(ctx):
             Company.objects.create(
-                id=cid, tenant_id=w.tenant_id, code=f"SYN{n}", nit=f"80000000{n}", dv="0", legal_name=f"Empresa {n} S.A.S. (sintética)"
+                id=cid,
+                tenant_id=w.tenant_id,
+                code=f"SYN{n}",
+                nit=f"80000000{n}",
+                dv="0",
+                legal_name=f"Empresa {n} S.A.S. (sintética)",
             )
 
 
@@ -310,7 +317,9 @@ class ApiClient:
     def get(self, path: str, **params: Any) -> Any:
         return self.client.get(self.url(path), params)
 
-    def send(self, method: str, path: str, data: Any = None, *, key: str | None = None, if_match: str | None = None) -> Any:
+    def send(
+        self, method: str, path: str, data: Any = None, *, key: str | None = None, if_match: str | None = None
+    ) -> Any:
         extra = {"HTTP_IDEMPOTENCY_KEY": key or f"test-{uuid.uuid4()}"}
         if if_match:
             extra["HTTP_IF_MATCH"] = if_match

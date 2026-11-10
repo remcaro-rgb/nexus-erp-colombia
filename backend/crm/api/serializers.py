@@ -12,7 +12,8 @@ from typing import Any
 from crm.models import Activity, Contact, Lead, Opportunity, Pipeline
 from iam.policy import fields as field_registry
 from kernel.tenancy import TenantContext
-from sales.api.serializers import audit_stamp, masked, money
+from sales.api.serializers import audit_stamp, money
+from sales.api.serializers import masked as _masked
 
 _BASE = {
     "id": "public",
@@ -78,6 +79,11 @@ FIELDS: dict[str, dict[str, str]] = {
     "crm.pipeline": {**_BASE, "name": "internal", "stages": "internal"},
     "crm.forecast": {"amount": "confidential", "weighted": "confidential"},
 }
+
+
+def masked(ctx: TenantContext, resource: str, data: dict[str, Any]) -> dict[str, Any]:
+    """Field security over the CRM classifications (fail closed)."""
+    return _masked(ctx, resource, data, FIELDS)
 
 
 def register_fields() -> None:

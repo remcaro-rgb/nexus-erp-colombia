@@ -34,7 +34,10 @@ def catalog(world: World) -> dict[str, Any]:
     world.base_price(ITEM_B, "500")
     world.price_list(
         "MAY",
-        [{"item_id": str(ITEM), "min_qty": "0", "unit_price": "900"}, {"item_id": str(ITEM), "min_qty": "10", "unit_price": "850"}],
+        [
+            {"item_id": str(ITEM), "min_qty": "0", "unit_price": "900"},
+            {"item_id": str(ITEM), "min_qty": "10", "unit_price": "850"},
+        ],
         customer_group="MAYORISTA",
     )
     world.price_list("VIPL", [{"item_id": str(ITEM), "min_qty": "0", "unit_price": "950"}], customer_group="VIP")
@@ -141,7 +144,11 @@ def _fiscal_range(world: World) -> None:
 
 def test_T_SAL_PRICING_02_posted_invoice_is_never_repriced(world: World, catalog: dict[str, Any]) -> None:
     _fiscal_range(world)
-    data = {"party": str(catalog["retail"].id), "document_date": TODAY.isoformat(), "lines": [{"item_id": str(ITEM), "quantity": "2", "tax_code": "IVA19"}]}
+    data = {
+        "party": str(catalog["retail"].id),
+        "document_date": TODAY.isoformat(),
+        "lines": [{"item_id": str(ITEM), "quantity": "2", "tax_code": "IVA19"}],
+    }
     inv = world.run("admin", lambda u: posting.create_invoice(u, world.company, data))
     # repricing the DRAFT invoice works
     world.base_price(ITEM, "1100")
@@ -167,15 +174,21 @@ def test_T_SAL_PRICING_03_override_beyond_limit_routes_to_approval(world: World,
 
     retail = catalog["retail"]
     with bound(world.ctx("admin")):  # without settings the limit is 0 % (every manual discount is approved)
-        SalesSettings.objects.create(tenant_id=world.tenant_id, company_id=world.company, default_discount_limit_pct=Decimal(10))
+        SalesSettings.objects.create(
+            tenant_id=world.tenant_id, company_id=world.company, default_discount_limit_pct=Decimal(10)
+        )
     # 5 % below the resolved base price: within the company's 10 % limit
-    q1 = _quote(world, retail, [{"item_id": str(ITEM), "quantity": "1", "unit_price": "950", "override_reason": "cliente fiel"}])
+    q1 = _quote(
+        world, retail, [{"item_id": str(ITEM), "quantity": "1", "unit_price": "950", "override_reason": "cliente fiel"}]
+    )
     with bound(world.ctx("admin")):
         assert q1.lines.get().override_status == OverrideStatus.WITHIN_LIMIT
     assert q1.approval_request_id is None
     world.run("admin", lambda u: documents.quote_action(u, q1, "send", "", {}))
     # 30 % below: beyond the limit → approval request, and the quote cannot be sent while pending
-    q2 = _quote(world, retail, [{"item_id": str(ITEM), "quantity": "1", "unit_price": "700", "override_reason": "competencia"}])
+    q2 = _quote(
+        world, retail, [{"item_id": str(ITEM), "quantity": "1", "unit_price": "700", "override_reason": "competencia"}]
+    )
     with bound(world.ctx("admin")):
         line = q2.lines.get()
     assert line.override_status == OverrideStatus.PENDING_APPROVAL
@@ -202,9 +215,16 @@ def test_T_SAL_PRICING_03_per_user_discount_limit(world: World, catalog: dict[st
 
     with bound(world.ctx("admin")):
         DiscountLimit.objects.create(
-            tenant_id=world.tenant_id, company_id=world.company, principal_id=world.ctx("admin").principal_id, max_discount_pct=Decimal(35)
+            tenant_id=world.tenant_id,
+            company_id=world.company,
+            principal_id=world.ctx("admin").principal_id,
+            max_discount_pct=Decimal(35),
         )
-    q = _quote(world, catalog["retail"], [{"item_id": str(ITEM), "quantity": "1", "unit_price": "700", "override_reason": "gerencia"}])
+    q = _quote(
+        world,
+        catalog["retail"],
+        [{"item_id": str(ITEM), "quantity": "1", "unit_price": "700", "override_reason": "gerencia"}],
+    )
     with bound(world.ctx("admin")):
         assert q.lines.get().override_status == OverrideStatus.WITHIN_LIMIT
 
@@ -215,7 +235,14 @@ def test_T_SAL_PRICING_05_multicurrency_formula_uses_document_date_fx_and_rounds
     rate_model = apps.get_model("ledger", "ExchangeRate")
     with bound(world.ctx("admin")):
         for day, rate in ((dt.date(2026, 11, 2), "4000.00"), (TODAY, "4100.00"), (dt.date(2026, 11, 10), "4300.00")):
-            rate_model.objects.create(tenant_id=world.tenant_id, company_id=world.company, currency="USD", date=day, rate=Decimal(rate), source="SINTETICO")
+            rate_model.objects.create(
+                tenant_id=world.tenant_id,
+                company_id=world.company,
+                currency="USD",
+                date=day,
+                rate=Decimal(rate),
+                source="SINTETICO",
+            )
     world.base_price(ITEM, "100000")  # COP
     world.formula(
         "precio_margen",

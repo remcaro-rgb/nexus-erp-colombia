@@ -99,7 +99,9 @@ def _values_by_ref(result_move_ids: tuple[uuid.UUID, ...]) -> dict[str, Decimal]
 
     if not apps.is_installed("inventory") or not result_move_ids:
         return None
-    rows = list(apps.get_model("inventory", "StockMove").objects.filter(id__in=result_move_ids).values_list("line_ref", "value"))
+    rows = list(
+        apps.get_model("inventory", "StockMove").objects.filter(id__in=result_move_ids).values_list("line_ref", "value")
+    )
     if len(rows) != len(result_move_ids):
         return None
     out: dict[str, Decimal] = {}
