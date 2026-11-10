@@ -23,3 +23,13 @@ $ make ci  [after P06] -> exit 0 in 63s
 $ make ci  [after P07] -> exit 0 in 72s
 $ (make dev-up && make dev-seed) > /tmp/nexus-devup.log 2>&1; make test-ids IDS="$NEXUS_IDS"  [feature tests (12 ids)] -> exit 0 in 60s
 ```
+
+## integrate — 2026-11-10T00:58:47Z
+
+* P05: REWORK: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P05) 3/4 policy: last line: forbidden-pattern scan OK (319 files) | p03-tests: pytest: 1 scripts/ci(DEV,P03); 1 t
+* P08: REWORK: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P08) 1/4 policy: last line: Severity: 3 moderate | 1 high | 2 critical log=docs/run/evidence/W02/parity-gate/P08-
+
+```
+$ python3 tools/parity_gate.py  [after P05] -> exit 1 in 76s
+$ python3 tools/parity_gate.py  [after P08] -> exit 1 in 250s
+```

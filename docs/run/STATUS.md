@@ -1,6 +1,6 @@
 # STATUS — Nexus ERP (edition 3.0.0-claude-cloud)
 
-Updated: 2026-11-09T21:19:50Z (UTC). Repository: https://github.com/remcaro-rgb/nexus-erp-colombia.
+Updated: 2026-11-10T00:58:47Z (UTC). Repository: https://github.com/remcaro-rgb/nexus-erp-colombia.
 
 Written only by the integrator (`python3 tools/cloudctl.py status`). A task counts as working only when it is ACCEPTED with
 integrator-run test evidence under `docs/run/evidence/`.
@@ -9,8 +9,8 @@ integrator-run test evidence under `docs/run/evidence/`.
 
 ```
 NEXT: wave 02 — open 2 NEW Claude Code cloud session(s) on remcaro-rgb/nexus-erp-colombia (at most 5 at the same time; start the next one when one finishes) and paste exactly one file into each:
-  prompts/RETRY-P05.md   (attempt 2: attempt 1 rejected: integrator-run mandatory tests not PASSED: ['T-ACC-DIM-08'])
-  prompts/RETRY-P08.md   (attempt 2: attempt 1 rejected: `make ci` failed after merging it: TIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERT)
+  prompts/RETRY-P05.md   (attempt 3: attempt 2 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P05) 3/4 policy: last line: forbidden-pattern scan OK)
+  prompts/RETRY-P08.md   (attempt 3: attempt 2 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P08) 1/4 policy: last line: Severity: 3 moderate | 1 )
 THEN: when every one of those sessions has ended (DONE or BLOCKED), paste prompts/INTEGRATOR-after-W02.md into 1 NEW session.
 ```
 
@@ -23,9 +23,9 @@ THEN: when every one of those sessions has ended (DONE or BLOCKED), paste prompt
 | 01 | P03 | worker | ACCEPTED | 1 | 2026-11-09T14:43:58Z |  |
 | 01 | G0 | gate | ACCEPTED | 1 | 2026-11-09T14:52:56Z |  |
 | 02 | P04 | worker | ACCEPTED | 1 | 2026-11-09T21:19:50Z |  |
-| 02 | P05 | worker | REWORK | 2 |  | attempt 1 rejected: integrator-run mandatory tests not PASSED: ['T-ACC-DIM-08'] |
+| 02 | P05 | worker | REWORK | 3 |  | attempt 2 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE  |
 | 02 | P07 | worker | ACCEPTED | 1 | 2026-11-09T21:19:50Z |  |
-| 02 | P08 | worker | REWORK | 2 |  | attempt 1 rejected: `make ci` failed after merging it: TIVE_TLS` environment variable is d |
+| 02 | P08 | worker | REWORK | 3 |  | attempt 2 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE  |
 | 02 | P06 | worker | ACCEPTED | 1 | 2026-11-09T21:19:50Z |  |
 | 02 | P22a | worker | ACCEPTED | 1 | 2026-11-09T21:19:50Z |  |
 | 02 | G1 | gate | PENDING | 1 |  |  |

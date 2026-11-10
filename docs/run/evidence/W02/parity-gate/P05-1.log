@@ -1,0 +1,69 @@
+# parity gate — merge of P05 — 20261110T005320Z — HEAD e0beed6
+# excerpts of the failing ci-parity jobs (secrets scrubbed)
+
+## policy (exit 1)
+
+```
+forbidden-pattern scan OK (319 files)
+```
+
+## p03-tests (exit 1)
+
+```
+
+............................F                                            [100%]
+=================================== FAILURES ===================================
+________ StaticChecksTest.*** _________
+
+self = <test_p03_static_checks.StaticChecksTest testMethod=test_T_P03_LINT_scans_pass_on_the_repository>
+
+    def ***(self):
+        for script in ("forbidden_patterns.py", "static_checks.py"):
+            proc = subprocess.run([sys.executable, str(CI / script)], capture_output=True, text=True, cwd=REPO)
+>           self.assertEqual(proc.returncode, 0, f"{script}: {proc.stderr[-2000:]}")
+E           AssertionError: 1 != 0 : static_checks.py: backend/ledger/api.py:113: SEC-VIEW class LedgerAPIView inherits ['APIView']; inherit SecuredViewSet/SecuredAPIView
+E           static checks FAILED: 1 violation(s)
+
+scripts/ci/tests/test_p03_static_checks.py:71: AssertionError
+=========================== short test summary info ============================
+FAILED scripts/ci/tests/test_p03_static_checks.py::StaticChecksTest::***
+1 failed, 28 passed in 14.69s
+```
+
+## make-ci (exit 2)
+
+```
+
+uv run --frozen ruff check backend
+All checks passed!
+uv run --frozen ruff format --check backend
+300 files already formatted
+cd backend && uv run --frozen python -m kernel.lint.no_float .
+uv run --frozen mypy backend
+backend/ledger/models.py:226: error: Cannot override class variable (previously declared on base class "DimensionNode") with instance variable  [misc]
+backend/ledger/models.py:226: error: Incompatible types in assignment (expression has type "CostCenterManager", base class "DimensionNode" defined the type as "Manager[CostCenter]")  [assignment]
+backend/ledger/models.py:233: error: Cannot override class variable (previously declared on base class "DimensionNode") with instance variable  [misc]
+backend/ledger/models.py:233: error: Incompatible types in assignment (expression has type "_BusinessUnitManager", base class "DimensionNode" defined the type as "Manager[BusinessUnit]")  [assignment]
+backend/ledger/models.py:240: error: Cannot override class variable (previously declared on base class "DimensionNode") with instance variable  [misc]
+backend/ledger/models.py:240: error: Incompatible types in assignment (expression has type "_AuxAbiertoManager", base class "DimensionNode" defined the type as "Manager[AuxAbierto]")  [assignment]
+backend/ledger/models.py:247: error: Cannot override class variable (previously declared on base class "DimensionNode") with instance variable  [misc]
+backend/ledger/models.py:247: error: Incompatible types in assignment (expression has type "_ItemContableManager", base class "DimensionNode" defined the type as "Manager[ItemContable]")  [assignment]
+backend/ledger/api.py:70: error: Returning Any from function declared to return "QuerySet[Any, Any]"  [no-any-return]
+backend/ledger/dimensions/service.py:408: error: Argument 1 to "NodeInput" has incompatible type "**dict[str, Any | None]"; expected "str"  [arg-type]
+backend/ledger/dimensions/service.py:604: error: Incompatible types in assignment (expression has type "str | None", variable has type "date | None")  [assignment]
+backend/ledger/posting.py:442: error: Argument "slots" to "PlannedLine" has incompatible type "dict[str, None]"; expected "dict[str, UUID | None]"  [arg-type]
+backend/ledger/posting.py:442: note: "dict" is invariant -- see https://mypy.readthedocs.io/en/stable/common_issues.html#variance
+backend/ledger/posting.py:442: note: Consider using "Mapping" instead, which is covariant in the value type
+backend/ledger/dimensions/interface.py:22: error: Argument 6 to "DimensionNode" has incompatible type "str"; expected "Literal['AGRUPADOR', 'DETALLE']"  [arg-type]
+backend/ledger/dimensions/interface.py:24: error: Unused "type: ignore" comment  [unused-ignore]
+backend/ledger/dimensions/interface.py:43: error: Module "ledger.dimensions.service" does not explicitly export attribute "DIMENSIONS"  [attr-defined]
+backend/ledger/views.py:234: error: Argument 2 to "parse_entry" has incompatible type "Any | dict[str, Any] | None"; expected "dict[str, Any]"  [arg-type]
+backend/ledger/registry.py:25: error: Unused "type: ignore" comment  [unused-ignore]
+backend/ledger/registry.py:25: error: Argument 1 to "optional" has incompatible type "object"; expected "Callable[..., Never]"  [arg-type]
+backend/ledger/registry.py:25: note: Error code "arg-type" not covered by "type: ignore[call-overload]" comment
+backend/ledger/registry.py:26: error: Unused "type: ignore" comment  [unused-ignore]
+backend/ledger/registry.py:26: error: Argument 1 to "register" has incompatible type "object"; expected "Callable[..., object]"  [arg-type]
+backend/ledger/registry.py:26: note: Error code "arg-type" not covered by "type: ignore[call-overload]" comment
+Found 20 errors in 7 files (checked 251 source files)
+```
+

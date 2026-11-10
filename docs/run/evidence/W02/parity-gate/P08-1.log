@@ -1,0 +1,43 @@
+# parity gate — merge of P08 — 20261110T005436Z — HEAD e11d4a3
+# excerpts of the failing ci-parity jobs (secrets scrubbed)
+
+## policy (exit 1)
+
+```
+forbidden-pattern scan OK (284 files)
+static checks OK (284 files)
+compose lint OK (5 stacks, 5 files, docker compose config model)
+otel scrub config in sync
+secret scan OK (1060 files)
+┌─────────────────────┬────────────────────────────────────────────────────────┐
+│ critical            │ Tinypool: Prototype Pollution gadget in worker options │
+│                     │ leads to Remote Code Execution                         │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Package             │ tinypool                                               │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Vulnerable versions │ <=2.1.0                                                │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Patched versions    │ >=2.1.1                                                │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Paths               │ .>vitest>tinypool                                      │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ More info           │ https://github.com/advisories/GHSA-5gmw-xhrv-c9v3      │
+└─────────────────────┴────────────────────────────────────────────────────────┘
+┌─────────────────────┬────────────────────────────────────────────────────────┐
+│ critical            │ Tinypool: Prototype Pollution Gadget to RCE in run()   │
+│                     │ options                                                │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Package             │ tinypool                                               │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Vulnerable versions │ <2.1.2                                                 │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Patched versions    │ >=2.1.2                                                │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Paths               │ .>vitest>tinypool                                      │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ More info           │ https://github.com/advisories/GHSA-85c8-ppgw-ccpr      │
+└─────────────────────┴────────────────────────────────────────────────────────┘
+6 vulnerabilities found
+Severity: 3 moderate | 1 high | 2 critical
+```
+
