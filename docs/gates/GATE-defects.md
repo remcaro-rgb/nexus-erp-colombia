@@ -24,3 +24,6 @@ Resolved by FIX-CI-W02 v1 (branch claude/new-session-itc56d, merge 6054a22). Int
 
 ### IMG-W02 — RESOLVED (critical zlib in erp-web; image scan in local CI parity)
 Resolved by FIX-IMG-W02 v1 (branch claude/new-session-u1ozj6, merge b2c00de): web stage upgrades zlib to >= 1.4-r0 (CVE-2026-4738, caddy 2.11.9-alpine base; CCR P08-7), scripts/ci/ci-parity.sh runs image-scan in the default compose-startup run (so tools/parity_gate.py scans the images of each merge), stale erp-web images are neither scanned nor served. Integrator re-ran tools/parity_gate.py: 4/4 PASSED at 2026-11-10T03:17Z UTC.
+
+### UI-LOGIN-W03 — RESOLVED (UI preview could not sign in; CCR P08-6, P08-1)
+Resolved by FIX-UI-LOGIN-W03 v1 (branch claude/new-session-aw85gy, merge 5df2568): backend image ships the permission catalog and the module registry; /api/v1/ui/context activates the bearer context and returns companies/roles/permissions; /api/v1/ui/modules filters the registry server-side; registry navigation codes resolved from catalog permissions; SPA OIDC authorization code + PKCE with client erp-web (callback /oidc/callback, RP-initiated logout); API client sends the bearer token. Integrator re-ran tools/parity_gate.py (4/4), tools/dev_login.py and tools/ui_snapshot.py (login OK) at 2026-11-10T19:39Z UTC.
