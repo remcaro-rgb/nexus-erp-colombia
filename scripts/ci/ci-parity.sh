@@ -6,8 +6,8 @@
 #   scripts/ci/ci-parity.sh [JOB...] [--step NAME]
 #     JOB: policy | p03-tests | make-ci | compose-startup        (default: all four)
 #     --step NAME: run only that step of the job (what one workflow step does); default: every step in order
-#                  (compose-startup default = T-P03-01 dev-up, dev-seed, dev-health, then the DR drill T-P03-03
-#                  dr-drill, exactly as the workflow job runs them; its extra steps image-scan, logs, dev-down
+#                  (compose-startup default = T-P03-01 dev-up, dev-seed, dev-health, the DR drill T-P03-03
+#                  dr-drill and image-scan, exactly as the workflow job runs them; its extra steps logs, dev-down
 #                  run only by name)
 #
 # Prints `CI-PARITY <job> exit=N` per job, then `CI-PARITY-OK n/n` or `CI-PARITY-FAILED k/n` (exit 1).
@@ -160,9 +160,19 @@ job_make_ci() {
 cs_health() { mkdir -p reports; bash scripts/ci/dev-health.sh | tee reports/dev-health.json; }
 cs_sbom() {
   bash scripts/ci/build-images.sh --sbom
-  local img
-  for img in $(docker image ls --format '{{.Repository}}:{{.Tag}}' | grep '^erp-'); do
-    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock "$GRYPE_IMAGE" "docker:$img" --fail-on critical --only-fixed
+  local img sha ca_args=()
+  # Sessions behind a TLS-intercepting egress proxy (cloud VMs): grype must trust the proxy CA to download its
+  # vulnerability DB. Same CA selection as build-images.sh; mounted read-only, only when a proxy is configured.
+  if [[ -n "${HTTPS_PROXY:-${https_proxy:-}}" ]]; then
+    local ca="${NEXUS_BUILD_CA_FILE:-${SSL_CERT_FILE:-}}"
+    [[ -z "$ca" && -f /root/.ccr/ca-bundle.crt ]] && ca=/root/.ccr/ca-bundle.crt
+    [[ -n "$ca" && -f "$ca" ]] && ca_args=(-v "$ca:/etc/nexus-proxy-ca.crt:ro" -e SSL_CERT_FILE=/etc/nexus-proxy-ca.crt)
+  fi
+  # only the images built from this checkout (build-images.sh labels them with the revision): stale erp-* images of
+  # another checkout (e.g. a rejected merge) are neither scanned nor blamed
+  sha="$(git rev-parse --short=12 HEAD 2>/dev/null || echo unknown)"
+  for img in $(docker image ls --filter "label=org.opencontainers.image.revision=$sha" --format '{{.Repository}}:{{.Tag}}' | grep '^erp-'); do
+    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock "${ca_args[@]}" "$GRYPE_IMAGE" "docker:$img" --fail-on critical --only-fixed
   done
 }
 cs_logs() {
@@ -182,10 +192,12 @@ job_compose_startup() {
   # DR drill T-P03-03 against the running stack (backup -> restore into a scratch db -> invariants such as
   # rls_forced_on_tenant_tables). Part of the default run so local parity catches what the CI job's DR step does.
   step dr-drill python3 scripts/ci/dr_drill.py
+  # Image SBOM + grype (fail on critical): part of the default run too (FIX-IMG-W02), so local parity and the
+  # integrator's gate catch what the workflow's image-scan step does.
+  step image-scan cs_sbom
   # Further steps of the same workflow job, run by name (`--step NAME`) — the commands live only here:
-  #   image-scan (SBOM + grype), logs (on failure), dev-down (always; never `down -v`).
+  #   logs (on failure), dev-down (always; never `down -v`).
   case "$STEP" in
-    image-scan) cs_sbom ;;
     logs) cs_logs ;;
     dev-down) bash scripts/ci/dev-down.sh ;;
   esac

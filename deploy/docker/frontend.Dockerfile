@@ -28,6 +28,12 @@ RUN pnpm install --frozen-lockfile --offline \
 
 FROM ${CADDY_IMAGE} AS web
 LABEL org.opencontainers.image.source="https://github.com/remcaro-rgb/nexus-erp-colombia"
+# FIX-IMG-W02 (CCR P08-7): the pinned caddy base (Alpine 3.24.4) ships zlib 1.3.2-r1 = CVE-2026-4738 (critical, fixed
+# in 1.4-r0), which fails the CI image scan (grype --fail-on critical --only-fixed). Upgrade only zlib, with a minimum
+# version so the build fails instead of silently shipping the vulnerable one. Proxy CA as in backend.Dockerfile.
+RUN --mount=type=secret,id=proxy_ca,required=false \
+    if [ -s /run/secrets/proxy_ca ]; then export SSL_CERT_FILE=/run/secrets/proxy_ca; fi; \
+    apk add --no-cache --upgrade 'zlib>=1.4-r0'
 COPY --chmod=0444 deploy/docker/web.Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /src/frontend/dist /srv
 ENV XDG_CONFIG_HOME=/tmp/caddy-config XDG_DATA_HOME=/tmp/caddy-data
