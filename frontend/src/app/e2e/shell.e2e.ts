@@ -30,14 +30,14 @@ async function mockIdp(page: Page, { signedIn = true }: { signedIn?: boolean } =
     }
     if (url.pathname.endsWith("/protocol/openid-connect/token")) {
       const idToken = `${b64url({ alg: "none" })}.${b64url({ iss: issuer, aud: "erp-web", azp: "erp-web", exp: Math.floor(Date.now() / 1000) + 600, sub: "synthetic" })}.sig`;
-      return json({ access_token: "fake-e2e-access", refresh_token: "fake-e2e-refresh", expires_in: 600, id_token: idToken });
+      return json({ access_token: "not-a-secret-e2e-access", refresh_token: "not-a-secret-e2e-refresh", expires_in: 600, id_token: idToken });
     }
     if (url.pathname.endsWith("/protocol/openid-connect/auth")) {
       return route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><title>IdP sintético</title><form><input id=username></form>" });
     }
     return json({ error: "not_found" }, 404);
   });
-  if (signedIn) await page.addInitScript(() => window.sessionStorage.setItem("nexus.oidc.refresh", "fake-e2e-refresh"));
+  if (signedIn) await page.addInitScript(() => window.sessionStorage.setItem("nexus.oidc.refresh", "not-a-secret-e2e-refresh"));
 }
 
 async function mockApi(page: Page) {

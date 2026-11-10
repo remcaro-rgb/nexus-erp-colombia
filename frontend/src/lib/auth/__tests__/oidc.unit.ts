@@ -75,7 +75,7 @@ describe("FIX_UI_LOGIN_W03 PKCE and authorize request", () => {
 
   it("FIX_UI_LOGIN_W03 realm endpoints published with Keycloak's internal host are re-based onto this origin", async () => {
     const posts: string[] = [];
-    const internal = { ...DISCOVERY, token_endpoint: "http://localhost/auth/realms/erp-dev/protocol/openid-connect/token" };
+    const internal = { ...DISCOVERY, token_endpoint: `http://localhost/auth/realms/erp-dev/protocol/openid-connect/token` };
     const auth = new OidcAuth({
       origin: ORIGIN,
       storage: window.sessionStorage,
@@ -87,13 +87,13 @@ describe("FIX_UI_LOGIN_W03 PKCE and authorize request", () => {
       },
     });
     expect((await auth.discover()).token_endpoint).toBe(DISCOVERY.token_endpoint);
-    window.sessionStorage.setItem(REFRESH_KEY, "fake-refresh-0");
+    window.sessionStorage.setItem(REFRESH_KEY, "not-a-secret-refresh-0");
     await auth.refresh();
     expect(posts).toEqual([DISCOVERY.token_endpoint]);
   });
 
   it("FIX_UI_LOGIN_W03 discovery from another issuer or with endpoints outside the realm is refused", async () => {
-    for (const bad of [{ ...DISCOVERY, issuer: "http://evil.invalid/auth/realms/erp-dev" }, { ...DISCOVERY, token_endpoint: "http://evil.invalid/token" }, { ...DISCOVERY, authorization_endpoint: "javascript:alert(1)" }]) {
+    for (const bad of [{ ...DISCOVERY, issuer: "http://example.invalid/auth/realms/erp-dev" }, { ...DISCOVERY, token_endpoint: "http://example.invalid/token" }, { ...DISCOVERY, authorization_endpoint: "javascript:alert(1)" }]) {
       const { auth, navigations } = setup(undefined, bad);
       await expect(auth.signIn("/m/inicio")).rejects.toMatchObject({ code: "discovery_failed" });
       expect(navigations).toEqual([]);
@@ -102,7 +102,7 @@ describe("FIX_UI_LOGIN_W03 PKCE and authorize request", () => {
 
   it("FIX_UI_LOGIN_W03 return paths stay on this origin and never point at the callback", () => {
     expect(safeReturnPath("/m/ventas?x=1#y")).toBe("/m/ventas?x=1#y");
-    for (const bad of ["//evil.invalid/x", "https://evil.invalid", "/oidc/callback?code=1", "/", "", null, "/\\evil"]) expect(safeReturnPath(bad)).toBe("/m/inicio");
+    for (const bad of ["//example.invalid/x", "https://example.invalid", "/oidc/callback?code=1", "/", "", null, "/\\evil"]) expect(safeReturnPath(bad)).toBe("/m/inicio");
   });
 });
 
@@ -139,7 +139,7 @@ describe("FIX_UI_LOGIN_W03 callback", () => {
 
   it("FIX_UI_LOGIN_W03 code exchange keeps the access token in memory and only the refresh token in sessionStorage", async () => {
     let nonce = "";
-    const { auth, navigations, posts } = setup(() => json({ access_token: "fake-access-1", refresh_token: "fake-refresh-1", expires_in: 600, id_token: fakeIdJwt({ nonce }) }));
+    const { auth, navigations, posts } = setup(() => json({ access_token: "not-a-secret-access-1", refresh_token: "not-a-secret-refresh-1", expires_in: 600, id_token: fakeIdJwt({ nonce }) }));
     const { pending } = await startSignIn(auth, navigations, "/m/aprobaciones");
     nonce = pending.nonce;
     await expect(auth.handleCallback(`?code=abc&state=${pending.state}&session_state=x`)).resolves.toBe("/m/aprobaciones");
@@ -149,11 +149,11 @@ describe("FIX_UI_LOGIN_W03 callback", () => {
     expect(form?.get("client_id")).toBe("erp-web");
     expect(form?.get("redirect_uri")).toBe(`${ORIGIN}/oidc/callback`);
     expect(form?.has("client_secret")).toBe(false);
-    expect(auth.accessToken()).toBe("fake-access-1");
-    expect(window.sessionStorage.getItem(REFRESH_KEY)).toBe("fake-refresh-1");
+    expect(auth.accessToken()).toBe("not-a-secret-access-1");
+    expect(window.sessionStorage.getItem(REFRESH_KEY)).toBe("not-a-secret-refresh-1");
     expect(window.sessionStorage.getItem(PENDING_KEY)).toBeNull();
     expect([...Array(window.sessionStorage.length).keys()].map((i) => window.sessionStorage.key(i))).toEqual([REFRESH_KEY]);
-    expect(JSON.stringify(window.sessionStorage.getItem(REFRESH_KEY))).not.toContain("fake-access-1");
+    expect(JSON.stringify(window.sessionStorage.getItem(REFRESH_KEY))).not.toContain("not-a-secret-access-1");
   });
 
   it("FIX_UI_LOGIN_W03 no auth key is ever written to localStorage (sign-in, callback, refresh, logout)", async () => {
