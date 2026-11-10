@@ -23,9 +23,9 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
-from qa_harness import openapi, refdocs, refstock, steps
+from qa_harness import defects, openapi, refdocs, refstock, steps
 from qa_harness.andina import item, party
-from qa_harness.failure_injection import AtomicityProbe, sweep
+from qa_harness.failure_injection import AtomicityProbe, fail_after, injected_domain_failure, sweep
 from qa_harness.paths import REPORTS
 from qa_harness.refdocs import Entry, StockOp
 from qa_harness.routes import implemented_routes, match_contract
@@ -180,25 +180,70 @@ def ledger_api(andina, settings):
     return client
 
 
+def _payment(andina, amount=D(700)):
+    return andina.run(lambda u: refdocs.post_document(
+        u, doc_type="treasury.payment", company=andina.a, day=DAY, total=amount,
+        entries=[Entry("payment", [("AP", "DEBIT", amount), ("BANK", "CREDIT", amount)])]))  # fmt: skip
+
+
 def test_T_P22_FIN_01_api_ledger_reverse_is_all_or_nothing(andina, ledger_api):
-    a = andina.a
-    posted = andina.run(lambda u: refdocs.post_document(
-        u, doc_type="treasury.payment", company=a, day=DAY, total=D(700),
-        entries=[Entry("payment", [("AP", "DEBIT", D(700)), ("BANK", "CREDIT", D(700))])]))  # fmt: skip
-    entry_id = posted.entries[0].entry_id
+    """The real POST /api/v1/ledger/entries/{id}:reverse with a (handled) failure before every statement."""
+    entry_id = _payment(andina).entries[0].entry_id
     statuses: list[int] = []
 
     def command():
         r = ledger_api.post(f"/api/v1/ledger/entries/{entry_id}:reverse", {"reason": "barrido de fallas P22"},
                             format="json", HTTP_IDEMPOTENCY_KEY="p22b-reverse-0001")  # fmt: skip
         statuses.append(r.status_code)
-        assert r.status_code == 200, r.content
 
     result = sweep(command, _probe(andina), expect_changed=["ledger_journal_entry", "ledger_journal_line",
                                                             "kernel_outbox", "kernel_idempotency"],
-                   isolate=True)  # fmt: skip
+                   isolate=True, error=injected_domain_failure())  # fmt: skip
     assert result.ok, result.violations
     assert statuses[0] == 200 and result.statements >= 10
+    assert set(statuses[1:]) == {500}  # every injected failure surfaced as a problem response, nothing posted
+
+
+@defects.xfail("DEF-P22-009")
+def test_p22b_secured_view_releases_transaction_and_context_on_unhandled_error(andina, ledger_api):
+    """An unexpected exception inside a ModuleSecuredView handler must not leave the request's tenant scope
+    (transaction.atomic + bound tenant context) open: DRF skips finalize_response on unhandled errors.
+
+    Probed in a separate thread with its own database connection and contextvars, so a leak can never
+    reach the test transaction or another test."""
+    import gc
+    import threading
+
+    from kernel import tenancy
+    from qa_harness.failure_injection import InjectedFailure
+
+    andina.grant("ledger.period.read")
+    leaks: list[tuple[int, bool, bool]] = []
+
+    def probe():
+        from django.db import connection
+
+        try:
+            for k in range(1, 6):
+                try:
+                    with fail_after(k):
+                        ledger_api.get("/api/v1/ledger/periods")
+                except InjectedFailure:
+                    pass
+                leaks.append((k, connection.in_atomic_block, tenancy.current() is not None))
+                if leaks[-1][1] or leaks[-1][2]:
+                    break  # leaked: this thread's connection/context are unusable from here on
+        finally:
+            # The leaked scope is a suspended generator context manager; when the garbage collector
+            # finalises it, its Atomic.__exit__ runs on the *collecting* thread's connection. Collect here,
+            # on this thread, so it can never pop a savepoint of another thread's transaction.
+            gc.collect()
+            connection.close()
+
+    t = threading.Thread(target=probe)
+    t.start()
+    t.join(timeout=60)
+    assert leaks and [k for k, in_tx, ctx in leaks if in_tx or ctx] == []
 
 
 # --------------------------------------------------------------------------- evidence matrix

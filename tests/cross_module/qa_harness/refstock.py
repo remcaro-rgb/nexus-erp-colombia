@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS qa_ref_move (
     id uuid PRIMARY KEY, tenant_id uuid NOT NULL, company_id uuid NOT NULL, item_id uuid NOT NULL,
     warehouse_id uuid NOT NULL, source_type text NOT NULL, source_id uuid NOT NULL, line_ref text NOT NULL,
     qty numeric(20,6) NOT NULL, value numeric(20,4) NOT NULL, move_date date NOT NULL,
-    UNIQUE (tenant_id, source_type, source_id, line_ref)
+    UNIQUE (tenant_id, company_id, source_type, source_id, line_ref)
 );
 """
 TABLES = ("qa_ref_valuation", "qa_ref_layer", "qa_ref_move")
@@ -109,7 +109,7 @@ class ReferenceStock:
         from kernel.interfaces.stock import StockMoveResult
 
         self._require(uow, company_id)
-        done = self._existing(uow, source)
+        done = self._existing(uow, company_id, source, [x.line_ref for x in lines])
         if done is not None:
             return done
         ids_out, total = [], Decimal(0)
@@ -141,7 +141,7 @@ class ReferenceStock:
         from kernel.interfaces.stock import StockMoveResult
 
         self._require(uow, company_id)
-        done = self._existing(uow, source)
+        done = self._existing(uow, company_id, source, [x.line_ref for x in lines])
         if done is not None:
             return done
         ids_out, total = [], Decimal(0)
@@ -172,7 +172,7 @@ class ReferenceStock:
         from kernel.interfaces.stock import StockLine, StockMoveResult
 
         self._require(uow, company_id)
-        done = self._existing(uow, source)
+        done = self._existing(uow, company_id, source, None)
         if done is not None:
             return done
         with _cursor(uow) as cur:
@@ -342,16 +342,17 @@ class ReferenceStock:
                 out += value
         return out
 
-    def _existing(self, uow: Any, source: Any) -> Any:
+    def _existing(self, uow: Any, company_id: uuid.UUID, source: Any, line_refs: list[str] | None) -> Any:
+        """Idempotency per ``(company, source.type, source.id, line_ref)`` (kernel/interfaces/stock.py)."""
         from kernel.interfaces.stock import StockMoveResult
 
         with _cursor(uow) as cur:
             cur.execute(
-                "SELECT id, value FROM qa_ref_move WHERE tenant_id = %s AND source_type = %s AND source_id = %s "
-                "ORDER BY line_ref",
-                [uow.ctx.tenant_id, source.type, source.id],
+                "SELECT id, value, line_ref FROM qa_ref_move WHERE tenant_id = %s AND company_id = %s "
+                "AND source_type = %s AND source_id = %s ORDER BY line_ref",
+                [uow.ctx.tenant_id, company_id, source.type, source.id],
             )
-            rows = cur.fetchall()
+            rows = [r for r in cur.fetchall() if line_refs is None or r[2] in line_refs]
         if not rows:
             return None
         return StockMoveResult(tuple(r[0] for r in rows), sum((abs(r[1]) for r in rows), Decimal(0)))

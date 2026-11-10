@@ -27,12 +27,32 @@ class InjectedFailure(RuntimeError):
     """Raised by the injector; never caught by application code (it is not a DatabaseError)."""
 
 
+def injected_domain_failure() -> type[Exception]:
+    """A ``kernel.errors.DomainError`` subclass (500, ``p22_injected_failure``): the API layer turns it into a
+    problem+json response, so a request-level sweep exercises the *handled* error path (view finalised,
+    transaction rolled back). The unhandled path is covered by DEF-P22-009."""
+    from kernel.errors import DomainError
+
+    global _INJECTED_DOMAIN  # created once, lazily: this module imports without Django
+    if _INJECTED_DOMAIN is None:
+
+        class InjectedDomainFailure(DomainError):
+            code, status, title = "p22_injected_failure", 500, "P22 injected failure"
+
+        _INJECTED_DOMAIN = InjectedDomainFailure
+    return _INJECTED_DOMAIN
+
+
+_INJECTED_DOMAIN: type[Exception] | None = None
+
+
 @dataclass
 class StatementCounter:
     fail_at: int | None = None
     count: int = 0
     statements: list[str] = field(default_factory=list)
     fired: bool = False
+    error: type[Exception] = InjectedFailure
 
     def __call__(self, execute: Callable[..., Any], sql: str, params: Any, many: bool, context: Any) -> Any:
         head = sql.lstrip().upper()
@@ -41,16 +61,18 @@ class StatementCounter:
             self.statements.append(sql.split()[0].upper() if sql.split() else "")
             if self.fail_at is not None and self.count == self.fail_at:
                 self.fired = True
-                raise InjectedFailure(f"injected failure before SQL statement #{self.count}: {sql[:120]}")
+                raise self.error(f"injected failure before SQL statement #{self.count}: {sql[:120]}")
         return execute(sql, params, many, context)
 
 
 @contextlib.contextmanager
-def fail_after(n: int | None, using: str = "default") -> Iterator[StatementCounter]:
-    """Raise before the n-th non-control statement (``None`` = count only)."""
+def fail_after(
+    n: int | None, using: str = "default", error: type[Exception] = InjectedFailure
+) -> Iterator[StatementCounter]:
+    """Raise ``error`` before the n-th non-control statement (``None`` = count only)."""
     from django.db import connections
 
-    counter = StatementCounter(fail_at=n)
+    counter = StatementCounter(fail_at=n, error=error)
     with connections[using].execute_wrapper(counter):
         yield counter
 
@@ -145,6 +167,7 @@ def sweep(
     seed: int = 20261109,
     using: str = "default",
     isolate: bool = False,
+    error: type[Exception] = InjectedFailure,
 ) -> SweepResult:
     """All-or-nothing check of ``command`` under failure injection at every statement.
 
@@ -160,7 +183,7 @@ def sweep(
     if isolate:
         if reset is not None:
             raise ValueError("isolate and reset are exclusive")
-        return _sweep_isolated(command, probe, expect_changed, sample, seed, using)
+        return _sweep_isolated(command, probe, expect_changed, sample, seed, using, error)
     probe.snapshot()
     with fail_after(None, using) as counter:
         command()
@@ -220,8 +243,12 @@ def _sweep_isolated(
     sample: int | None,
     seed: int,
     using: str,
+    error: type[Exception] = InjectedFailure,
 ) -> SweepResult:
+    from django.db import connections
+
     probe.snapshot()
+    depth = len(connections[using].savepoint_ids)
 
     def clean() -> tuple[int, set[str]]:
         with fail_after(None, using) as counter:
@@ -241,13 +268,17 @@ def _sweep_isolated(
         points = sorted(random.Random(seed).sample(points, sample))
     for k in points:
 
-        def injected(k: int = k) -> tuple[bool, list[str]]:
-            with fail_after(k, using) as inj:
-                with contextlib.suppress(InjectedFailure):
+        def injected(k: int = k) -> tuple[bool, list[str], int]:
+            with fail_after(k, using, error) as inj:
+                with contextlib.suppress(error):
                     command()
-            return inj.fired, sorted(probe.diff())
+            leaked = len(connections[using].savepoint_ids) - depth - 1  # -1: the isolation savepoint
+            return inj.fired, sorted(probe.diff()), leaked
 
-        fired, partial = _isolated(using, injected)
+        fired, partial, leaked = _isolated(using, injected)
+        if leaked:
+            violations.append(f"failure before statement #{k} leaked {leaked} open transaction block(s)")
+            break  # the connection state is corrupt from here on
         if not fired:
             violations.append(f"injection #{k} never fired (statement count not deterministic)")
         elif partial:

@@ -73,6 +73,24 @@ DEFECTS: dict[str, Defect] = {
             "cannot be posted",
             "contracts/change-requests/P22b-3.md",
         ),
+        Defect(
+            "DEF-P22-008",
+            "P01",
+            "kernel.parameters.enforce raises ParameterUnknown(..., code=<parameter code>): the keyword overwrites the "
+            "error code, so the problem+json type becomes '.../smmlv.2027' instead of '.../parameter_unknown' and "
+            "callers cannot recognise the fail-closed error (C1-9)",
+            "contracts/change-requests/P22b-4.md",
+        ),
+        Defect(
+            "DEF-P22-009",
+            "P04",
+            "iam.api.base.SecuredView/ModuleSecuredView open the request's tenant scope (tenancy.activate + "
+            "transaction.atomic + SET LOCAL binding) in initial() and close it only in finalize_response(), which DRF "
+            "skips when an unhandled exception escapes the handler: the transaction block and the activated tenant "
+            "context leak onto the connection/thread, and when the garbage collector later finalises the suspended "
+            "scope its Atomic.__exit__ runs on the collecting thread's connection (ADR-003, invariant 12)",
+            "contracts/change-requests/P22b-5.md",
+        ),
     )
 }
 
