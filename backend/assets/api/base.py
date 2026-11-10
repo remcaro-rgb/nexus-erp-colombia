@@ -237,7 +237,7 @@ class AssetsAPIView(ModuleSecuredView):
 
     def company(self, request: Request) -> tuple[TenantContext, uuid.UUID]:
         ctx = self.ctx
-        raw = request.headers.get("X-Company-Id")
+        raw = request.headers.get("X-Company-Id") or request.query_params.get("company_id")
         if raw:
             return ctx, ctx.require_company(raw)
         if len(ctx.company_ids) == 1:
