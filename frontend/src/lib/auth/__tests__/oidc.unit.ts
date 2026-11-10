@@ -87,7 +87,7 @@ describe("FIX_UI_LOGIN_W03 PKCE and authorize request", () => {
       },
     });
     expect((await auth.discover()).token_endpoint).toBe(DISCOVERY.token_endpoint);
-    window.sessionStorage.setItem(REFRESH_KEY, "not-a-secret-refresh-0");
+    window.sessionStorage.setItem(REFRESH_KEY, "example-refresh-0");
     await auth.refresh();
     expect(posts).toEqual([DISCOVERY.token_endpoint]);
   });
@@ -139,7 +139,7 @@ describe("FIX_UI_LOGIN_W03 callback", () => {
 
   it("FIX_UI_LOGIN_W03 code exchange keeps the access token in memory and only the refresh token in sessionStorage", async () => {
     let nonce = "";
-    const { auth, navigations, posts } = setup(() => json({ access_token: "not-a-secret-access-1", refresh_token: "not-a-secret-refresh-1", expires_in: 600, id_token: fakeIdJwt({ nonce }) }));
+    const { auth, navigations, posts } = setup(() => json({ access_token: "example-access-1", refresh_token: "example-refresh-1", expires_in: 600, id_token: fakeIdJwt({ nonce }) }));
     const { pending } = await startSignIn(auth, navigations, "/m/aprobaciones");
     nonce = pending.nonce;
     await expect(auth.handleCallback(`?code=abc&state=${pending.state}&session_state=x`)).resolves.toBe("/m/aprobaciones");
@@ -149,11 +149,11 @@ describe("FIX_UI_LOGIN_W03 callback", () => {
     expect(form?.get("client_id")).toBe("erp-web");
     expect(form?.get("redirect_uri")).toBe(`${ORIGIN}/oidc/callback`);
     expect(form?.has("client_secret")).toBe(false);
-    expect(auth.accessToken()).toBe("not-a-secret-access-1");
-    expect(window.sessionStorage.getItem(REFRESH_KEY)).toBe("not-a-secret-refresh-1");
+    expect(auth.accessToken()).toBe("example-access-1");
+    expect(window.sessionStorage.getItem(REFRESH_KEY)).toBe("example-refresh-1");
     expect(window.sessionStorage.getItem(PENDING_KEY)).toBeNull();
     expect([...Array(window.sessionStorage.length).keys()].map((i) => window.sessionStorage.key(i))).toEqual([REFRESH_KEY]);
-    expect(JSON.stringify(window.sessionStorage.getItem(REFRESH_KEY))).not.toContain("not-a-secret-access-1");
+    expect(JSON.stringify(window.sessionStorage.getItem(REFRESH_KEY))).not.toContain("example-access-1");
   });
 
   it("FIX_UI_LOGIN_W03 no auth key is ever written to localStorage (sign-in, callback, refresh, logout)", async () => {
