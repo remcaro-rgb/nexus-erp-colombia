@@ -34,20 +34,30 @@ def test_T_ACC_BRANCH_03_warehouse_requires_same_company_branch(inv, clerk, logi
     with inv.scope():
         codes = sorted(Location.objects.filter(warehouse_id=wh["id"]).values_list("code", "location_type"))
     assert codes == [
-        ("ALMACEN", "INTERNAL"), ("DESPACHO", "INTERNAL"), ("RECEPCION", "INTERNAL"),
-        ("SCRAP", "SCRAP"), ("TRANSITO", "TRANSIT"), ("WH1", "VIEW"),
-    ]  # fmt: skip
+        ("ALMACEN", "INTERNAL"),
+        ("DESPACHO", "INTERNAL"),
+        ("RECEPCION", "INTERNAL"),
+        ("SCRAP", "SCRAP"),
+        ("TRANSITO", "TRANSIT"),
+        ("WH1", "VIEW"),
+    ]
 
     # PATCH to a foreign branch is rejected as well (If-Match required)
     detail = api.get(f"/api/v1/inventory/warehouses/{wh['id']}")
-    r = api.patch(f"/api/v1/inventory/warehouses/{wh['id']}", {"branch_id": str(beta_bog)}, HTTP_IF_MATCH=detail["ETag"])
+    r = api.patch(
+        f"/api/v1/inventory/warehouses/{wh['id']}", {"branch_id": str(beta_bog)}, HTTP_IF_MATCH=detail["ETag"]
+    )
     assert r.status_code == 422 and r.json()["code"] == "branch_cross_company"
     r = api.patch(f"/api/v1/inventory/warehouses/{wh['id']}", {"branch_id": str(inv.branches["ALFA:MED"])})
     assert r.status_code == 428
 
     # service level: an unknown branch id is also rejected
     with pytest.raises(Exception) as exc:
-        inv.run(lambda u: masters.create_warehouse(u, inv.company(), {"code": "WH9", "name": "x", "branch_id": str(ids.new_id())}))
+        inv.run(
+            lambda u: masters.create_warehouse(
+                u, inv.company(), {"code": "WH9", "name": "x", "branch_id": str(ids.new_id())}
+            )
+        )
     assert getattr(exc.value, "code", "") == "branch_cross_company"
 
     # DB level: the composite FK refuses an ALFA warehouse pointing at a BETA branch even through the ORM

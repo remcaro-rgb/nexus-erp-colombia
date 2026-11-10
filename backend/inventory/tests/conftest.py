@@ -97,7 +97,9 @@ def bootstrap_ledger(ctx: tenancy.TenantContext, company: uuid.UUID) -> None:
             acc = Account.objects.create(
                 tenant_id=ctx.tenant_id, company_id=company, code=code, name=name, type=typ, nature=nature
             )
-            AccountDetermination.objects.create(tenant_id=ctx.tenant_id, company_id=company, role_code=role, account=acc)
+            AccountDetermination.objects.create(
+                tenant_id=ctx.tenant_id, company_id=company, role_code=role, account=acc
+            )
 
     run_in_unit_of_work(fn, ctx)
 
@@ -152,21 +154,32 @@ class Inv:
         bid = ids.new_id()
         with self.world.seed():
             Branch.objects.create(
-                id=bid, tenant_id=self.world.tenant_id, company_id=self.company(company), code=code,
-                name=f"Sucursal {code} (SINTÉTICA)", is_head_office=head,
-            )  # fmt: skip
+                id=bid,
+                tenant_id=self.world.tenant_id,
+                company_id=self.company(company),
+                code=code,
+                name=f"Sucursal {code} (SINTÉTICA)",
+                is_head_office=head,
+            )
         self.branches[f"{company}:{code}"] = bid
         return bid
 
     def warehouse(self, code: str, company: str = "ALFA", branch: str | None = None) -> Warehouse:
         bid = self.branches[f"{company}:{branch or 'BOG'}"]
         return self.run(
-            lambda u: masters.create_warehouse(u, self.company(company), {"code": code, "name": f"Bodega {code}", "branch_id": str(bid)}),
+            lambda u: masters.create_warehouse(
+                u, self.company(company), {"code": code, "name": f"Bodega {code}", "branch_id": str(bid)}
+            ),
             company,
         )
 
     def uom(self, code: str = "UND", precision: int = 0, company: str = "ALFA") -> Any:
-        return self.run(lambda u: masters.create_uom(u, self.company(company), {"code": code, "name": code, "precision": precision}), company)
+        return self.run(
+            lambda u: masters.create_uom(
+                u, self.company(company), {"code": code, "name": code, "precision": precision}
+            ),
+            company,
+        )
 
     def item(self, code: str, company: str = "ALFA", **extra: Any) -> Item:
         data = {"code": code, "name": f"Producto {code} (SINTÉTICO)", "base_uom": extra.pop("base_uom", "UND"), **extra}
@@ -174,7 +187,9 @@ class Inv:
 
     def presentation(self, item: Item, code: str, factor: str, **extra: Any) -> Presentation:
         data = {"code": code, "name": f"{code} x{factor}", "uom": code.lower(), "factor": factor, **extra}
-        return self.run(lambda u: masters.create_presentation(u, Item.objects.select_related("base_uom").get(id=item.id), data))
+        return self.run(
+            lambda u: masters.create_presentation(u, Item.objects.select_related("base_uom").get(id=item.id), data)
+        )
 
     def bin(self, wh: Warehouse, code: str) -> Location:
         with self.scope():
@@ -186,10 +201,15 @@ class Inv:
             return getattr(v, "id", v)
 
         return StockLine(
-            line_ref=ref, item_id=item.id, warehouse_id=wh.id, quantity=Decimal(qty),
-            location_id=_id(kw.get("location")), lot_id=_id(kw.get("lot")), presentation_id=_id(kw.get("presentation")),
+            line_ref=ref,
+            item_id=item.id,
+            warehouse_id=wh.id,
+            quantity=Decimal(qty),
+            location_id=_id(kw.get("location")),
+            lot_id=_id(kw.get("lot")),
+            presentation_id=_id(kw.get("presentation")),
             unit_cost=Decimal(kw["cost"]) if "cost" in kw else None,
-        )  # fmt: skip
+        )
 
     def receive(self, *lines: StockLine, company: str = "ALFA", source: DocumentRef | None = None) -> Any:
         doc = source or DocumentRef("purchasing.receipt", ids.new_id(), "REC-SYN")

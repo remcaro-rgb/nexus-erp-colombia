@@ -77,7 +77,9 @@ def _warehouse_any_company(uow: UnitOfWork, company_id: uuid.UUID, warehouse_id:
 
 
 def _event(uow: UnitOfWork, t: Transfer, status: str) -> None:
-    uow.emit("inventory.transfer.status_changed.v1", {"transfer_id": str(t.id), "to_status": status}, company_id=t.company_id)
+    uow.emit(
+        "inventory.transfer.status_changed.v1", {"transfer_id": str(t.id), "to_status": status}, company_id=t.company_id
+    )
 
 
 def _number(uow: UnitOfWork, company_id: uuid.UUID, day: dt.date) -> str:
@@ -166,7 +168,9 @@ def _doc(t: Transfer) -> DocumentRef:
 
 
 def _lines(t: Transfer) -> list[TransferLine]:
-    return list(TransferLine.objects.filter(transfer_id=t.id).select_related("item", "presentation").order_by("line_no"))
+    return list(
+        TransferLine.objects.filter(transfer_id=t.id).select_related("item", "presentation").order_by("line_no")
+    )
 
 
 def submit(uow: UnitOfWork, t: Transfer) -> Transfer:
@@ -181,10 +185,14 @@ def submit(uow: UnitOfWork, t: Transfer) -> Transfer:
             _doc(t),
             [
                 StockLine(
-                    line_ref=f"L{ln.line_no}", item_id=ln.item_id, warehouse_id=t.from_warehouse_id,
-                    quantity=ln.quantity, location_id=ln.from_location_id, lot_id=ln.lot_id,
+                    line_ref=f"L{ln.line_no}",
+                    item_id=ln.item_id,
+                    warehouse_id=t.from_warehouse_id,
+                    quantity=ln.quantity,
+                    location_id=ln.from_location_id,
+                    lot_id=ln.lot_id,
                     presentation_id=ln.presentation_id,
-                )  # fmt: skip
+                )
             ],
         )
         res = Reservation.objects.filter(id__in=ids).order_by("id")
@@ -211,7 +219,9 @@ def approve(uow: UnitOfWork, t: Transfer) -> Transfer:
     return t
 
 
-def _post(uow: UnitOfWork, t: Transfer, purpose: str, day: dt.date, value_lines: list[tuple[Item, Decimal]]) -> uuid.UUID | None:
+def _post(
+    uow: UnitOfWork, t: Transfer, purpose: str, day: dt.date, value_lines: list[tuple[Item, Decimal]]
+) -> uuid.UUID | None:
     total = q_amount(sum((v for _, v in value_lines), ZERO))
     if total == 0:
         return None
@@ -247,15 +257,20 @@ def ship(uow: UnitOfWork, t: Transfer, day: dt.date | None = None) -> Transfer:
         t = _lock(t)
     _require(t, S.SUBMITTED, S.APPROVED)
     day = day or clock.business_date()
+    if t.transit_location_id is None:
+        raise error("location_not_leaf", "the transfer has no in-transit bin")
     transit = Location.objects.get(id=t.transit_location_id)
     values: list[tuple[Item, Decimal]] = []
     src = Warehouse.objects.get(id=t.from_warehouse_id)
     for ln in _lines(t):
         reservations = list(
             Reservation.objects.filter(
-                company_id=t.company_id, source_type=SOURCE_TYPE, source_id=t.id,
-                line_ref__startswith=f"L{ln.line_no}", state=Reservation.State.ACTIVE,
-            ).order_by("line_ref")  # fmt: skip
+                company_id=t.company_id,
+                source_type=SOURCE_TYPE,
+                source_id=t.id,
+                line_ref__startswith=f"L{ln.line_no}",
+                state=Reservation.State.ACTIVE,
+            ).order_by("line_ref")
         )
         if not reservations:
             raise error("reservation_conflict", f"line {ln.line_no} has no active reservation")
@@ -264,11 +279,20 @@ def ship(uow: UnitOfWork, t: Transfer, day: dt.date | None = None) -> Transfer:
             if not (res.line_ref == f"L{ln.line_no}" or res.line_ref.startswith(f"L{ln.line_no}#")):
                 continue
             move = STOCK.internal_move(
-                uow, t.company_id, _doc(t), line_ref=f"{res.line_ref}", item_id=ln.item_id,
-                from_location_id=res.location_id, to_location_id=transit.id, quantity=res.quantity,
-                move_date=day, lot_id=res.lot_id, presentation_id=res.presentation_id,
-                kind=StockMove.Kind.TRANSFER_OUT, reservation=res,
-            )  # fmt: skip
+                uow,
+                t.company_id,
+                _doc(t),
+                line_ref=f"{res.line_ref}",
+                item_id=ln.item_id,
+                from_location_id=res.location_id,
+                to_location_id=transit.id,
+                quantity=res.quantity,
+                move_date=day,
+                lot_id=res.lot_id,
+                presentation_id=res.presentation_id,
+                kind=StockMove.Kind.TRANSFER_OUT,
+                reservation=res,
+            )
             value = q_amount(res.quantity * move.unit_cost)
             line_value += value
             if n == 0 and len(reservations) == 1:
@@ -292,26 +316,43 @@ def receive(uow: UnitOfWork, t: Transfer, day: dt.date | None = None) -> Transfe
     _require(t, S.SHIPPED)
     day = day or clock.business_date()
     dst = Warehouse.objects.get(id=t.to_warehouse_id)
+    if t.transit_location_id is None:
+        raise error("location_not_leaf", "the transfer has no in-transit bin")
+    transit_id = t.transit_location_id
     values: list[tuple[Item, Decimal]] = []
     for ln in _lines(t):
         out_moves = list(
             StockMove.objects.filter(
-                company_id=t.company_id, source_type=SOURCE_TYPE, source_id=t.id,
-                kind=StockMove.Kind.TRANSFER_OUT, line_ref__startswith=f"L{ln.line_no}",
-            ).order_by("line_ref")  # fmt: skip
+                company_id=t.company_id,
+                source_type=SOURCE_TYPE,
+                source_id=t.id,
+                kind=StockMove.Kind.TRANSFER_OUT,
+                line_ref__startswith=f"L{ln.line_no}",
+            ).order_by("line_ref")
         )
         for m in out_moves:
             if not (m.line_ref == f"L{ln.line_no}" or m.line_ref.startswith(f"L{ln.line_no}#")):
                 continue
             target = (
-                STOCK._location(t.company_id, ln.to_location_id, dst.id) if ln.to_location_id else locations.putaway(dst, ln.item)
+                STOCK._location(t.company_id, ln.to_location_id, dst.id)
+                if ln.to_location_id
+                else locations.putaway(dst, ln.item)
             )
             STOCK.internal_move(
-                uow, t.company_id, _doc(t), line_ref=m.line_ref, item_id=ln.item_id,
-                from_location_id=m.to_location_id or t.transit_location_id, to_location_id=target.id,
-                quantity=m.quantity, move_date=day, lot_id=m.lot_id, presentation_id=m.presentation_id,
-                kind=StockMove.Kind.TRANSFER_IN, cross_warehouse=True,
-            )  # fmt: skip
+                uow,
+                t.company_id,
+                _doc(t),
+                line_ref=m.line_ref,
+                item_id=ln.item_id,
+                from_location_id=m.to_location_id or transit_id,
+                to_location_id=target.id,
+                quantity=m.quantity,
+                move_date=day,
+                lot_id=m.lot_id,
+                presentation_id=m.presentation_id,
+                kind=StockMove.Kind.TRANSFER_IN,
+                cross_warehouse=True,
+            )
         values.append((ln.item, ln.value or ZERO))
     t.to_warehouse = dst
     t.receive_entry_id = _post(uow, t, "receive", day, values)

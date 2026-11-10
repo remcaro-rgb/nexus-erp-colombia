@@ -45,9 +45,14 @@ def test_T_INV_LOC_01_tree_no_cycles_parent_same_warehouse_posting_only_to_leaf_
     assert r.status_code == 422 and r.json()["code"] == "location_cross_warehouse"
     with inv.scope(), pytest.raises(IntegrityError), transaction.atomic():
         Location.objects.create(
-            tenant_id=wh1.tenant_id, company_id=wh1.company_id, warehouse=wh1, parent_id=wh2.root_location_id,
-            code="RAW", name="raw", location_type="INTERNAL",
-        )  # fmt: skip
+            tenant_id=wh1.tenant_id,
+            company_id=wh1.company_id,
+            warehouse=wh1,
+            parent_id=wh2.root_location_id,
+            code="RAW",
+            name="raw",
+            location_type="INTERNAL",
+        )
 
     # cycles: moving the zone under its own child is refused by the service and by the DB trigger
     detail = api.get(f"{base}/{zone['id']}")
@@ -56,7 +61,9 @@ def test_T_INV_LOC_01_tree_no_cycles_parent_same_warehouse_posting_only_to_leaf_
     with inv.scope(), pytest.raises(DatabaseError, match="cycle"), transaction.atomic():
         Location.objects.filter(id=zone["id"]).update(parent_id=a1["id"])
     # a TRANSIT bin cannot be a parent
-    r = api.post(base, {"code": "T2", "name": "t", "location_type": "INTERNAL", "parent_id": str(wh1.transit_location_id)})
+    r = api.post(
+        base, {"code": "T2", "name": "t", "location_type": "INTERNAL", "parent_id": str(wh1.transit_location_id)}
+    )
     assert r.status_code == 422 and r.json()["code"] == "location_not_leaf"
 
     item = inv.item("P-LOC1")
@@ -78,7 +85,10 @@ def test_T_INV_LOC_01_tree_no_cycles_parent_same_warehouse_posting_only_to_leaf_
     tree = api.get(f"{base}/tree").json()["items"]
     assert len(tree) == 1 and tree[0]["code"] == "WH1"
     za = next(n for n in tree[0]["children"] if n["code"] == "ZA")
-    assert za["is_leaf"] is False and {c["code"]: c["on_hand"] for c in za["children"]} == {"A-01": "5.000000", "A-02": "0"}
+    assert za["is_leaf"] is False and {c["code"]: c["on_hand"] for c in za["children"]} == {
+        "A-01": "5.000000",
+        "A-02": "0",
+    }
 
 
 def test_T_INV_LOC_02_availability_and_reservations_per_bin_and_lot(inv, clerk, login):
@@ -165,9 +175,13 @@ def test_T_INV_LOC_03_putaway_rule_else_recepcion_and_bin_to_bin_keeps_valuation
     with inv.scope():
         where = {
             m.item_id: m.to_location.code
-            for m in StockMove.objects.filter(kind="RECEIPT", item_id__in=[frozen.id, rice.id, other.id]).select_related("to_location")
+            for m in StockMove.objects.filter(
+                kind="RECEIPT", item_id__in=[frozen.id, rice.id, other.id]
+            ).select_related("to_location")
         }
-        val_before = {v.item_id: (v.qty, v.value, v.avg_cost) for v in ItemValuation.objects.filter(item_id__in=[rice.id])}
+        val_before = {
+            v.item_id: (v.qty, v.value, v.avg_cost) for v in ItemValuation.objects.filter(item_id__in=[rice.id])
+        }
     assert where == {frozen.id: "FRIO-01", rice.id: "SECO-01", other.id: "RECEPCION"}
 
     # item default bin is used when no rule matches
@@ -200,7 +214,12 @@ def test_T_INV_LOC_03_putaway_rule_else_recepcion_and_bin_to_bin_keeps_valuation
     wh2 = inv.warehouse("WH2")
     r = api.post(
         "/api/v1/inventory/moves:internal",
-        {"item_id": str(rice.id), "from_location_id": str(alm.id), "to_location_id": str(inv.bin(wh2, "ALMACEN").id), "quantity": "1"},
+        {
+            "item_id": str(rice.id),
+            "from_location_id": str(alm.id),
+            "to_location_id": str(inv.bin(wh2, "ALMACEN").id),
+            "quantity": "1",
+        },
     )
     assert r.status_code == 422 and r.json()["code"] == "location_cross_warehouse"
     r = api.post(

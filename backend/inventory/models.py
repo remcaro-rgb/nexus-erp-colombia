@@ -112,7 +112,10 @@ class Presentation(CompanyModel, AuditedModel):
         constraints = [
             models.UniqueConstraint(Lower("code"), "item", name="inventory_presentation_code_uq"),
             models.UniqueConstraint(
-                "tenant_id", "company_id", "barcode", condition=Q(barcode__isnull=False),
+                "tenant_id",
+                "company_id",
+                "barcode",
+                condition=Q(barcode__isnull=False),
                 name="inventory_presentation_barcode_uq",
             ),
             models.CheckConstraint(condition=Q(factor__gt=0), name="inventory_presentation_factor_ck"),
@@ -135,9 +138,7 @@ class Warehouse(CompanyModel, AuditedModel):
     allow_negative = models.BooleanField(default=False)  # D-032
     valuation_scope = models.CharField(max_length=10, choices=ValuationScope.choices, default=ValuationScope.COMPANY)
     root_location = models.ForeignKey("Location", on_delete=models.PROTECT, null=True, blank=True, related_name="+")
-    transit_location = models.ForeignKey(
-        "Location", on_delete=models.PROTECT, null=True, blank=True, related_name="+"
-    )
+    transit_location = models.ForeignKey("Location", on_delete=models.PROTECT, null=True, blank=True, related_name="+")
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.ACTIVE)
 
     class Meta:
@@ -380,7 +381,9 @@ class ValuationLayer(CompanyModel):
 
     class Meta:
         db_table = "inventory_valuation_layer"
-        indexes = [models.Index(fields=["tenant_id", "company_id", "item", "created_at"], name="inventory_layer_item_ix")]
+        indexes = [
+            models.Index(fields=["tenant_id", "company_id", "item", "created_at"], name="inventory_layer_item_ix")
+        ]
 
 
 # --------------------------------------------------------------------------- transfers
@@ -449,7 +452,8 @@ class TransferLine(CompanyModel):
 EXTENSION_PARTS = ("issues", "barcodes", "bom", "transformations")
 
 for _part in EXTENSION_PARTS:
-    if importlib.util.find_spec(f"inventory.{_part}") is not None and importlib.util.find_spec(
-        f"inventory.{_part}.models"
-    ) is not None:
+    if (
+        importlib.util.find_spec(f"inventory.{_part}") is not None
+        and importlib.util.find_spec(f"inventory.{_part}.models") is not None
+    ):
         importlib.import_module(f"inventory.{_part}.models")

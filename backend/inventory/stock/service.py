@@ -58,6 +58,10 @@ NIL = uuid.UUID(int=0)
 HOLD_SOURCE = "inventory.quality_hold"
 
 
+def _lot_q(lot_id: uuid.UUID | None) -> Q:
+    return Q(lot_id=lot_id) if lot_id is not None else Q(lot__isnull=True)
+
+
 def _sort_key(line: StockLine) -> tuple[uuid.UUID, uuid.UUID, uuid.UUID]:
     return (line.item_id, line.warehouse_id, line.lot_id or NIL)
 
@@ -196,7 +200,7 @@ class InventoryStockService:
         return list(
             PackagedQuant.objects.select_for_update()
             .select_related("presentation")
-            .filter(item_id=item.id, location_id=loc.id, lot_id=lot.id if lot else None)
+            .filter(_lot_q(lot.id if lot else None), item_id=item.id, location_id=loc.id)
             .order_by("presentation_id")
         )
 
@@ -273,9 +277,7 @@ class InventoryStockService:
 
     @staticmethod
     def _result(moves: Sequence[StockMove]) -> StockMoveResult:
-        return StockMoveResult(
-            tuple(m.id for m in moves), q_amount(sum((abs(m.value) for m in moves), ZERO)), None
-        )
+        return StockMoveResult(tuple(m.id for m in moves), q_amount(sum((abs(m.value) for m in moves), ZERO)), None)
 
     @staticmethod
     def _existing(company_id: uuid.UUID, source: DocumentRef, kinds: Sequence[str]) -> list[StockMove]:
@@ -340,9 +342,15 @@ class InventoryStockService:
 
     # ------------------------------------------------------------------ quant primitives
     def _add(
-        self, c: _Ctx, item: Item, loc: Location, lot: Lot | None, qty: Decimal,
-        presentation: Presentation | None, packages: Decimal | None,
-    ) -> None:  # fmt: skip
+        self,
+        c: _Ctx,
+        item: Item,
+        loc: Location,
+        lot: Lot | None,
+        qty: Decimal,
+        presentation: Presentation | None,
+        packages: Decimal | None,
+    ) -> None:
         quant = self._quant(c, item, loc, lot)
         if presentation is not None and packages:
             pq = self._packaged(c, item, presentation, loc, lot)
@@ -388,12 +396,10 @@ class InventoryStockService:
                 reserved_packages=F("reserved_packages") - own_packages,
             )
         else:
-            plan_rows = [
-                pres.Packaged(r.id, r.qty_packages, r.presentation.factor, r.reserved_packages) for r in rows
-            ]
+            plan_rows = [pres.Packaged(r.id, r.qty_packages, r.presentation.factor, r.reserved_packages) for r in rows]
             if not wh.allow_negative or qty <= quant.on_hand:
                 for row_id, opened in pres.unpack_plan(quant.on_hand, plan_rows, qty):
-                    PackagedQuant.objects.filter(id=row_id).update(qty_packages=F("qty_packages") - opened)
+                    PackagedQuant.objects.filter(id=str(row_id)).update(qty_packages=F("qty_packages") - opened)
         StockQuant.objects.filter(id=quant.id).update(
             on_hand=F("on_hand") - qty, reserved=F("reserved") - own_qty, version=F("version") + 1
         )
@@ -435,7 +441,9 @@ class InventoryStockService:
         left = qty
         for q in qs:
             if presentation is not None:
-                pq = PackagedQuant.objects.filter(presentation_id=presentation.id, location_id=q.location_id, lot_id=q.lot_id).first()
+                pq = PackagedQuant.objects.filter(
+                    _lot_q(q.lot_id), presentation_id=presentation.id, location_id=q.location_id
+                ).first()
                 if pq is None or pq.qty_packages - pq.reserved_packages <= 0:
                     continue
                 take = min(left, (pq.qty_packages - pq.reserved_packages) * presentation.factor, q.on_hand - q.reserved)
@@ -470,26 +478,39 @@ class InventoryStockService:
         self._lock_valuations(c, (ln.item_id for ln in lines))
         for line in sorted(lines, key=_sort_key):
             if line.quantity <= 0:
-                raise ValidationFailed("quantity must be positive", pointer=f"/lines/{line.line_ref}", reason="positive")
+                raise ValidationFailed(
+                    "quantity must be positive", pointer=f"/lines/{line.line_ref}", reason="positive"
+                )
             if line.unit_cost is None or line.unit_cost < 0:
-                raise ValidationFailed("receipts need unit_cost ≥ 0", pointer=f"/lines/{line.line_ref}", reason="required")
+                raise ValidationFailed(
+                    "receipts need unit_cost ≥ 0", pointer=f"/lines/{line.line_ref}", reason="required"
+                )
             wh = self._warehouse(company_id, line.warehouse_id)
             item = self._item(company_id, line.item_id)
             lot = self._lot(item, line.lot_id)
             presentation = self._presentation(item, line.presentation_id)
             packages = self._packages(item, presentation, line.quantity)
             loc = (
-                self._location(company_id, line.location_id, wh.id)
-                if line.location_id
-                else locations.putaway(wh, item)
+                self._location(company_id, line.location_id, wh.id) if line.location_id else locations.putaway(wh, item)
             )
             self._add(c, item, loc, lot, line.quantity, presentation, packages)
             value_in = self._value_in(c, item, line.quantity, line.unit_cost)
             move = self._record(
-                c, kind=StockMove.Kind.RECEIPT, item=item, warehouse=wh, source=source, line_ref=line.line_ref,
-                quantity=line.quantity, move_date=move_date, to_loc=loc, lot=lot, presentation=presentation,
-                packages=packages, unit_cost=line.unit_cost, value=value_in,
-            )  # fmt: skip
+                c,
+                kind=StockMove.Kind.RECEIPT,
+                item=item,
+                warehouse=wh,
+                source=source,
+                line_ref=line.line_ref,
+                quantity=line.quantity,
+                move_date=move_date,
+                to_loc=loc,
+                lot=lot,
+                presentation=presentation,
+                packages=packages,
+                unit_cost=line.unit_cost,
+                value=value_in,
+            )
             self._layer(c, item, move, line.quantity, line.unit_cost, value_in)
         return self._result(c.moves)
 
@@ -504,7 +525,9 @@ class InventoryStockService:
         self._lock_valuations(c, (ln.item_id for ln in lines))
         for line in sorted(lines, key=_sort_key):
             if line.quantity <= 0:
-                raise ValidationFailed("quantity must be positive", pointer=f"/lines/{line.line_ref}", reason="positive")
+                raise ValidationFailed(
+                    "quantity must be positive", pointer=f"/lines/{line.line_ref}", reason="positive"
+                )
             wh = self._warehouse(company_id, line.warehouse_id)
             item = self._item(company_id, line.item_id)
             lot = self._lot(item, line.lot_id) if line.lot_id else None
@@ -521,15 +544,33 @@ class InventoryStockService:
                 plan = self._pick_bins(item, wh, lot, line.quantity, presentation)
             for n, (loc, bin_lot, qty) in enumerate(plan):
                 packages = self._packages(item, presentation, qty)
-                use_own = own if (own is not None and own.location_id == loc.id and own.lot_id == (bin_lot.id if bin_lot else None)) else None
+                use_own = (
+                    own
+                    if (
+                        own is not None
+                        and own.location_id == loc.id
+                        and own.lot_id == (bin_lot.id if bin_lot else None)
+                    )
+                    else None
+                )
                 self._take(c, item, wh, loc, bin_lot, qty, presentation, packages, use_own)
                 value_out = self._value_out(c, item, qty)
                 self._record(
-                    c, kind=StockMove.Kind.ISSUE, item=item, warehouse=wh, source=source,
-                    line_ref=line.line_ref if n == 0 else f"{line.line_ref}#{n}", quantity=qty, move_date=move_date,
-                    from_loc=loc, lot=bin_lot, presentation=presentation, packages=packages,
-                    unit_cost=val.average_of(qty, value_out), value=-value_out,
-                )  # fmt: skip
+                    c,
+                    kind=StockMove.Kind.ISSUE,
+                    item=item,
+                    warehouse=wh,
+                    source=source,
+                    line_ref=line.line_ref if n == 0 else f"{line.line_ref}#{n}",
+                    quantity=qty,
+                    move_date=move_date,
+                    from_loc=loc,
+                    lot=bin_lot,
+                    presentation=presentation,
+                    packages=packages,
+                    unit_cost=val.average_of(qty, value_out),
+                    value=-value_out,
+                )
         return self._result(c.moves)
 
     def return_moves(
@@ -561,21 +602,44 @@ class InventoryStockService:
                 v.save(update_fields=["qty", "value", "avg_cost"])
                 self._valuation_event(c, v)
                 move = self._record(
-                    c, kind=StockMove.Kind.RETURN, item=item, warehouse=wh, source=source, line_ref=str(m.id)[:60],
-                    quantity=m.quantity, move_date=m.move_date, to_loc=loc, lot=m.lot, presentation=presentation,
-                    packages=m.qty_packages, unit_cost=unit, value=value_in, original=m,
-                )  # fmt: skip
+                    c,
+                    kind=StockMove.Kind.RETURN,
+                    item=item,
+                    warehouse=wh,
+                    source=source,
+                    line_ref=str(m.id)[:60],
+                    quantity=m.quantity,
+                    move_date=m.move_date,
+                    to_loc=loc,
+                    lot=m.lot,
+                    presentation=presentation,
+                    packages=m.qty_packages,
+                    unit_cost=unit,
+                    value=value_in,
+                    original=m,
+                )
                 self._layer(c, item, move, m.quantity, unit, value_in)
             else:
                 assert m.to_location is not None  # noqa: S101 - receipt moves always have a target bin
                 self._take(c, item, wh, m.to_location, m.lot, m.quantity, presentation, m.qty_packages)
                 value_out = self._value_out(c, item, m.quantity)
                 self._record(
-                    c, kind=StockMove.Kind.RETURN, item=item, warehouse=wh, source=source, line_ref=str(m.id)[:60],
-                    quantity=m.quantity, move_date=m.move_date, from_loc=m.to_location, lot=m.lot,
-                    presentation=presentation, packages=m.qty_packages,
-                    unit_cost=val.average_of(m.quantity, value_out), value=-value_out, original=m,
-                )  # fmt: skip
+                    c,
+                    kind=StockMove.Kind.RETURN,
+                    item=item,
+                    warehouse=wh,
+                    source=source,
+                    line_ref=str(m.id)[:60],
+                    quantity=m.quantity,
+                    move_date=m.move_date,
+                    from_loc=m.to_location,
+                    lot=m.lot,
+                    presentation=presentation,
+                    packages=m.qty_packages,
+                    unit_cost=val.average_of(m.quantity, value_out),
+                    value=-value_out,
+                    original=m,
+                )
         return self._result(c.moves)
 
     # ================================================================== Inventory extension
@@ -587,9 +651,19 @@ class InventoryStockService:
         )
         if warehouse_id is not None:
             qs = qs.filter(warehouse_id=warehouse_id)
-        rows = qs.values("warehouse_id").annotate(on_hand=Sum("on_hand"), reserved=Sum("reserved")).order_by("warehouse_id")
+        rows = (
+            qs.values("warehouse_id")
+            .annotate(total_on_hand=Sum("on_hand"), total_reserved=Sum("reserved"))
+            .order_by("warehouse_id")
+        )
         return [
-            Availability(item_id, r["warehouse_id"], r["on_hand"], r["reserved"], r["on_hand"] - r["reserved"])
+            Availability(
+                item_id,
+                r["warehouse_id"],
+                r["total_on_hand"],
+                r["total_reserved"],
+                r["total_on_hand"] - r["total_reserved"],
+            )
             for r in rows
         ]
 
@@ -606,7 +680,12 @@ class InventoryStockService:
     ) -> list[BinAvailability]:
         """Per (item, bin, lot): base on hand / reserved / available, packaged per presentation, loose."""
         qs = StockQuant.objects.filter(company_id=company_id).select_related("location")
-        for key, value in (("item_id", item_id), ("warehouse_id", warehouse_id), ("location_id", location_id), ("lot_id", lot_id)):
+        for key, value in (
+            ("item_id", item_id),
+            ("warehouse_id", warehouse_id),
+            ("location_id", location_id),
+            ("lot_id", lot_id),
+        ):
             if value is not None:
                 qs = qs.filter(**{key: value})
         if not include_non_internal:
@@ -627,9 +706,13 @@ class InventoryStockService:
                 continue
             pk = tuple(
                 PackagedAvailability(
-                    r.presentation_id, r.presentation.code, r.presentation.factor, r.qty_packages,
-                    r.reserved_packages, r.qty_packages - r.reserved_packages,
-                )  # fmt: skip
+                    r.presentation_id,
+                    r.presentation.code,
+                    r.presentation.factor,
+                    r.qty_packages,
+                    r.reserved_packages,
+                    r.qty_packages - r.reserved_packages,
+                )
                 for r in rows
             )
             base = sum((r.qty_packages * r.presentation.factor for r in rows), ZERO)
@@ -638,10 +721,19 @@ class InventoryStockService:
             internal = q.location.location_type == Location.LocationType.INTERNAL
             out.append(
                 BinAvailability(
-                    q.item_id, q.warehouse_id, q.location_id, q.location.code, q.location.location_type, q.lot_id,
-                    q.on_hand, q.reserved, q_qty((q.on_hand - q.reserved) if internal else ZERO), q_qty(base),
-                    q_qty(q.on_hand - total_packaged), pk,
-                )  # fmt: skip
+                    q.item_id,
+                    q.warehouse_id,
+                    q.location_id,
+                    q.location.code,
+                    q.location.location_type,
+                    q.lot_id,
+                    q.on_hand,
+                    q.reserved,
+                    q_qty((q.on_hand - q.reserved) if internal else ZERO),
+                    q_qty(base),
+                    q_qty(q.on_hand - total_packaged),
+                    pk,
+                )
             )
         return out
 
@@ -655,16 +747,21 @@ class InventoryStockService:
         out: list[uuid.UUID] = []
         for line in sorted(lines, key=_sort_key):
             same = Reservation.objects.filter(
-                company_id=company_id, source_type=source.type, source_id=source.id,
-                line_ref=line.line_ref, state=Reservation.State.ACTIVE,
-            ).first()  # fmt: skip
+                company_id=company_id,
+                source_type=source.type,
+                source_id=source.id,
+                line_ref=line.line_ref,
+                state=Reservation.State.ACTIVE,
+            ).first()
             if same is not None:
                 if same.quantity != line.quantity or same.item_id != line.item_id:
                     raise error("reservation_conflict", "another reservation exists for this source line")
                 out.append(same.id)
                 continue
             if line.quantity <= 0:
-                raise ValidationFailed("quantity must be positive", pointer=f"/lines/{line.line_ref}", reason="positive")
+                raise ValidationFailed(
+                    "quantity must be positive", pointer=f"/lines/{line.line_ref}", reason="positive"
+                )
             wh = self._warehouse(company_id, line.warehouse_id)
             item = self._item(company_id, line.item_id)
             lot = self._lot(item, line.lot_id) if line.lot_id else None
@@ -695,12 +792,21 @@ class InventoryStockService:
                     PackagedQuant.objects.filter(id=pq.id).update(reserved_packages=F("reserved_packages") + packages)
                 StockQuant.objects.filter(id=quant.id).update(reserved=F("reserved") + qty, version=F("version") + 1)
                 res = Reservation.objects.create(
-                    tenant_id=uow.ctx.tenant_id, company_id=company_id, item=item, warehouse=wh, location=loc,
-                    lot=bin_lot, presentation=presentation, qty_packages=packages, quantity=qty,
-                    source_type=source.type, source_id=source.id,
+                    tenant_id=uow.ctx.tenant_id,
+                    company_id=company_id,
+                    item=item,
+                    warehouse=wh,
+                    location=loc,
+                    lot=bin_lot,
+                    presentation=presentation,
+                    qty_packages=packages,
+                    quantity=qty,
+                    source_type=source.type,
+                    source_id=source.id,
                     line_ref=line.line_ref if n == 0 else f"{line.line_ref}#{n}",
-                    created_by=uow.ctx.principal_id, updated_by=uow.ctx.principal_id,
-                )  # fmt: skip
+                    created_by=uow.ctx.principal_id,
+                    updated_by=uow.ctx.principal_id,
+                )
                 out.append(res.id)
         return out
 
@@ -712,12 +818,12 @@ class InventoryStockService:
         )
         for res in rows:
             uow.ctx.require_company(res.company_id)
-            StockQuant.objects.filter(item_id=res.item_id, location_id=res.location_id, lot_id=res.lot_id).update(
+            StockQuant.objects.filter(_lot_q(res.lot_id), item_id=res.item_id, location_id=res.location_id).update(
                 reserved=F("reserved") - res.quantity, version=F("version") + 1
             )
             if res.presentation_id and res.qty_packages:
                 PackagedQuant.objects.filter(
-                    presentation_id=res.presentation_id, location_id=res.location_id, lot_id=res.lot_id
+                    _lot_q(res.lot_id), presentation_id=res.presentation_id, location_id=res.location_id
                 ).update(reserved_packages=F("reserved_packages") - res.qty_packages)
             res.state = Reservation.State.RELEASED
             res.save_versioned(uow.ctx.principal_id, ["state"])
@@ -742,9 +848,12 @@ class InventoryStockService:
                 document_date=clock.business_date(),
                 lines=tuple(
                     transfers.TransferLineInput(
-                        item_id=ln.item_id, quantity=ln.quantity, presentation_id=ln.presentation_id,
-                        lot_id=ln.lot_id, from_location_id=ln.location_id,
-                    )  # fmt: skip
+                        item_id=ln.item_id,
+                        quantity=ln.quantity,
+                        presentation_id=ln.presentation_id,
+                        lot_id=ln.lot_id,
+                        from_location_id=ln.location_id,
+                    )
                     for ln in lines
                 ),
                 source=source,
@@ -760,14 +869,20 @@ class InventoryStockService:
         moves = StockMove.objects.filter(company_id=company_id, id__in=move_ids, kind=StockMove.Kind.RECEIPT)
         lines = [
             StockLine(
-                line_ref=str(m.id)[:60], item_id=m.item_id, warehouse_id=m.warehouse_id, quantity=m.quantity,
-                location_id=m.to_location_id, lot_id=m.lot_id,
-            )  # fmt: skip
+                line_ref=str(m.id)[:60],
+                item_id=m.item_id,
+                warehouse_id=m.warehouse_id,
+                quantity=m.quantity,
+                location_id=m.to_location_id,
+                lot_id=m.lot_id,
+            )
             for m in moves
         ]
         if len(lines) != len(set(move_ids)):
             raise NotFound("receipt move not found")
-        hold = DocumentRef(HOLD_SOURCE, uuid.uuid5(uuid.NAMESPACE_URL, f"hold:{company_id}:{reason[:200]}"), reason[:60])
+        hold = DocumentRef(
+            HOLD_SOURCE, uuid.uuid5(uuid.NAMESPACE_URL, f"hold:{company_id}:{reason[:200]}"), reason[:60]
+        )
         self.reserve(uow, company_id, hold, lines)
 
     # ================================================================== bin-to-bin / repack
@@ -818,7 +933,9 @@ class InventoryStockService:
         if not dst.allow_mixed_lots and lot is not None:
             other = StockQuant.objects.filter(location_id=dst.id, on_hand__gt=0).exclude(lot_id=lot.id).exists()
             if other:
-                raise ValidationFailed("the target bin does not allow mixed lots", pointer="/to_location_id", reason="mixed_lots")
+                raise ValidationFailed(
+                    "the target bin does not allow mixed lots", pointer="/to_location_id", reason="mixed_lots"
+                )
         # quants in ascending location order (deadlock-free)
         first, second = sorted([src, dst], key=lambda x: x.id)
         self._quant(c, item, first, lot)
@@ -827,10 +944,22 @@ class InventoryStockService:
         self._add(c, item, dst, lot, quantity, presentation, packages)
         avg = c.valuations[item.id].avg_cost
         return self._record(
-            c, kind=kind, item=item, warehouse=wh, source=source, line_ref=line_ref, quantity=quantity,
-            move_date=move_date, from_loc=src, to_loc=dst, lot=lot, presentation=presentation, packages=packages,
-            unit_cost=avg, value=ZERO,
-        )  # fmt: skip
+            c,
+            kind=kind,
+            item=item,
+            warehouse=wh,
+            source=source,
+            line_ref=line_ref,
+            quantity=quantity,
+            move_date=move_date,
+            from_loc=src,
+            to_loc=dst,
+            lot=lot,
+            presentation=presentation,
+            packages=packages,
+            unit_cost=avg,
+            value=ZERO,
+        )
 
     def repack(
         self,
@@ -863,7 +992,9 @@ class InventoryStockService:
         rows = self._packaged_rows(item, loc, lot)
         pq = self._packaged(c, item, presentation, loc, lot)
         if pack:
-            free_loose = pres.loose(quant.on_hand, [pres.Packaged(r.id, r.qty_packages, r.presentation.factor) for r in rows])
+            free_loose = pres.loose(
+                quant.on_hand, [pres.Packaged(r.id, r.qty_packages, r.presentation.factor) for r in rows]
+            )
             if packages * presentation.factor > free_loose:
                 raise error("packaged_exceeds_canonical", "not enough loose stock to fill the packages")
             PackagedQuant.objects.filter(id=pq.id).update(qty_packages=F("qty_packages") + packages)

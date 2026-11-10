@@ -51,15 +51,24 @@ def test_T_INV_LOC_04_concurrent_moves_out_of_one_bin_never_go_negative(inv):
     def target(i: int) -> Any:
         doc = DocumentRef("test.concurrency", ids.new_id(), f"C-{i}")
         if i % 3 == 0:  # issues out of ALMACEN
-            return run_in_unit_of_work(lambda u: SERVICE.issue(u, company, doc, [inv.line(item, wh, "3", location=alm)], inv_today()), ctx)
+            return run_in_unit_of_work(
+                lambda u: SERVICE.issue(u, company, doc, [inv.line(item, wh, "3", location=alm)], inv_today()), ctx
+            )
         dst = des if i % 3 == 1 else rec
         return run_in_unit_of_work(
             lambda u: SERVICE.internal_move(
-                u, company, doc, line_ref="1", item_id=item.id, from_location_id=alm.id, to_location_id=dst.id,
-                quantity=D(3), move_date=inv_today(),
+                u,
+                company,
+                doc,
+                line_ref="1",
+                item_id=item.id,
+                from_location_id=alm.id,
+                to_location_id=dst.id,
+                quantity=D(3),
+                move_date=inv_today(),
             ),
             ctx,
-        )  # fmt: skip
+        )
 
     results, errors = run_threads(12, target)
     ok = [r for r in results if r is not None]

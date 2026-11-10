@@ -62,7 +62,9 @@ def check_precision(qty: Decimal, precision: int, what: str = "quantity") -> Dec
     return qty
 
 
-def to_base(packages: Decimal, factor: Decimal, presentation_precision: int, base_precision: int = MAX_PLACES) -> Decimal:
+def to_base(
+    packages: Decimal, factor: Decimal, presentation_precision: int, base_precision: int = MAX_PLACES
+) -> Decimal:
     check_precision(packages, presentation_precision, "package quantity")
     base = packages * factor
     check_precision(base, base_precision, "base quantity")
@@ -106,7 +108,9 @@ def check_invariant(canonical: Decimal, packaged: Sequence[Packaged]) -> None:
         raise error("packaged_exceeds_canonical", "packaged stock exceeds the canonical quantity")
 
 
-def unpack_plan(canonical: Decimal, packaged: Sequence[Packaged], loose_needed: Decimal) -> list[tuple[object, Decimal]]:
+def unpack_plan(
+    canonical: Decimal, packaged: Sequence[Packaged], loose_needed: Decimal
+) -> list[tuple[object, Decimal]]:
     """Packages to open so that ``loose_needed`` base units are loose (smallest factor first, whole
     unreserved packages). Raises ``stock_insufficient`` if even opening every free package is not enough."""
     free_loose = loose(canonical, packaged)

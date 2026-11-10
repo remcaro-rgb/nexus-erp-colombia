@@ -8,9 +8,10 @@ from decimal import Decimal
 from typing import Any
 
 from django.db import IntegrityError, transaction
+from django.db.models import Model
 
 from iam.branches import services as branch_services
-from inventory.common import audit
+from inventory.common import as_uuid, audit
 from inventory.errors import error
 from inventory.locations import service as locations
 from inventory.models import Item, Location, Lot, PackagedQuant, Presentation, PutawayRule, Status, Uom, Warehouse
@@ -30,16 +31,19 @@ def _text(data: dict[str, Any], key: str, max_len: int, required: bool = True) -
     return value.strip()
 
 
-def _create(model: type[Any], uow: UnitOfWork, company_id: uuid.UUID, dup_msg: str, dup_field: str, **values: Any) -> Any:
+def _create[M: Model](
+    model: type[M], uow: UnitOfWork, company_id: uuid.UUID, dup_msg: str, dup_field: str, **values: Any
+) -> M:
     try:
         with transaction.atomic():
-            return model.objects.create(
+            obj: M = model._default_manager.create(
                 tenant_id=uow.ctx.tenant_id,
                 company_id=company_id,
                 created_by=uow.ctx.principal_id,
                 updated_by=uow.ctx.principal_id,
                 **values,
             )
+            return obj
     except IntegrityError as exc:
         raise ValidationFailed(dup_msg, pointer=f"/{dup_field}", reason="duplicate") from exc
 
@@ -50,10 +54,16 @@ def _create(model: type[Any], uow: UnitOfWork, company_id: uuid.UUID, dup_msg: s
 def create_uom(uow: UnitOfWork, company_id: uuid.UUID, data: dict[str, Any]) -> Uom:
     precision = pres.validate_precision(data.get("precision", 0))
     uom = _create(
-        Uom, uow, company_id, "UoM code already exists", "code",
-        code=_text(data, "code", 20), name=_text(data, "name", 120), precision=precision,
+        Uom,
+        uow,
+        company_id,
+        "UoM code already exists",
+        "code",
+        code=_text(data, "code", 20),
+        name=_text(data, "name", 120),
+        precision=precision,
         category=_text(data, "category", 40, required=False),
-    )  # fmt: skip
+    )
     audit(uow, "create", "inventory.uom", uom, {"code": uom.code})
     return uom
 
@@ -88,14 +98,16 @@ def _item_values(company_id: uuid.UUID, data: dict[str, Any], partial: bool) -> 
         out["base_uom"] = uom_by_code(company_id, _text(data, "base_uom", 20))
     if "standard_cost" in data:
         out["standard_cost"] = (
-            None if data["standard_cost"] in (None, "") else pres.parse_decimal(data["standard_cost"], "validation_failed")
+            None
+            if data["standard_cost"] in (None, "")
+            else pres.parse_decimal(data["standard_cost"], "validation_failed")
         )
     if "default_bin_id" in data:
         bin_id = data["default_bin_id"]
         if bin_id in (None, ""):
             out["default_bin"] = None
         else:
-            loc = Location.objects.filter(company_id=company_id, id=bin_id).first()
+            loc = Location.objects.filter(company_id=company_id, id=as_uuid(bin_id, "default_bin_id")).first()
             if loc is None:
                 raise error("location_cross_warehouse", "unknown default bin")
             locations.validate_putaway_target(loc.warehouse, loc)
@@ -106,9 +118,15 @@ def _item_values(company_id: uuid.UUID, data: dict[str, Any], partial: bool) -> 
 def create_item(uow: UnitOfWork, company_id: uuid.UUID, data: dict[str, Any]) -> Item:
     values = _item_values(company_id, data, partial=False)
     item = _create(
-        Item, uow, company_id, "item code already exists", "code",
-        code=_text(data, "code", 60), name=_text(data, "name", 200), **values,
-    )  # fmt: skip
+        Item,
+        uow,
+        company_id,
+        "item code already exists",
+        "code",
+        code=_text(data, "code", 60),
+        name=_text(data, "name", 200),
+        **values,
+    )
     audit(uow, "create", "inventory.item", item, {"code": item.code})
     return item
 
@@ -175,7 +193,9 @@ def create_presentation(uow: UnitOfWork, item: Item, data: dict[str, Any]) -> Pr
                 updated_by=uow.ctx.principal_id,
             )
     except IntegrityError as exc:
-        raise ValidationFailed("presentation code already exists for this item", pointer="/code", reason="duplicate") from exc
+        raise ValidationFailed(
+            "presentation code already exists for this item", pointer="/code", reason="duplicate"
+        ) from exc
     audit(uow, "create", "inventory.presentation", p, {"code": p.code, "factor": format(factor, "f")})
     _presentation_event(uow, p)
     return p
@@ -191,7 +211,9 @@ def update_presentation(uow: UnitOfWork, p: Presentation, data: dict[str, Any]) 
         factor = pres.validate_factor(data["factor"])
         if factor != p.factor:
             if _has_packaged_stock(p):
-                raise error("presentation_factor_invalid", "the factor of a presentation with packaged stock cannot change")
+                raise error(
+                    "presentation_factor_invalid", "the factor of a presentation with packaged stock cannot change"
+                )
             pres.check_precision(factor, p.item.base_uom.precision, "factor")
             p.factor = factor
             fields.append("factor")
@@ -242,10 +264,17 @@ def create_warehouse(uow: UnitOfWork, company_id: uuid.UUID, data: dict[str, Any
         raise ValidationFailed("branch_id must be a UUID", pointer="/branch_id", reason="format") from None
     branch_services.validate_branch_link(uow.ctx, company_id, branch_id)
     wh = _create(
-        Warehouse, uow, company_id, "warehouse code already exists", "code",
-        code=_text(data, "code", 40), name=_text(data, "name", 200), branch_id=branch_id,
-        address=_text(data, "address", 255, required=False), allow_negative=bool(data.get("allow_negative", False)),
-    )  # fmt: skip
+        Warehouse,
+        uow,
+        company_id,
+        "warehouse code already exists",
+        "code",
+        code=_text(data, "code", 40),
+        name=_text(data, "name", 200),
+        branch_id=branch_id,
+        address=_text(data, "address", 255, required=False),
+        allow_negative=bool(data.get("allow_negative", False)),
+    )
     locations.create_default_tree(uow, wh)
     audit(uow, "create", "inventory.warehouse", wh, {"code": wh.code, "branch_id": str(branch_id)})
     return wh
@@ -283,21 +312,30 @@ def create_lot(uow: UnitOfWork, company_id: uuid.UUID, item: Item, data: dict[st
 
     expiry_date = dt.date.fromisoformat(str(expiry)) if expiry else None
     lot = _create(
-        Lot, uow, company_id, "lot code already exists for this item", "code",
-        item=item, code=_text(data, "code", 60), expiry_date=expiry_date,
-    )  # fmt: skip
+        Lot,
+        uow,
+        company_id,
+        "lot code already exists for this item",
+        "code",
+        item=item,
+        code=_text(data, "code", 60),
+        expiry_date=expiry_date,
+    )
     audit(uow, "create", "inventory.lot", lot, {"code": lot.code})
     return lot
 
 
 def create_putaway_rule(uow: UnitOfWork, wh: Warehouse, data: dict[str, Any]) -> PutawayRule:
-    loc = Location.objects.filter(company_id=wh.company_id, id=data.get("location_id")).first()
+    loc_id = data.get("location_id")
+    loc = (
+        Location.objects.filter(company_id=wh.company_id, id=as_uuid(loc_id, "location_id")).first() if loc_id else None
+    )
     if loc is None:
         raise error("location_cross_warehouse", "unknown location")
     locations.validate_putaway_target(wh, loc)
     item = None
     if data.get("item_id"):
-        item = Item.objects.filter(company_id=wh.company_id, id=data["item_id"]).first()
+        item = Item.objects.filter(company_id=wh.company_id, id=as_uuid(data["item_id"], "item_id")).first()
         if item is None:
             raise ValidationFailed("unknown item", pointer="/item_id", reason="not_found")
     category = _text(data, "category", 60, required=False) or None
@@ -307,10 +345,18 @@ def create_putaway_rule(uow: UnitOfWork, wh: Warehouse, data: dict[str, Any]) ->
     if isinstance(priority, bool) or not isinstance(priority, int):
         raise ValidationFailed("priority must be an integer", pointer="/priority", reason="type")
     rule = _create(
-        PutawayRule, uow, wh.company_id, "duplicate rule", "location_id",
-        warehouse=wh, item=item, category=category, location=loc, priority=priority,
+        PutawayRule,
+        uow,
+        wh.company_id,
+        "duplicate rule",
+        "location_id",
+        warehouse=wh,
+        item=item,
+        category=category,
+        location=loc,
+        priority=priority,
         active=bool(data.get("active", True)),
-    )  # fmt: skip
+    )
     audit(uow, "create", "inventory.putaway_rule", rule, {"location_id": str(loc.id)})
     return rule
 

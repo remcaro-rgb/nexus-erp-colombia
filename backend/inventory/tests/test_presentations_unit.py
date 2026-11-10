@@ -72,7 +72,13 @@ def test_T_INV_PRES_01_valuation_math_shared_with_fakes():
     pos = val.Position(D(0), D(0), D(0))
     pos, v1 = val.wac_receive(pos, D(10), D("1000"))
     pos, v2 = val.wac_receive(pos, D(5), D("1300"))
-    assert (v1, v2, pos.qty, pos.value, pos.avg_cost) == (D("10000.0000"), D("6500.0000"), D(15), D("16500.0000"), D("1100.00000000"))
+    assert (v1, v2, pos.qty, pos.value, pos.avg_cost) == (
+        D("10000.0000"),
+        D("6500.0000"),
+        D(15),
+        D("16500.0000"),
+        D("1100.00000000"),
+    )
     pos, out = val.wac_issue(pos, D(3))
     assert out == D("3300.0000") and pos.value == D("13200.0000")
     pos, out = val.wac_issue(pos, D(12))  # residual-on-zero

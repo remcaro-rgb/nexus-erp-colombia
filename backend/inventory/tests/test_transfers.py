@@ -36,11 +36,19 @@ def test_T_INV_REQ_04_transfer_ship_receive_in_transit_counted_once_cross_compan
 
     r = api.post(
         "/api/v1/inventory/transfers",
-        {"from_warehouse_id": str(src.id), "to_warehouse_id": str(dst.id), "lines": [{"item_id": str(item.id), "quantity": "4"}]},
+        {
+            "from_warehouse_id": str(src.id),
+            "to_warehouse_id": str(dst.id),
+            "lines": [{"item_id": str(item.id), "quantity": "4"}],
+        },
     )
     assert r.status_code == 201, r.content
     t = r.json()
-    assert t["status"] == "DRAFT" and t["number"].startswith("TR-") and t["transit_location_id"] == str(src.transit_location_id)
+    assert (
+        t["status"] == "DRAFT"
+        and t["number"].startswith("TR-")
+        and t["transit_location_id"] == str(src.transit_location_id)
+    )
 
     # submit reserves in the source warehouse (D-012)
     r = api.post(f"/api/v1/inventory/transfers/{t['id']}:submit")
@@ -60,7 +68,9 @@ def test_T_INV_REQ_04_transfer_ship_receive_in_transit_counted_once_cross_compan
     # GL in the same transaction: Dr in-transit / Cr inventory, branch of the source warehouse
     with inv.scope():
         assert JournalEntry.objects.filter(id=shipped["ship_entry_id"], source_id=t["id"]).exists()
-        entry = JournalEntry.objects.get(source_type="inventory.transfer", source_id=t["id"], purpose="ship", book__code="NIIF")
+        entry = JournalEntry.objects.get(
+            source_type="inventory.transfer", source_id=t["id"], purpose="ship", book__code="NIIF"
+        )
         assert entry.branch_id == src.branch_id
         lines = JournalLine.objects.filter(entry_id=entry.id)
         sides = sorted((ln.account.code, ln.debit, ln.credit, ln.branch_id) for ln in lines.select_related("account"))
@@ -75,7 +85,9 @@ def test_T_INV_REQ_04_transfer_ship_receive_in_transit_counted_once_cross_compan
     avail = {x.warehouse_id: x.on_hand for x in SERVICE.availability(inv.company(), item.id)}
     assert avail == {src.id: D(6), dst.id: D(4)}
     with inv.scope():
-        recv = JournalEntry.objects.get(source_type="inventory.transfer", source_id=t["id"], purpose="receive", book__code="NIIF")
+        recv = JournalEntry.objects.get(
+            source_type="inventory.transfer", source_id=t["id"], purpose="receive", book__code="NIIF"
+        )
         assert {ln.branch_id for ln in JournalLine.objects.filter(entry_id=recv.id)} == {dst.branch_id}
         # company-wide valuation unchanged by the transfer
         v = ItemValuation.objects.get(item_id=item.id)
@@ -98,20 +110,40 @@ def test_T_INV_REQ_04_transfer_ship_receive_in_transit_counted_once_cross_compan
     beta_wh = inv.warehouse("BETA1", company="BETA")
     r = api.post(
         "/api/v1/inventory/transfers",
-        {"from_warehouse_id": str(src.id), "to_warehouse_id": str(beta_wh.id), "lines": [{"item_id": str(item.id), "quantity": "1"}]},
+        {
+            "from_warehouse_id": str(src.id),
+            "to_warehouse_id": str(beta_wh.id),
+            "lines": [{"item_id": str(item.id), "quantity": "1"}],
+        },
     )
     assert r.status_code == 422 and r.json()["code"] == "transfer_cross_company"
     with pytest.raises(Exception) as exc:
-        inv.run(lambda u: SERVICE.create_transfer(u, inv.company(), DocumentRef("purchasing.requisition", ids.new_id()), src.id, beta_wh.id,
-                                                  [inv.line(item, src, "1")]))  # fmt: skip
+        inv.run(
+            lambda u: SERVICE.create_transfer(
+                u,
+                inv.company(),
+                DocumentRef("purchasing.requisition", ids.new_id()),
+                src.id,
+                beta_wh.id,
+                [inv.line(item, src, "1")],
+            )
+        )
     assert exc.value.code == "transfer_cross_company"
     # an ALFA-only principal cannot even see the BETA warehouse: still rejected, not leaked
     with inv.scope():
         assert Transfer.objects.count() == 1
 
     # cancel releases the reservations
-    tid = inv.run(lambda u: SERVICE.create_transfer(u, inv.company(), DocumentRef("purchasing.requisition", ids.new_id()), src.id, dst.id,
-                                                    [inv.line(item, src, "5")]))  # fmt: skip
+    tid = inv.run(
+        lambda u: SERVICE.create_transfer(
+            u,
+            inv.company(),
+            DocumentRef("purchasing.requisition", ids.new_id()),
+            src.id,
+            dst.id,
+            [inv.line(item, src, "5")],
+        )
+    )
     assert SERVICE.availability(inv.company(), item.id, src.id)[0].available == D(1)
     r = api.post(f"/api/v1/inventory/transfers/{tid}:cancel")
     assert r.status_code == 200 and r.json()["status"] == "CANCELLED"

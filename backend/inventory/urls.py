@@ -17,7 +17,11 @@ urlpatterns = [
     path("items", v.ItemListView.as_view(), name="inventory-items"),
     path("items/<uuid:pk>", v.ItemDetailView.as_view(), name="inventory-item"),
     path("items/<uuid:item_id>/presentations", v.PresentationListView.as_view(), name="inventory-presentations"),
-    path("items/<uuid:item_id>/presentations/<uuid:pk>", v.PresentationDetailView.as_view(), name="inventory-presentation"),
+    path(
+        "items/<uuid:item_id>/presentations/<uuid:pk>",
+        v.PresentationDetailView.as_view(),
+        name="inventory-presentation",
+    ),
     path(
         "items/<uuid:item_id>/presentations/<uuid:pk>:<str:action>",
         v.PresentationActionView.as_view(),
@@ -27,13 +31,17 @@ urlpatterns = [
     path("warehouses/<uuid:pk>", v.WarehouseDetailView.as_view(), name="inventory-warehouse"),
     path("warehouses/<uuid:warehouse_id>/locations", v.LocationListView.as_view(), name="inventory-locations"),
     path("warehouses/<uuid:warehouse_id>/locations/tree", v.LocationTreeView.as_view(), name="inventory-location-tree"),
-    path("warehouses/<uuid:warehouse_id>/locations/<uuid:pk>", v.LocationDetailView.as_view(), name="inventory-location"),
+    path(
+        "warehouses/<uuid:warehouse_id>/locations/<uuid:pk>", v.LocationDetailView.as_view(), name="inventory-location"
+    ),
     path(
         "warehouses/<uuid:warehouse_id>/locations/<uuid:pk>:archive",
         v.LocationArchiveView.as_view(),
         name="inventory-location-archive",
     ),
-    path("warehouses/<uuid:warehouse_id>/putaway-rules", v.PutawayRuleListView.as_view(), name="inventory-putaway-rules"),
+    path(
+        "warehouses/<uuid:warehouse_id>/putaway-rules", v.PutawayRuleListView.as_view(), name="inventory-putaway-rules"
+    ),
     path("locations", v.LocationSearchView.as_view(), name="inventory-location-search"),
     path("lots", v.LotListView.as_view(), name="inventory-lots"),
     path("moves", v.MoveListView.as_view(), name="inventory-moves"),
@@ -53,5 +61,7 @@ urlpatterns = [
 ]
 
 for _part in ("issues", "barcodes", "bom", "transformations"):
-    if importlib.util.find_spec(f"inventory.{_part}") is not None and importlib.util.find_spec(f"inventory.{_part}.urls"):
+    if importlib.util.find_spec(f"inventory.{_part}") is not None and importlib.util.find_spec(
+        f"inventory.{_part}.urls"
+    ):
         urlpatterns.append(path("", include(f"inventory.{_part}.urls")))

@@ -29,7 +29,9 @@ OPS = st.lists(
 _COUNTER = {"n": 0}
 
 
-@settings(max_examples=25, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture, HealthCheck.too_slow])
+@settings(
+    max_examples=25, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture, HealthCheck.too_slow]
+)
 @given(ops=OPS)
 def test_T_INV_PRES_02_packaged_never_exceeds_canonical_and_stock_never_double_counted(inv_property, ops):
     inv, wh, box, six = inv_property["inv"], inv_property["wh"], inv_property["box"], inv_property["six"]
@@ -60,7 +62,13 @@ def test_T_INV_PRES_02_packaged_never_exceeds_canonical_and_stock_never_double_c
             else:
                 inv.run(
                     lambda u, n=n, loc=loc, pack=(op == "pack"): SERVICE.repack(
-                        u, inv.company(), item_id=item.id, location_id=loc.id, presentation_id=six_p.id, packages=D(n), pack=pack
+                        u,
+                        inv.company(),
+                        item_id=item.id,
+                        location_id=loc.id,
+                        presentation_id=six_p.id,
+                        packages=D(n),
+                        pack=pack,
                     )
                 )
         except Exception as exc:  # refused operations must leave no trace (atomic UoW)
@@ -69,14 +77,22 @@ def test_T_INV_PRES_02_packaged_never_exceeds_canonical_and_stock_never_double_c
             for q in StockQuant.objects.filter(item_id=item.id):
                 assert q.on_hand >= 0 and 0 <= q.reserved <= q.on_hand
                 packaged = sum(
-                    (p.qty_packages * p.presentation.factor
-                     for p in PackagedQuant.objects.filter(item_id=item.id, location_id=q.location_id).select_related("presentation")),
+                    (
+                        p.qty_packages * p.presentation.factor
+                        for p in PackagedQuant.objects.filter(
+                            item_id=item.id, location_id=q.location_id
+                        ).select_related("presentation")
+                    ),
                     D(0),
-                )  # fmt: skip
+                )
                 assert packaged <= q.on_hand
             canonical = StockQuant.objects.filter(item_id=item.id).aggregate(t=Sum("on_hand"))["t"] or D(0)
-            moves_in = StockMove.objects.filter(item_id=item.id, kind="RECEIPT").aggregate(t=Sum("quantity"))["t"] or D(0)
-            moves_out = StockMove.objects.filter(item_id=item.id, kind="ISSUE").aggregate(t=Sum("quantity"))["t"] or D(0)
+            moves_in = StockMove.objects.filter(item_id=item.id, kind="RECEIPT").aggregate(t=Sum("quantity"))["t"] or D(
+                0
+            )
+            moves_out = StockMove.objects.filter(item_id=item.id, kind="ISSUE").aggregate(t=Sum("quantity"))["t"] or D(
+                0
+            )
             val = ItemValuation.objects.filter(item_id=item.id).first()
         # total stock = Σ moves = expected; packaged stock is never added on top of the canonical quantity
         assert canonical == expected == moves_in - moves_out
