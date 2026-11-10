@@ -89,6 +89,7 @@ SEQUENCES = (
     ("RC", "RC-"),  # recibo de caja
     ("CE", "CE-"),  # comprobante de egreso
     ("POS", "POS-"),  # tiquete POS
+    ("SES", "SES-"),  # sesión de caja POS (apertura/cierre)
     ("DS", "DS-"),  # documento soporte
     ("NC", "NC-"),  # nota crédito / devolución
     ("NOM", "NOM-"),  # nómina

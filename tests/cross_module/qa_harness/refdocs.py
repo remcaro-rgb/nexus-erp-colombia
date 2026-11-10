@@ -47,7 +47,7 @@ SEQUENCE_BY_TYPE = {
     "treasury.fx_revaluation": "CE",
     "pos.ticket": "POS",
     "pos.return": "NC",
-    "pos.session_close": "POS",
+    "pos.session_close": "SES",
     "payroll.run": "NOM",
     "assets.acquisition": "AF",
     "assets.depreciation": "AF",
