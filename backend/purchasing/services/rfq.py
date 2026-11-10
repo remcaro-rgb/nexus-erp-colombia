@@ -472,6 +472,7 @@ def create_quote(
     *,
     channel: str = VendorQuote.Channel.INTERNAL_ENTRY,
     supplier_id: uuid.UUID | None = None,
+    permission: str = "purchasing.quote.create",
 ) -> tuple[VendorQuote, list[str]]:
     """Register a vendor quote. After the deadline it is stored LATE (warning ``quote_late``, D-010).
 
@@ -479,7 +480,7 @@ def create_quote(
     the body; internal entry takes it from ``party.id``.
     """
     ctx = uow.ctx
-    require(ctx, "purchasing.quote.create", rfq)
+    require(ctx, permission, rfq)
     _check_fields(data, QUOTE_FIELDS)
     _transition(rfq, (S.SENT, S.CLOSED, S.EVALUATED), "receive quotes for")
     sid = supplier_id or uuid_req(data.get("party"), "party")
