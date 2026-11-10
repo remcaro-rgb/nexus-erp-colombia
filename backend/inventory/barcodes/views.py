@@ -231,6 +231,10 @@ def job_dict(j: LabelPrintJob) -> dict[str, Any]:
         "targets": j.targets,
         "copies": j.copies,
         "label_count": j.label_count,
+        "labels": [
+            {"value": lb["value"], "symbology": lb["symbology"], "modules": lb["modules"], "text": lb["text"]}
+            for lb in (j.labels or [])[:200]
+        ],
         "data_hash": j.data_hash or None,
         "pdf_hash": j.pdf_hash or None,
         "version": j.version,
