@@ -93,6 +93,22 @@ class IssuedLine:
     move_ids: tuple[uuid.UUID, ...]
 
 
+def _values_by_ref(result_move_ids: tuple[uuid.UUID, ...]) -> dict[str, Decimal] | None:
+    """Issued value per stock ``line_ref`` from P09's moves (``ref#n`` bin splits folded into ``ref``)."""
+    from django.apps import apps
+
+    if not apps.is_installed("inventory") or not result_move_ids:
+        return None
+    rows = list(apps.get_model("inventory", "StockMove").objects.filter(id__in=result_move_ids).values_list("line_ref", "value"))
+    if len(rows) != len(result_move_ids):
+        return None
+    out: dict[str, Decimal] = {}
+    for ref, value in rows:
+        key = str(ref).split("#", 1)[0]
+        out[key] = out.get(key, Decimal(0)) + abs(Decimal(value))
+    return out
+
+
 def issue_lines(
     uow: UnitOfWork,
     company_id: uuid.UUID,
@@ -102,34 +118,39 @@ def issue_lines(
 ) -> dict[str, IssuedLine]:
     """Issue ``(line_ref, item_id, qty, warehouse_id, lot_id)`` lines; kits are exploded into components.
 
-    One ``StockService.issue`` call per stock line (the service locks in its fixed order and is idempotent per
-    ``(source, line_ref)``); returns the issued value per document line.
+    ONE ``StockService.issue`` call for the whole document (the service is idempotent per source document and
+    locks the valuations in its fixed order): kit components travel as ``<ref>.k<n>`` stock lines. The value of
+    each document line is the sum of its stock lines' issued values (P09 moves); with a stock double that has
+    no move rows the total is allocated by quantity.
     """
-    stock = services.get(StockService)
-    out: dict[str, IssuedLine] = {}
+    if not lines:
+        return {}
+    stock_lines: list[StockLine] = []
+    owners: dict[str, str] = {}
+    detail: dict[str, list[tuple[str, uuid.UUID, Decimal]]] = {}
     for ref, item_id, qty, warehouse_id, lot_id in lines:
         if item_is_kit(company_id, item_id):
             parts = components(company_id, item_id, qty, on)
-            total = Decimal(0)
-            detail: list[dict[str, str]] = []
-            moves: list[uuid.UUID] = []
             for n, part in enumerate(sorted(parts, key=lambda p: p.item_id), start=1):
                 sub_ref = f"{ref}.k{n}"
-                res = stock.issue(
-                    uow,
-                    company_id,
-                    source,
-                    [StockLine(sub_ref, part.item_id, warehouse_id, q_qty(part.quantity))],
-                    on,
-                )
-                value = q_amount(res.total_value)
-                total += value
-                moves += list(res.move_ids)
-                detail.append(
-                    {"item_id": str(part.item_id), "quantity": f"{q_qty(part.quantity):f}", "value": f"{value:f}"}
-                )
-            out[ref] = IssuedLine(ref, q_amount(total), detail, tuple(moves))
+                stock_lines.append(StockLine(sub_ref, part.item_id, warehouse_id, q_qty(part.quantity)))
+                owners[sub_ref] = ref
+                detail.setdefault(ref, []).append((sub_ref, part.item_id, q_qty(part.quantity)))
         else:
-            res = stock.issue(uow, company_id, source, [StockLine(ref, item_id, warehouse_id, qty, lot_id=lot_id)], on)
-            out[ref] = IssuedLine(ref, q_amount(res.total_value), [], tuple(res.move_ids))
+            stock_lines.append(StockLine(ref, item_id, warehouse_id, qty, lot_id=lot_id))
+            owners[ref] = ref
+    res = services.get(StockService).issue(uow, company_id, source, stock_lines, on)
+    values = _values_by_ref(res.move_ids)
+    if values is None:
+        total_qty = sum((ln.quantity for ln in stock_lines), Decimal(0))
+        values = {ln.line_ref: res.total_value * ln.quantity / total_qty for ln in stock_lines} if total_qty else {}
+    out: dict[str, IssuedLine] = {}
+    for ref, _item, _qty, _wh, _lot in lines:
+        subs = [ln.line_ref for ln in stock_lines if owners[ln.line_ref] == ref]
+        value = q_amount(sum((values.get(r, Decimal(0)) for r in subs), Decimal(0)))
+        parts_out = [
+            {"item_id": str(item), "quantity": f"{q:f}", "value": f"{q_amount(values.get(sub, Decimal(0))):f}"}
+            for sub, item, q in detail.get(ref, [])
+        ]
+        out[ref] = IssuedLine(ref, value, parts_out, tuple(res.move_ids))
     return out
