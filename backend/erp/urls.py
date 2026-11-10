@@ -18,6 +18,7 @@ urlpatterns = [
     path("api/health/ready", views.health_ready, name="health-ready"),
     path("api/v1/system/environment", views.system_environment, name="system-environment"),
     path("api/v1/ui/context", views.UiContextView.as_view(), name="ui-context"),
+    path("api/v1/ui/modules", views.UiModulesView.as_view(), name="ui-modules"),
     path("api/v1/schema", SpectacularAPIView.as_view(), name="schema"),
     *app_url_patterns(apps.get_app_configs(), settings.ERP_LOCAL_APPS),
 ]

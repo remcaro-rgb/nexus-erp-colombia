@@ -1,0 +1,176 @@
+{
+  "task": "FIX-UI-LOGIN-W03",
+  "fix_version": 1,
+  "status": "DONE",
+  "reason": "",
+  "branch": "claude/new-session-aw85gy",
+  "base_sha": "d601cff3a4713b1822b92d836e064254c86ac8fd",
+  "tested_sha": "7610743376bed869c57436093cb1c59dd8c8af71",
+  "changed_paths": [
+    "backend/erp/urls.py",
+    "backend/iam/api/views.py",
+    "backend/iam/apps.py",
+    "backend/iam/policy/catalog.py",
+    "backend/iam/policy/nav.py",
+    "backend/iam/tests/test_fix_ci_w02_dev_ui_principal.py",
+    "backend/iam/tests/test_fix_ui_login_w03.py",
+    "backend/iam/ui.py",
+    "backend/kernel/interfaces/__init__.py",
+    "backend/kernel/interfaces/ui.py",
+    "backend/kernel/tests/test_views.py",
+    "backend/kernel/views.py",
+    "contracts/change-requests/FIX-UI-LOGIN-W03-1.md",
+    "deploy/docker/backend.Dockerfile",
+    "deploy/docker/backend.Dockerfile.dockerignore",
+    "docs/handoffs/FIX-UI-LOGIN-W03.md",
+    "docs/run/progress/FIX-UI-LOGIN-W03.md",
+    "frontend/src/app/App.tsx",
+    "frontend/src/app/AuthRoutes.tsx",
+    "frontend/src/app/Boot.tsx",
+    "frontend/src/app/__tests__/auth.unit.tsx",
+    "frontend/src/app/e2e/shell.e2e.ts",
+    "frontend/src/app/test/auth.ts",
+    "frontend/src/app/test/setup.ts",
+    "frontend/src/i18n/messages/en-US.ts",
+    "frontend/src/i18n/messages/es-CO.ts",
+    "frontend/src/lib/api/client.ts",
+    "frontend/src/lib/auth/__tests__/oidc.unit.ts",
+    "frontend/src/lib/auth/index.ts",
+    "frontend/src/lib/auth/oidc.ts",
+    "frontend/src/lib/auth/pkce.ts",
+    "frontend/src/shell/NotFound.tsx",
+    "frontend/src/shell/ShellContext.tsx"
+  ],
+  "checks": {
+    "make_ci": "PASSED",
+    "parity_gate": "PASSED",
+    "backend_tests": "PASSED",
+    "frontend_tests": "PASSED",
+    "ui_context_bearer": "PASSED",
+    "ui_modules_filtered": "PASSED",
+    "dev_login": "PASSED",
+    "ui_snapshot_login": "PASSED"
+  },
+  "causes": [
+    {
+      "id": "UL-1",
+      "status": "FIXED",
+      "root_cause": "catalog.yaml and module-registry.json not in the backend image (REPO_DIR=/)",
+      "fix": "dockerignore re-includes both; runtime COPY --chmod=0444 to /contracts/... and /docs/spec/ui/...; parent dirs pre-created 0755 for uid 10001",
+      "files": [
+        "deploy/docker/backend.Dockerfile",
+        "deploy/docker/backend.Dockerfile.dockerignore"
+      ],
+      "evidence": "dev_ui_principal permissions=256 (catalog 795 codes in the api container; was 0)"
+    },
+    {
+      "id": "UL-2",
+      "status": "FIXED",
+      "root_cause": "UiContextView read tenancy.current() but DRF auth runs after TenancyMiddleware; nothing activated request.erp_context -> 500 tenancy_not_bound; payload lacked shell fields",
+      "fix": "kernel _ContextView activates request.erp_context for the handler; kernel interface UiShellProvider + IAM implementation registered at ready; companies/roles/permissions/user/session_idle_minutes/feature_flags",
+      "files": [
+        "backend/kernel/views.py",
+        "backend/kernel/interfaces/ui.py",
+        "backend/kernel/interfaces/__init__.py",
+        "backend/iam/ui.py",
+        "backend/iam/apps.py",
+        "backend/kernel/tests/test_views.py",
+        "backend/iam/tests/test_fix_ui_login_w03.py"
+      ],
+      "evidence": "test_FIX_UI_LOGIN_W03_ui_context_bearer_* (LocalIssuer bearer): no token 401, own tenant companies only, foreign company 422, portal token 401; preview shows the synthetic company in the selector"
+    },
+    {
+      "id": "UL-3",
+      "status": "FIXED",
+      "root_cause": "/api/v1/ui/modules did not exist; shell failed closed",
+      "fix": "kernel UiModulesView at api/v1/ui/modules delegating to the provider (503 without provider or registry); registry filtered server-side, unauthorized entries absent",
+      "files": [
+        "backend/erp/urls.py",
+        "backend/kernel/views.py",
+        "backend/iam/ui.py",
+        "backend/iam/policy/catalog.py",
+        "backend/iam/policy/nav.py"
+      ],
+      "evidence": "test_FIX_UI_LOGIN_W03_ui_modules_filtered_* pass; preview: inicio, contabilidad, aprobaciones captured, administracion absent"
+    },
+    {
+      "id": "UL-4",
+      "status": "FIXED",
+      "root_cause": "registry navigation codes are not catalog codes",
+      "fix": "iam/policy/nav.py rules + NAV_ALIASES, deny by default; /iam/me and /ui/context return catalog \u222a resolved nav codes; CCR FIX-UI-LOGIN-W03-1",
+      "files": [
+        "backend/iam/policy/nav.py",
+        "backend/iam/api/views.py",
+        "backend/iam/ui.py",
+        "contracts/change-requests/FIX-UI-LOGIN-W03-1.md",
+        "backend/iam/tests/test_fix_ui_login_w03.py",
+        "backend/iam/tests/test_fix_ci_w02_dev_ui_principal.py"
+      ],
+      "evidence": "every registry code resolvable; role-template matrix (talento only with hr/payroll/timekeeping reads); revocation effective next request; synthetic-catalog later-module test"
+    },
+    {
+      "id": "UL-5",
+      "status": "FIXED",
+      "root_cause": "SPA had no sign-in",
+      "fix": "OIDC auth code + PKCE S256 for erp-web in frontend/src/lib/auth; entry screen, /oidc/callback, RequireAuth silent restore, refresh, RP-initiated logout; realm endpoints re-based onto the page origin",
+      "files": [
+        "frontend/src/lib/auth/oidc.ts",
+        "frontend/src/lib/auth/pkce.ts",
+        "frontend/src/lib/auth/index.ts",
+        "frontend/src/app/AuthRoutes.tsx",
+        "frontend/src/app/App.tsx",
+        "frontend/src/app/test/auth.ts",
+        "frontend/src/app/test/setup.ts",
+        "frontend/src/app/e2e/shell.e2e.ts",
+        "frontend/src/i18n/messages/es-CO.ts",
+        "frontend/src/i18n/messages/en-US.ts",
+        "frontend/src/shell/NotFound.tsx"
+      ],
+      "evidence": "vitest FIX_UI_LOGIN_W03 (RFC 7636 vector, authorize params, state/nonce mismatch, callback replace, no localStorage); UI-SNAPSHOT OK signed in via Keycloak form"
+    },
+    {
+      "id": "UL-6",
+      "status": "FIXED",
+      "root_cause": "API client sent no Authorization; 401 was a generic boot error",
+      "fix": "createApiClient optional auth: Bearer header, 401 -> one refresh -> one retry -> sign-in redirect; BootError only for non-auth failures",
+      "files": [
+        "frontend/src/lib/api/client.ts",
+        "frontend/src/app/Boot.tsx",
+        "frontend/src/shell/ShellContext.tsx",
+        "frontend/src/app/__tests__/auth.unit.tsx"
+      ],
+      "evidence": "vitest FIX_UI_LOGIN_W03 bearer API client tests; signed-in pages load data with the bearer in the preview"
+    }
+  ],
+  "observed": {
+    "dev_login": "DEV-LOGIN OK user=ui-preview file=deploy/dev/secrets/ui-preview.env origin=http://localhost:8080 (DEV-UI-PRINCIPAL OK tenant=2b55fda7-6f59-56c8-9fce-10f2e9464e19 company=3d9dd620-bfc8-51a4-a8a4-fefccd75fe50 user=01a1c592-4db2-724d-bdba-0c4e6ceff8da permissio) [tools/dev_login.py truncates this line at 160 chars; the DEV-UI-PRINCIPAL count measured in the api container with the command's own formula: permissions=256]",
+    "ui_snapshot": "UI-SNAPSHOT: OK 9 images, 15 pages not captured, 0.60 MB, not committed (--commit not given)",
+    "captured": [
+      "login",
+      "inicio",
+      "contabilidad",
+      "aprobaciones"
+    ],
+    "not_captured": [
+      "administracion: absent for the read-only role (HTTP 200, heading: P\u00e1gina no encontrada)",
+      "11 modules whose owner task is not accepted yet",
+      "portal: needs an external account"
+    ]
+  },
+  "ignores_added": [
+    "backend/kernel/views.py: class _ContextView(APIView):  # type: ignore[misc]  # DRF ships no type stubs (Any base)"
+  ],
+  "github_actions": {
+    "observed": true,
+    "sha": "925c2b8c929e920a1ab46af7f05ca51129d00e7a",
+    "jobs": {
+      "policy (forbidden patterns, ADR-004, compose, secrets)": "success",
+      "make ci (lint, unit, contract)": "success",
+      "T-P03-01 docker compose up healthy from a clean clone": "success",
+      "P03 tests (T-P03-01..06)": "success"
+    },
+    "how": "GitHub API list_workflow_runs/list_workflow_jobs, run 157",
+    "note": "later commits change only docs/handoff and progress files"
+  },
+  "created_at": "2026-11-10T13:43:59Z"
+}

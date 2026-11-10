@@ -2,12 +2,8 @@
 
 from __future__ import annotations
 
-import functools
-from pathlib import Path
 from typing import Any
 
-import yaml
-from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,9 +11,13 @@ from iam import dimensions
 from iam.api.base import SecuredView, parse_uuid
 from iam.models import Membership
 from iam.policy import fields as field_registry
+from iam.policy.catalog import catalog_codes
 from iam.policy.engine import get_engine
+from iam.ui import effective_permissions
 from kernel import tenancy
 from kernel.errors import NotFound
+
+__all__ = ["CostCenterDetailView", "CostCentersView", "MeView", "catalog_codes", "node_dict"]
 
 field_registry.register(
     "iam.cost_center_scope",
@@ -28,18 +28,6 @@ field_registry.register(
 )
 
 
-@functools.cache
-def catalog_codes() -> tuple[str, ...]:
-    """Permission codes of ``contracts/permissions/catalog.yaml`` (empty when not shipped)."""
-    path = (
-        Path(getattr(settings, "REPO_DIR", Path(__file__).resolve().parents[3])) / "contracts/permissions/catalog.yaml"
-    )
-    if not path.exists():
-        return ()
-    doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    return tuple(sorted({p["code"] for p in doc.get("codes", []) if isinstance(p, dict) and "code" in p}))
-
-
 class MeView(SecuredView):
     resource_type = "iam.me"
     permissions = {"GET": "iam.me.read"}
@@ -47,7 +35,6 @@ class MeView(SecuredView):
     def get(self, request: Request) -> Response:
         ctx = self.ctx
         engine = get_engine()
-        eff = engine.effective(ctx)
         user_id = ctx.on_behalf_of or ctx.principal_id
         with tenancy.scope(ctx):
             companies = sorted(
@@ -68,7 +55,8 @@ class MeView(SecuredView):
                 "tenant_id": str(ctx.tenant_id),
                 "user_id": str(user_id),
                 "companies": companies,
-                "permissions": eff.permissions(catalog_codes()),
+                # Effective catalog codes ∪ resolved registry navigation codes (FIX-UI-LOGIN-W03 UL-4).
+                "permissions": effective_permissions(ctx),
                 "field_masks": masks,
                 "portal_kind": None,
             }

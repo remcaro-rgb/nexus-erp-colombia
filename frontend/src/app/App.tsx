@@ -1,13 +1,16 @@
-// Application root (owner P08): router with the internal shell (/m/*) and the portal shell variant (/portal/*).
+// Application root (owner P08): router with the sign-in routes ("/", /oidc/callback), the internal shell (/m/*, signed in
+// only: FIX-UI-LOGIN-W03 UL-5) and the portal shell variant (/portal/*).
 import { useMemo } from "react";
-import { createBrowserRouter, Navigate, Outlet, RouterProvider, type RouteObject } from "react-router";
+import { createBrowserRouter, Outlet, RouterProvider, type RouteObject } from "react-router";
 import { createApiClient, type ApiClient } from "@lib/api/client";
+import { CALLBACK_PATH, getAuth, type AuthSession } from "@lib/auth/oidc";
 import { DesignSystemProvider } from "@ds/DesignSystemProvider";
 import { ShellProvider } from "@shell/ShellContext";
 import { AppShell } from "@shell/AppShell";
 import { ModulePage, useCurrentModule } from "@shell/ModulePage";
 import { NotFound } from "@shell/NotFound";
 import { PortalProvider, PortalRoute } from "@shell/portal/PortalShell";
+import { CallbackRoute, EntryRoute, RequireAuth } from "./AuthRoutes";
 import { BootError, BootLoading } from "./Boot";
 
 function InternalLayout() {
@@ -19,19 +22,28 @@ function InternalLayout() {
   );
 }
 
-function InternalRoot({ api }: { api: ApiClient }) {
+function InternalRoot({ api, auth }: { api: ApiClient; auth: AuthSession }) {
   return (
-    <ShellProvider api={api} renderLoading={() => <BootLoading />} renderError={(e, retry) => <BootError error={e} retry={retry} />}>
-      <Outlet />
-    </ShellProvider>
+    <RequireAuth auth={auth}>
+      <ShellProvider
+        api={api}
+        renderLoading={() => <BootLoading />}
+        renderError={(e, retry) => <BootError error={e} retry={retry} />}
+        onLogout={() => void auth.logout()}
+      >
+        <Outlet />
+      </ShellProvider>
+    </RequireAuth>
   );
 }
 
-export function buildRoutes(api: ApiClient): RouteObject[] {
+/** Routes of the app. `auth` defaults to the browser sign-in session (tests install a synthetic one with setAuth). */
+export function buildRoutes(api: ApiClient, auth: AuthSession = getAuth()): RouteObject[] {
   return [
-    { path: "/", element: <Navigate to="/m/inicio" replace /> },
+    { path: "/", element: <EntryRoute auth={auth} /> },
+    { path: CALLBACK_PATH, element: <CallbackRoute auth={auth} /> },
     {
-      element: <InternalRoot api={api} />,
+      element: <InternalRoot api={api} auth={auth} />,
       children: [
         {
           path: "/m/:module",
@@ -55,9 +67,10 @@ export function buildRoutes(api: ApiClient): RouteObject[] {
   ];
 }
 
-export function App({ api: apiProp }: { api?: ApiClient }) {
-  const api = useMemo(() => apiProp ?? createApiClient(), [apiProp]);
-  const router = useMemo(() => createBrowserRouter(buildRoutes(api)), [api]);
+export function App({ api: apiProp, auth: authProp }: { api?: ApiClient; auth?: AuthSession }) {
+  const auth = useMemo(() => authProp ?? getAuth(), [authProp]);
+  const api = useMemo(() => apiProp ?? createApiClient(undefined, "", auth), [apiProp, auth]);
+  const router = useMemo(() => createBrowserRouter(buildRoutes(api, auth)), [api, auth]);
   return (
     <DesignSystemProvider>
       <RouterProvider router={router} />

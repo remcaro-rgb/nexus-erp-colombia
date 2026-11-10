@@ -21,6 +21,7 @@ from kernel.interfaces.scheduler import SchedulerService
 from kernel.interfaces.stock import Inventory, StockService
 from kernel.interfaces.tax import TaxService
 from kernel.interfaces.treasury import PaymentStatus
+from kernel.interfaces.ui import UiShellProvider
 from kernel.interfaces.workflow import WorkflowService
 from kernel.parameters import ParameterProvider
 
@@ -82,5 +83,6 @@ __all__ = [
     "SchedulerService",
     "StockService",
     "TaxService",
+    "UiShellProvider",
     "WorkflowService",
 ]

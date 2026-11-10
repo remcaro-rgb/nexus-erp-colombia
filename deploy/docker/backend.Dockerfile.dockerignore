@@ -5,6 +5,9 @@
 !mcp_server/**
 !deploy/docker/backend-entrypoint.sh
 !deploy/docker/healthcheck.py
+# FIX-UI-LOGIN-W03 UL-1: read at run time by iam (catalog_codes) and the /ui/modules provider (REPO_DIR = / in the image)
+!contracts/permissions/catalog.yaml
+!docs/spec/ui/module-registry.json
 **/__pycache__
 **/*.pyc
 **/.pytest_cache

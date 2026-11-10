@@ -1,12 +1,17 @@
-"""Health, environment and UI-context endpoints (D-P01, UI task matrix P01).
+"""Health, environment and UI-shell endpoints (D-P01, UI task matrix P01).
 
 ``/api/health/live``, ``/api/health/ready`` and ``/api/v1/system/environment``
 are the only anonymous endpoints; they return no secrets. ``/api/v1/ui/context``
-requires authentication (deny by default).
+and ``/api/v1/ui/modules`` require authentication (default DRF authentication: the
+IAM bearer token; deny by default). The principal's tenant context set by the
+authentication layer is activated for the handler (FIX-UI-LOGIN-W03 UL-2); the
+principal data comes from the registered :class:`kernel.interfaces.ui.UiShellProvider`
+(the kernel never imports ``iam``).
 """
 
 from __future__ import annotations
 
+import contextlib
 import subprocess
 from typing import Any
 
@@ -21,8 +26,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from kernel import ids, tenancy
-from kernel.errors import TenancyNotBound
+from kernel.errors import ServiceUnavailable, TenancyNotBound
 from kernel.interfaces.periods import PeriodService
+from kernel.interfaces.ui import UiShellProvider
 from kernel.services import optional
 
 
@@ -98,6 +104,10 @@ def system_environment(request: HttpRequest) -> JsonResponse:
     )
 
 
+#: Realm ``erp-dev`` SSO idle timeout (``ssoSessionIdleTimeout`` 1800 s); the shell signs out after it.
+SESSION_IDLE_MINUTES = 30
+
+
 def build_ui_context(ctx: tenancy.TenantContext, company_id: Any = None) -> dict[str, Any]:
     """Brand + context + current period (from the registered :class:`PeriodService`)."""
     periods = optional(PeriodService)
@@ -124,11 +134,63 @@ def build_ui_context(ctx: tenancy.TenantContext, company_id: Any = None) -> dict
     }
 
 
-class UiContextView(APIView):  # type: ignore[misc]
-    """``GET /api/v1/ui/context`` — authenticated principals only."""
+class _ContextView(APIView):  # type: ignore[misc]  # DRF ships no type stubs (Any base)
+    """Authenticated kernel view: activates the request's tenant context for the handler.
 
-    def get(self, request: Request) -> Response:
+    Authentication and permission classes are the DRF defaults (IAM bearer token, ``IsAuthenticated``):
+    no token → 401 problem. The context set by the authentication layer (``request.erp_context``) is
+    activated in :meth:`initial` and closed in :meth:`finalize_response`, as ``iam.api.base.SecuredView``
+    does. An authenticated principal without a context fails closed (``tenancy_not_bound``).
+    """
+
+    _ctx_stack: contextlib.ExitStack | None = None
+
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
+        super().initial(request, *args, **kwargs)
+        ctx = getattr(request, "erp_context", None)
+        if isinstance(ctx, tenancy.TenantContext):
+            stack = contextlib.ExitStack()
+            stack.enter_context(tenancy.activate(ctx))
+            self._ctx_stack = stack
+
+    def finalize_response(self, request: Request, response: Any, *args: Any, **kwargs: Any) -> Any:
+        stack = self._ctx_stack
+        if stack is not None:
+            self._ctx_stack = None
+            stack.close()
+        return super().finalize_response(request, response, *args, **kwargs)
+
+    @staticmethod
+    def context() -> tenancy.TenantContext:
         ctx = tenancy.current()
         if ctx is None:
             raise TenancyNotBound("no tenant context for this principal")
-        return Response(build_ui_context(ctx, request.query_params.get("company_id")))
+        return ctx
+
+
+class UiContextView(_ContextView):
+    """``GET /api/v1/ui/context`` — brand, context, period and the principal's shell data."""
+
+    def get(self, request: Request) -> Response:
+        ctx = self.context()
+        data = build_ui_context(ctx, request.query_params.get("company_id"))
+        data["session_idle_minutes"] = SESSION_IDLE_MINUTES
+        data["feature_flags"] = {}  # honest empty object until a feature-flag source exists
+        provider = optional(UiShellProvider)
+        if provider is not None:
+            company = data["company_id"]
+            data.update(provider.context_extras(ctx, ctx.require_company(company) if company else None))
+        return Response(data)
+
+
+class UiModulesView(_ContextView):
+    """``GET /api/v1/ui/modules?company_id=`` — the module registry filtered server-side by permission."""
+
+    def get(self, request: Request) -> Response:
+        ctx = self.context()
+        provider = optional(UiShellProvider)
+        if provider is None:
+            raise ServiceUnavailable("the UI module registry is not available")
+        raw = request.query_params.get("company_id")
+        company = ctx.require_company(raw) if raw else None
+        return Response(provider.modules(ctx, company))

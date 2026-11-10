@@ -15,6 +15,16 @@ export const enUS: Record<MessageKey, string> = {
   "app.contextError": "Your working context could not be loaded. Check your session and try again.",
   "app.modulesError": "The modules you may access could not be loaded.",
 
+  "auth.entry.title": "Welcome",
+  "auth.entry.body": "Sign in with your organization account to open your workspace.",
+  "auth.signIn": "Sign in",
+  "auth.redirecting": "Redirecting to sign-in…",
+  "auth.connecting": "Connecting…",
+  "auth.error.title": "Sign-in failed",
+  "auth.error.body": "The identity provider response is invalid or expired. Please try again.",
+  "auth.error.code": "Detail: {code}",
+  "auth.retry": "Try again",
+
   "header.brandHome": "{brand} — go to Home",
   "header.search": "Search documents, products, parties… (Ctrl+K)",
   "header.searchShort": "Search",
