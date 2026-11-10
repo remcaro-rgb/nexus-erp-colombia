@@ -73,8 +73,27 @@ describe("FIX_UI_LOGIN_W03 PKCE and authorize request", () => {
     expect(buildAuthorizeUrl(DISCOVERY.authorization_endpoint, { clientId: "erp-web", redirectUri: "r", state: "s", nonce: "n", codeChallenge: "c" })).toContain("code_challenge_method=S256");
   });
 
-  it("FIX_UI_LOGIN_W03 discovery from another issuer or with foreign endpoints is refused", async () => {
-    for (const bad of [{ ...DISCOVERY, issuer: "http://evil.invalid/auth/realms/erp-dev" }, { ...DISCOVERY, token_endpoint: "http://evil.invalid/token" }]) {
+  it("FIX_UI_LOGIN_W03 realm endpoints published with Keycloak's internal host are re-based onto this origin", async () => {
+    const posts: string[] = [];
+    const internal = { ...DISCOVERY, token_endpoint: "http://localhost/auth/realms/erp-dev/protocol/openid-connect/token" };
+    const auth = new OidcAuth({
+      origin: ORIGIN,
+      storage: window.sessionStorage,
+      navigate: () => undefined,
+      fetcher: async (input) => {
+        if (input.endsWith("/.well-known/openid-configuration")) return json(internal);
+        posts.push(input);
+        return json({}, 400);
+      },
+    });
+    expect((await auth.discover()).token_endpoint).toBe(DISCOVERY.token_endpoint);
+    window.sessionStorage.setItem(REFRESH_KEY, "fake-refresh-0");
+    await auth.refresh();
+    expect(posts).toEqual([DISCOVERY.token_endpoint]);
+  });
+
+  it("FIX_UI_LOGIN_W03 discovery from another issuer or with endpoints outside the realm is refused", async () => {
+    for (const bad of [{ ...DISCOVERY, issuer: "http://evil.invalid/auth/realms/erp-dev" }, { ...DISCOVERY, token_endpoint: "http://evil.invalid/token" }, { ...DISCOVERY, authorization_endpoint: "javascript:alert(1)" }]) {
       const { auth, navigations } = setup(undefined, bad);
       await expect(auth.signIn("/m/inicio")).rejects.toMatchObject({ code: "discovery_failed" });
       expect(navigations).toEqual([]);

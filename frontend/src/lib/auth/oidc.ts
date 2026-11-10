@@ -169,23 +169,39 @@ export class OidcAuth implements AuthSession {
     this.discovery ??= (async () => {
       const res = await this.fetcher(`${this.issuer}/.well-known/openid-configuration`, { headers: { Accept: "application/json" }, credentials: "same-origin" });
       if (!res.ok) throw new AuthError("discovery_failed", `HTTP ${res.status}`);
-      const d = (await res.json()) as Discovery;
-      const sameOrigin = (u: string | undefined) => {
-        try {
-          return u === undefined || new URL(u).origin === this.origin;
-        } catch {
-          return false;
-        }
-      };
-      if (d.issuer !== this.issuer || !d.authorization_endpoint || !d.token_endpoint || ![d.authorization_endpoint, d.token_endpoint, d.end_session_endpoint].every(sameOrigin)) {
-        throw new AuthError("discovery_failed", "unexpected issuer or endpoints");
+      const raw = (await res.json()) as Discovery;
+      if (raw.issuer !== this.issuer || !raw.authorization_endpoint || !raw.token_endpoint) {
+        throw new AuthError("discovery_failed", "unexpected issuer");
       }
+      // Keycloak publishes back-channel endpoints (token) with its internal host; every realm endpoint is served on
+      // this origin through the same-origin proxy (CSP connect-src 'self'), so it is re-based here. Endpoints outside
+      // the realm path are refused.
+      const d: Discovery = {
+        issuer: raw.issuer,
+        authorization_endpoint: this.rebase(raw.authorization_endpoint),
+        token_endpoint: this.rebase(raw.token_endpoint),
+        end_session_endpoint: raw.end_session_endpoint ? this.rebase(raw.end_session_endpoint) : undefined,
+      };
       return d;
     })().catch((e: unknown) => {
       this.discovery = null;
       throw e instanceof AuthError ? e : new AuthError("discovery_failed");
     });
     return this.discovery;
+  }
+
+  private rebase(endpoint: string): string {
+    let url: URL;
+    try {
+      url = new URL(endpoint);
+    } catch {
+      throw new AuthError("discovery_failed", "invalid endpoint");
+    }
+    const realmPath = new URL(this.issuer).pathname + "/";
+    if (!url.pathname.startsWith(realmPath) || (url.protocol !== "http:" && url.protocol !== "https:")) {
+      throw new AuthError("discovery_failed", "endpoint outside the realm");
+    }
+    return `${this.origin}${url.pathname}${url.search}`;
   }
 
   async signIn(returnPath?: string): Promise<void> {
