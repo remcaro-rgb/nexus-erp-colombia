@@ -29,6 +29,7 @@ LABEL org.opencontainers.image.source="https://github.com/remcaro-rgb/nexus-erp-
       org.opencontainers.image.vendor="Nexus ERP (DEV-only, synthetic data)"
 RUN groupadd --system --gid 10001 erp \
  && useradd --system --uid 10001 --gid erp --home-dir /app --shell /usr/sbin/nologin erp \
+ && install -d -m 0755 /contracts/permissions /docs/spec/ui \
  && rm -rf /var/lib/apt/lists/*
 COPY --from=build /opt/venv /opt/venv
 COPY --from=build --chown=root:root /src/backend /app
