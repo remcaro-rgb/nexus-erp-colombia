@@ -1,4 +1,4 @@
 attempt: 1
-IMG-1: applied (zlib upgrade in web stage)
-IMG-2: applied (image-scan in default compose-startup)
-IMG-3: applied (web profile only with frontend sources)
+IMG-1: FIXED (zlib-1.4-r0 in erp-web, trial B)
+IMG-2: FIXED (image-scan in default compose-startup, 4/4)
+IMG-3: FIXED (no web profile without frontend sources)
