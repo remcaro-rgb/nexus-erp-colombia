@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from django.db import models
 
-from kernel import clock
+from kernel import clock, ids
 from kernel.models import AuditedModel, CompanyModel, TenantModel
 from kernel.parameters import ParameterStatus
 from tax.exogena.models import ExogenaFormatPack
@@ -40,9 +40,14 @@ class Lifecycle(models.TextChoices):
     ARCHIVED = "ARCHIVED"
 
 
-class SourceRecord(TenantModel, AuditedModel):
-    """Where a parameter value comes from (shared/05 register id + access evidence)."""
+class SourceRecord(AuditedModel):
+    """Where a parameter value comes from (shared/05 register id + access evidence).
 
+    Not a ``TenantModel``: ``tenant_id`` is nullable here (NULL = platform register entry, readable by every
+    tenant through the RLS policy of ``tax/migrations/0003_rls.py``).
+    """
+
+    id = models.UUIDField(primary_key=True, default=ids.new_id, editable=False)
     tenant_id = models.UUIDField(db_index=True, null=True, editable=False)  # null = platform register entry
     register_id = models.CharField(max_length=20, blank=True, default="")  # e.g. S-08
     url = models.URLField(max_length=2000)

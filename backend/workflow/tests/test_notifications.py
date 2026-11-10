@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from kernel.interfaces.notifications import NotificationRequest
+from kernel.testing.tenancy import bound
 from kernel.uow import run_in_unit_of_work
 from workflow.models import Notification, NotificationPreference
 from workflow.notifications.service import DbNotificationService
@@ -38,9 +39,10 @@ def test_email_goes_through_outbox_without_sensitive_data(user_factory, company)
 
     sender = user_factory()
     user = user_factory("workflow.dsr_request.read")
-    NotificationPreference.objects.create(
-        tenant_id=user.tenant_id, principal_id=user.principal_id, template_code="*", channels=["in_app", "email"]
-    )
+    with bound(user):  # workflow_notification_preference has forced RLS
+        NotificationPreference.objects.create(
+            tenant_id=user.tenant_id, principal_id=user.principal_id, template_code="*", channels=["in_app", "email"]
+        )
     _send(
         sender,
         user.principal_id,

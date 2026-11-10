@@ -506,7 +506,7 @@ class DbWorkflowService:
             tenant_id=ctx.tenant_id, company_id=company_id, decided_at__gte=start, decided_at__lt=end,
             state__in=[ApprovalRequest.APPROVED, ApprovalRequest.REJECTED],
         ).values_list("created_at", "decided_at")  # fmt: skip
-        seconds = [(d - c) // dt.timedelta(seconds=1) for c, d in resolved]
+        seconds = [(d - c) // dt.timedelta(seconds=1) for c, d in resolved if d is not None]
         avg = (Decimal(sum(seconds)) / Decimal(3600) / len(seconds)).quantize(Decimal("0.01")) if seconds else None
         return {
             "pendientes": len(inbox),

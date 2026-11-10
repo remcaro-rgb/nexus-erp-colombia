@@ -21,23 +21,25 @@ import secrets
 import uuid
 from collections.abc import Mapping
 from typing import Any, Protocol
-from urllib.parse import urlsplit
 
-from kernel import clock, ids
+from django.db import transaction
+
+from kernel import clock, ids, tenancy
 from kernel.errors import NotFound, ValidationFailed
 from kernel.events import to_jsonable
 from kernel.tenancy import Channel, PrincipalType, TenantContext
 from kernel.uow import UnitOfWork, run_in_unit_of_work
 from workflow.audit.service import record_change
 from workflow.policy import policy
+from workflow.webhooks.targets import validate_url
 
 MAX_ATTEMPTS = 8
 BASE_DELAY = dt.timedelta(seconds=30)
 MAX_DELAY = dt.timedelta(hours=6)
 SIGNATURE_HEADER = "X-Nexus-Signature"
 TOLERANCE_SECONDS = 300
-DEV_HOST_SUFFIXES = (".localhost", ".test", ".invalid", ".local", ".example")
-DEV_HOSTS = {"localhost", "127.0.0.1", "::1", "host.docker.internal", "mailpit", "webhook-sink"}
+#: ``kernel.tenancy.bind_platform`` job of the webhook deliverer (cross-tenant, ADR-003).
+PLATFORM_JOB = "workflow_webhooks"
 ALWAYS_KEPT = {"id", "event_id", "event_type", "company_id", "status", "state"}
 
 
@@ -58,21 +60,7 @@ def verify_signature(secret: str, body: bytes, header: str, now: int, tolerance:
 
 
 def backoff(attempts: int) -> dt.timedelta:
-    return min(BASE_DELAY * (2 ** max(attempts - 1, 0)), MAX_DELAY)
-
-
-def validate_url(url: str) -> str:
-    parts = urlsplit(url)
-    host = (parts.hostname or "").lower()
-    if parts.scheme not in ("http", "https") or not host:
-        raise ValidationFailed("webhook URL must be an absolute http(s) URL")
-    if parts.username or parts.password:
-        raise ValidationFailed("credentials in webhook URLs are not allowed")
-    if host not in DEV_HOSTS and not host.endswith(DEV_HOST_SUFFIXES):
-        raise ValidationFailed(
-            "DEV-only build: webhook targets must be local/test hosts", code="production_endpoint_refused"
-        )
-    return url
+    return min(BASE_DELAY * (1 << max(attempts - 1, 0)), MAX_DELAY)
 
 
 def matches(event_type: str, patterns: list[str]) -> bool:
@@ -81,15 +69,6 @@ def matches(event_type: str, patterns: list[str]) -> bool:
 
 class Transport(Protocol):
     def send(self, url: str, headers: Mapping[str, str], body: bytes) -> int: ...
-
-
-class HttpxTransport:
-    def send(self, url: str, headers: Mapping[str, str], body: bytes) -> int:
-        import httpx
-
-        validate_url(url)
-        resp = httpx.post(url, content=body, headers=dict(headers), timeout=5.0, follow_redirects=False)
-        return int(resp.status_code)
 
 
 def service_account_context(sub: Any) -> TenantContext:
@@ -117,7 +96,11 @@ def filter_payload(sub: Any, envelope: Mapping[str, Any]) -> dict[str, Any] | No
 
 class WebhookService:
     def __init__(self, transport: Transport | None = None) -> None:
-        self.transport = transport or HttpxTransport()
+        if transport is None:
+            from workflow.webhooks.adapters import HttpxTransport
+
+            transport = HttpxTransport()
+        self.transport = transport
 
     def subscribe(self, ctx: TenantContext, company_id: uuid.UUID, url: str, event_types: list[str],
                   service_account_id: uuid.UUID, description: str = "",
@@ -160,9 +143,10 @@ class WebhookService:
         from workflow.models import WebhookDelivery, WebhookSubscription
 
         envelope = to_jsonable(dict(envelope))
-        subs = WebhookSubscription.objects.filter(
-            tenant_id=envelope["tenant_id"], company_id=envelope.get("company_id"), active=True
-        )
+        company_id = envelope.get("company_id")
+        if company_id is None:  # subscriptions are per company: a tenant-wide event has no subscriber
+            return 0
+        subs = WebhookSubscription.objects.filter(tenant_id=envelope["tenant_id"], company_id=company_id, active=True)
         created = 0
         for sub in subs:
             if not matches(str(envelope["event_type"]), list(sub.event_types)):
@@ -183,7 +167,9 @@ class WebhookService:
         from workflow.models import WebhookDelivery
 
         now = now or clock.now()
-        d = WebhookDelivery.objects.select_related("subscription").filter(id=delivery_id).first()
+        with transaction.atomic():  # the deliverer works across tenants (CCR P07-2 §5)
+            tenancy.bind_platform(PLATFORM_JOB)
+            d = WebhookDelivery.objects.select_related("subscription").filter(id=delivery_id).first()
         if d is None:
             raise NotFound("delivery not found")
         if d.state in (WebhookDelivery.DELIVERED, WebhookDelivery.DEAD):
@@ -212,7 +198,9 @@ class WebhookService:
             d.state, d.next_attempt_at = WebhookDelivery.DEAD, None
         else:
             d.state, d.next_attempt_at = WebhookDelivery.RETRYING, now + backoff(d.attempts)
-        d.save(update_fields=["attempts", "last_status", "last_error", "state", "delivered_at", "next_attempt_at"])
+        with transaction.atomic():
+            tenancy.bind_platform(PLATFORM_JOB)
+            d.save(update_fields=["attempts", "last_status", "last_error", "state", "delivered_at", "next_attempt_at"])
         if d.state == WebhookDelivery.DEAD:
             ctx = service_account_context(sub)
 
@@ -239,10 +227,16 @@ class WebhookService:
         from workflow.models import WebhookDelivery
 
         now = now or clock.now()
-        due = WebhookDelivery.objects.filter(
-            state__in=[WebhookDelivery.PENDING, WebhookDelivery.RETRYING], next_attempt_at__lte=now
-        ).order_by("next_attempt_at")[:limit]
-        return sum(1 for d in list(due) if self.attempt(d.id, now=now).state == WebhookDelivery.DELIVERED)
+        with transaction.atomic():
+            tenancy.bind_platform(PLATFORM_JOB)
+            due = list(
+                WebhookDelivery.objects.filter(
+                    state__in=[WebhookDelivery.PENDING, WebhookDelivery.RETRYING], next_attempt_at__lte=now
+                )
+                .order_by("next_attempt_at")
+                .values_list("id", flat=True)[:limit]
+            )
+        return sum(1 for did in due if self.attempt(did, now=now).state == WebhookDelivery.DELIVERED)
 
     def replay(self, ctx: TenantContext, delivery_id: uuid.UUID) -> Any:
         from workflow.models import WebhookDelivery

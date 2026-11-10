@@ -12,6 +12,7 @@ from django.db import connection, connections
 from kernel import clock, ids
 from kernel.errors import PermissionDenied
 from kernel.tenancy import PrincipalType
+from kernel.testing.tenancy import bound
 from workflow.models import JobRun, Notification, ScheduledJob
 from workflow.scheduler.cron import Cron
 from workflow.scheduler.registry import JOB_TYPES, register_job_type
@@ -87,7 +88,8 @@ def test_T_P07_06_single_leader_under_three_replicas(user_factory, company) -> N
     ctx = user_factory(CREATE)
     jobs = [_job(ctx, company) for _ in range(5)]
     past = clock.now() - dt.timedelta(minutes=1)
-    ScheduledJob.objects.filter(id__in=[j.id for j in jobs]).update(next_run_at=past)
+    with bound(ctx):  # forced RLS: direct test writes run bound to the tenant
+        ScheduledJob.objects.filter(id__in=[j.id for j in jobs]).update(next_run_at=past)
     barrier = threading.Barrier(3)
     results: list[int | None] = []
     lock = threading.Lock()
@@ -108,8 +110,9 @@ def test_T_P07_06_single_leader_under_three_replicas(user_factory, company) -> N
     for t in threads:
         t.join()
     assert sum(r or 0 for r in results) == 5
-    assert JobRun.objects.filter(job__in=jobs).count() == 5
-    keys = list(JobRun.objects.filter(job__in=jobs).values_list("idempotency_key", flat=True))
+    with bound(ctx):
+        assert JobRun.objects.filter(job__in=jobs).count() == 5
+        keys = list(JobRun.objects.filter(job__in=jobs).values_list("idempotency_key", flat=True))
     assert len(keys) == len(set(keys))
 
 

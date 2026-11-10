@@ -58,7 +58,7 @@ lint:
 	cd backend && $(UV) run --frozen python -m kernel.lint.no_float .
 
 typecheck:
-	$(MYPY) backend/kernel
+	$(MYPY) backend
 
 migrations-check: db-setup
 	cd backend && $(EPHEMERAL_FIELD_KEY) $(UV) run --frozen python manage.py makemigrations --check --dry-run

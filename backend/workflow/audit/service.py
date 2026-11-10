@@ -20,12 +20,10 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from django.db import connections
-
-from kernel import clock, ids
+from kernel import clock, ids, tenancy
 from kernel.events import to_jsonable
 from kernel.interfaces.audit import AuditEntry
-from kernel.tenancy import TenantContext
+from kernel.tenancy import Channel, PrincipalType, TenantContext
 from kernel.uow import UnitOfWork, current_uow
 
 GENESIS = "0" * 64
@@ -147,6 +145,17 @@ class VerifyReport:
     reason: str = ""
 
 
+#: ``kernel.tenancy.bind_platform`` job that lists the tenants with audit chains (cross-tenant, ADR-003).
+PLATFORM_JOB = "workflow_audit"
+#: Fixed service principal of the chain verifier / anchoring job (reads one tenant's whole chain).
+CHAIN_PRINCIPAL = uuid.UUID("00000000-0000-7000-8000-00000000a7d1")
+
+
+def chain_context(tenant_id: uuid.UUID) -> TenantContext:
+    """Tenant-only service context of the audit-chain verifier (no company: the chain is per tenant)."""
+    return TenantContext(tenant_id, frozenset(), CHAIN_PRINCIPAL, PrincipalType.SERVICE, channel=Channel.JOB)
+
+
 def _lock_key(tenant_id: uuid.UUID) -> int:
     return int.from_bytes(hashlib.sha256(b"wf_audit:" + tenant_id.bytes).digest()[:8], "big", signed=True)
 
@@ -166,8 +175,7 @@ class DbAuditService:
 
         ctx: TenantContext = uow.ctx
         meta = meta or RequestMeta(request_id=str(ctx.correlation_id or ""))
-        with connections[uow.using].cursor() as cur:
-            cur.execute("SELECT pg_advisory_xact_lock(%s)", [_lock_key(ctx.tenant_id)])
+        tenancy.advisory_xact_lock(uow.using, _lock_key(ctx.tenant_id))
         last = (
             AuditEvent.objects.using(uow.using)
             .filter(tenant_id=ctx.tenant_id)
@@ -210,22 +218,37 @@ class DbAuditService:
             "action", "resource_type", "resource_id", "changes", "request_id", "trace_id", "ip", "user_agent",
             "reason", "prev_hash", "hash",
         ]  # fmt: skip
-        rows = AuditEvent.objects.using(using).filter(tenant_id=tenant_id).order_by("seq").values(*fields)
-        for row in rows.iterator(chunk_size=2000):
-            if row["seq"] != expected_seq:
-                return VerifyReport(False, checked, row["seq"], prev, "sequence gap")
-            if row["prev_hash"] != prev:
-                return VerifyReport(False, checked, row["seq"], prev, "prev_hash mismatch")
-            if chain_hash(prev, row) != row["hash"]:
-                return VerifyReport(False, checked, row["seq"], prev, "hash mismatch")
-            prev, expected_seq, checked = row["hash"], expected_seq + 1, checked + 1
+        with tenancy.scope(chain_context(tenant_id), using):  # the whole chain of this tenant (RLS: tenant only)
+            rows = AuditEvent.objects.using(using).filter(tenant_id=tenant_id).order_by("seq").values(*fields)
+            for row in rows.iterator(chunk_size=2000):
+                if row["seq"] != expected_seq:
+                    return VerifyReport(False, checked, row["seq"], prev, "sequence gap")
+                if row["prev_hash"] != prev:
+                    return VerifyReport(False, checked, row["seq"], prev, "prev_hash mismatch")
+                if chain_hash(prev, row) != row["hash"]:
+                    return VerifyReport(False, checked, row["seq"], prev, "hash mismatch")
+                prev, expected_seq, checked = row["hash"], expected_seq + 1, checked + 1
         return VerifyReport(True, checked, None, prev)
+
+    def tenants(self, using: str = "default") -> list[uuid.UUID]:
+        """Tenants that have audit events (cross-tenant platform read, ``bind_platform("workflow_audit")``)."""
+        from django.db import transaction
+
+        from workflow.models import AuditEvent
+
+        with transaction.atomic(using=using):
+            tenancy.bind_platform(PLATFORM_JOB, using)
+            return sorted(AuditEvent.objects.using(using).values_list("tenant_id", flat=True).distinct())
 
     def verify_chain(self, tenant_id: uuid.UUID) -> bool:
         return self.verify(tenant_id).ok
 
     def anchor(self, tenant_id: uuid.UUID, day: dt.date, store: Any, using: str = "default") -> Any:
         """Write the chain head of ``day`` to object storage with a retention lock and record it."""
+        with tenancy.scope(chain_context(tenant_id), using):
+            return self._anchor(tenant_id, day, store, using)
+
+    def _anchor(self, tenant_id: uuid.UUID, day: dt.date, store: Any, using: str) -> Any:
         from workflow.models import AuditAnchor, AuditEvent
 
         end = clock.local_midnight_utc(day + dt.timedelta(days=1))

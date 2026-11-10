@@ -46,7 +46,7 @@ class Principal:
 
 
 def bearer_token(request: Any) -> str | None:
-    header = request.META.get("HTTP_AUTHORIZATION", "")
+    header = str(request.META.get("HTTP_AUTHORIZATION", "") or "")
     if not header:
         return None
     scheme, _, value = header.partition(" ")
@@ -69,7 +69,7 @@ def _company_header(request: Any) -> uuid.UUID | None:
         raise CompanyNotAllowed("company not available for the principal") from exc
 
 
-class InternalAuthentication(BaseAuthentication):
+class InternalAuthentication(BaseAuthentication):  # type: ignore[misc]  # DRF ships no type stubs (Any base)
     www_authenticate_realm = "erp-api"
 
     def authenticate_header(self, request: Request) -> str:
@@ -120,12 +120,12 @@ class InternalAuthentication(BaseAuthentication):
             principal_type, Channel.UI if claims.client_id == "erp-web" else Channel.API
         )
         ctx = TenantContext(claims.tenant_id, frozenset({company}), principal_id, principal_type, on_behalf, channel)
-        request._request.erp_context = ctx  # type: ignore[attr-defined]
-        request.erp_context = ctx  # type: ignore[attr-defined]
+        request._request.erp_context = ctx
+        request.erp_context = ctx
         return Principal(user.id, user.kind, claims), claims
 
 
-class PortalAuthentication(BaseAuthentication):
+class PortalAuthentication(BaseAuthentication):  # type: ignore[misc]  # DRF ships no type stubs (Any base)
     """Portal tokens only. ``allow_unlinked`` serves the invitation-accept endpoint."""
 
     allow_unlinked = False
@@ -149,7 +149,7 @@ class PortalAuthentication(BaseAuthentication):
             )
             if user is None or account is None:
                 if self.allow_unlinked:
-                    request.erp_context = None  # type: ignore[attr-defined]
+                    request.erp_context = None
                     return Principal(RESOLVER_PRINCIPAL, "UNLINKED", claims), claims
                 raise Unauthenticated("no portal account for this identity")
             if (
@@ -162,8 +162,8 @@ class PortalAuthentication(BaseAuthentication):
             if isinstance(iat, int) and (account.last_login_at is None or account.last_login_at.timestamp() < iat):
                 ExternalAccount.objects.filter(pk=account.pk).update(last_login_at=clock.now())
         ctx = TenantContext(claims.tenant_id, frozenset({account.company_id}), user.id, PrincipalType.USER)
-        request._request.erp_context = ctx  # type: ignore[attr-defined]
-        request.erp_context = ctx  # type: ignore[attr-defined]
+        request._request.erp_context = ctx
+        request.erp_context = ctx
         return Principal(user.id, user.kind, claims, account.id), claims
 
 

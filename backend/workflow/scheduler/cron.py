@@ -70,7 +70,8 @@ class Cron:
             _field(p, lo, hi if n != "day-of-week" else 7, n)
             for p, (lo, hi), n in zip(parts, RANGES, names, strict=True)
         ]
-        return cls(*sets, dom_any=parts[2] == "*", dow_any=parts[4] == "*")
+        minutes, hours, days, months, weekdays = sets
+        return cls(minutes, hours, days, months, weekdays, dom_any=parts[2] == "*", dow_any=parts[4] == "*")
 
     def _day_matches(self, day: dt.date) -> bool:
         if day.month not in self.months:

@@ -35,7 +35,8 @@ def test_T_P07_11_signed_url_expires(user_factory, company, store) -> None:  # t
         svc.download(ctx, att.id, signed.token)
     assert exc.value.code == "signed_url_expired"
     with pytest.raises(PermissionDenied):
-        svc.download(ctx, att.id, signed.token[:-2] + "00")  # forged
+        # forged: last two characters changed (never equal to the original, which "00" could be 1/256 of the time)
+        svc.download(ctx, att.id, signed.token[:-2] + ("11" if signed.token.endswith("00") else "00"))
     with pytest.raises(ValidationFailed):
         svc.signed_url(ctx, att.id, ttl_seconds=86400)
 

@@ -16,11 +16,10 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import uuid
+from functools import partial
 from typing import Any
 
-from django.db import connections
-
-from kernel import clock
+from kernel import clock, tenancy
 from kernel.errors import DomainError, NotFound, PermissionDenied, ValidationFailed
 from kernel.interfaces.scheduler import ScheduledJob as ScheduledJobDTO
 from kernel.tenancy import Channel, PrincipalType, TenantContext
@@ -39,6 +38,10 @@ def to_dto(job: Any) -> ScheduledJobDTO:
     return ScheduledJobDTO(
         job.id, job.code, job.cron, job.timezone, job.job_type, dict(job.params), job.state == "ACTIVE"
     )
+
+
+#: ``kernel.tenancy.bind_platform`` job of the scheduler leader / run loader (cross-tenant, ADR-003).
+PLATFORM_JOB = "workflow_scheduler"
 
 
 def owner_context(job: Any) -> TenantContext:
@@ -196,11 +199,9 @@ class DbSchedulerService:
 
         now = now or clock.now()
         with transaction.atomic(using=using):
-            with connections[using].cursor() as cur:
-                cur.execute("SELECT pg_try_advisory_xact_lock(%s)", [LEADER_LOCK])
-                (leader,) = cur.fetchone()
-            if not leader:
+            if not tenancy.try_advisory_xact_lock(using, LEADER_LOCK):
                 return None
+            tenancy.bind_platform(PLATFORM_JOB, using)  # the leader reads every tenant's due jobs (CCR P07-2 §5)
             due = list(
                 ScheduledJob.objects.using(using)
                 .select_for_update(skip_locked=True)
@@ -210,6 +211,8 @@ class DbSchedulerService:
             created = 0
             for job in due:
                 scheduled_for = job.next_run_at
+                if scheduled_for is None:  # filtered by next_run_at <= now: never NULL here
+                    continue
                 run, was_created = JobRun.objects.using(using).get_or_create(
                     idempotency_key=idempotency_key(job.id, scheduled_for),
                     defaults={"tenant_id": job.tenant_id, "job": job, "scheduled_for": scheduled_for},
@@ -224,16 +227,19 @@ class DbSchedulerService:
                     job.state = "DONE"
                 job.save(update_fields=["next_run_at", "state"])
                 if was_created:
-                    run_id = run.id
-                    transaction.on_commit(lambda rid=run_id: enqueue(rid), using=using)
+                    transaction.on_commit(partial(enqueue, run.id), using=using)
             return created
 
     # ------------------------------------------------------------------ execution
     def execute(self, run_id: uuid.UUID) -> Any:
         """Celery task body. Idempotent: a SUCCEEDED/FAILED run is returned unchanged."""
+        from django.db import transaction
+
         from workflow.models import JobRun
 
-        run = JobRun.objects.select_related("job").filter(id=run_id).first()
+        with transaction.atomic():  # the run's tenant is not known yet: platform read of this one run
+            tenancy.bind_platform(PLATFORM_JOB)
+            run = JobRun.objects.select_related("job").filter(id=run_id).first()
         if run is None:
             raise NotFound("job run not found")
         if run.state in ("SUCCEEDED", "FAILED"):

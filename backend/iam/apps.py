@@ -8,10 +8,13 @@ class IamConfig(AppConfig):
     label = "iam"
     verbose_name = "Nexus ERP IAM"
     default_auto_field = "django.db.models.BigAutoField"
+    #: ``erp.discovery``: iam routes are absolute (``api/v1/iam/*``, ``api/portal/v1/*``) → mounted at the root.
+    URL_MOUNT = ""
 
     def ready(self) -> None:
         from iam.policy import engine
         from kernel import services
         from kernel.interfaces import PolicyService
 
-        services.register(PolicyService, engine.get_engine(), replace=True)
+        policy: PolicyService = engine.get_engine()  # structural check of the engine against the protocol
+        services.register(PolicyService, policy, replace=True)

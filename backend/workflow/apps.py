@@ -6,6 +6,8 @@ Registers the real implementations of ``WorkflowService``, ``AuditService``,
 keep their fakes by registering them first).
 """
 
+from typing import ClassVar
+
 from django.apps import AppConfig
 
 
@@ -14,6 +16,8 @@ class WorkflowConfig(AppConfig):
     label = "workflow"
     verbose_name = "Flujos, auditoría y programador"
     default_auto_field = "django.db.models.BigAutoField"
+    #: ``erp.discovery`` (CCR P07-1): routes at ``api/v1/workflow/`` plus ``GET /api/v1/kpis/aprobaciones``.
+    EXTRA_URL_MOUNTS: ClassVar[dict[str, tuple[str, str]]] = {"api/v1/kpis/": ("workflow.urls:kpi_urlpatterns", "kpis")}
 
     def ready(self) -> None:
         from workflow import registry

@@ -189,8 +189,9 @@ def _clean(resource: Resource, data: dict[str, Any], *, partial: bool) -> dict[s
 
 
 def scoped(resource: Resource, ctx: TenantContext, company: uuid.UUID, action: str) -> QuerySet[Any]:
-    qs = resource.model._default_manager.filter(tenant_id=ctx.tenant_id, company_id=company)
-    return services.get(PolicyService).scope_queryset(ctx, f"{resource.permission}.{action}", qs)
+    qs: QuerySet[Any] = resource.model._default_manager.filter(tenant_id=ctx.tenant_id, company_id=company)
+    scoped_qs: QuerySet[Any] = services.get(PolicyService).scope_queryset(ctx, f"{resource.permission}.{action}", qs)
+    return scoped_qs
 
 
 def _save(fn: Callable[[], Any]) -> Any:
@@ -277,6 +278,6 @@ class Detail(base.TaxAPIView):
 
 def views_for(name: str) -> tuple[Any, Any]:
     resource = RESOURCES[name]
-    list_view = type(f"{resource.model.__name__}ListCreate", (ListCreate,), {"resource": resource})
-    detail_view = type(f"{resource.model.__name__}Detail", (Detail,), {"resource": resource})
+    list_view: type[ListCreate] = type(f"{resource.model.__name__}ListCreate", (ListCreate,), {"resource": resource})
+    detail_view: type[Detail] = type(f"{resource.model.__name__}Detail", (Detail,), {"resource": resource})
     return list_view.as_view(), detail_view.as_view()

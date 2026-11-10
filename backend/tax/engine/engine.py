@@ -241,7 +241,7 @@ class TaxEngine:
 
         applicable: list[dict[str, Any]] = []
         for cand in candidates:
-            line: DocumentLine = cand["line"]
+            line = cand["line"]  # a DocumentLine of doc.lines (candidates built above)
             decision = matrix.decide(tuple(cand["rules"]), doc, line)
             run.step(
                 "applicability",

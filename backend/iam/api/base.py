@@ -49,14 +49,14 @@ DEFAULT_LIMIT = 50
 FILTER_OPS = ("eq", "ne", "lt", "lte", "gt", "gte", "in", "contains", "between", "isnull")
 
 
-class HasContext(BasePermission):
+class HasContext(BasePermission):  # type: ignore[misc]  # DRF ships no type stubs (Any base)
     def has_permission(self, request: Request, view: Any) -> bool:
         if getattr(request, "erp_context", None) is None:
             raise Unauthenticated("authentication required")
         return True
 
 
-class PrincipalThrottle(SimpleRateThrottle):
+class PrincipalThrottle(SimpleRateThrottle):  # type: ignore[misc]  # DRF ships no type stubs (Any base)
     """Per-principal rate limit (API4); tenant-wide limit below."""
 
     rate = "600/min"
@@ -93,7 +93,7 @@ def to_json(value: Any) -> Any:
     return value
 
 
-class SecuredView(APIView):
+class SecuredView(APIView):  # type: ignore[misc]  # DRF ships no type stubs (Any base)
     authentication_classes: ClassVar[list[Any]] = [InternalAuthentication]
     permission_classes: ClassVar[list[Any]] = [HasContext]
     throttle_classes: ClassVar[list[Any]] = [PrincipalThrottle, TenantThrottle]
@@ -306,6 +306,54 @@ class SecuredView(APIView):
         if isinstance(result.body, dict) and "version" in result.body and "id" in result.body:
             response["ETag"] = etag_for(self.resource_type, result.body["id"], result.body["version"])
         return response
+
+
+class HasTenantContext(HasContext):
+    """The request carries a tenant context: from the IAM authentication or the kernel tenancy middleware."""
+
+    def has_permission(self, request: Request, view: Any) -> bool:
+        if request_context(request) is None:
+            raise Unauthenticated("authentication required")
+        return True
+
+
+def request_context(request: Request) -> TenantContext | None:
+    """Context of ``request``: set by :class:`iam.authn.InternalAuthentication`, else the one the
+    :class:`kernel.tenancy.TenancyMiddleware` activated (``request.erp_context`` / resolver). Never from headers."""
+    ctx = getattr(request, "erp_context", None)
+    if isinstance(ctx, TenantContext):
+        return ctx
+    return tenancy.current()
+
+
+class ModuleSecuredView(SecuredView):
+    """Secured base (ADR-004) for module APIs whose handlers authorize every action explicitly.
+
+    Same authentication (IAM bearer tokens), throttling and context activation as :class:`SecuredView`;
+    the context may also come from the kernel tenancy middleware. ``check_access`` requires the context
+    (401 otherwise) and every handler calls ``PolicyService.require``/``authorize`` for its own permission
+    code (deny by default: a principal without the grant gets 403). Used by ``tax`` and ``workflow``.
+    """
+
+    permission_classes: ClassVar[list[Any]] = [HasTenantContext]
+
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
+        super().initial(request, *args, **kwargs)
+        # Forced RLS (ADR-003): the handler's reads run in one transaction bound to the request's context;
+        # units of work nest inside it (savepoints). Closed by finalize_response like the activation.
+        if self._ctx_stack is not None:
+            self._ctx_stack.enter_context(tenancy.scope(self.ctx))
+
+    def check_access(self, request: Request) -> None:
+        if request_context(request) is None:
+            raise Unauthenticated("authentication required")
+
+    @property
+    def ctx(self) -> TenantContext:
+        ctx = request_context(self.request)
+        if ctx is None:
+            raise Unauthenticated("authentication required")
+        return ctx
 
 
 def etag_for(resource_type: str, pk: Any, version: Any) -> str:

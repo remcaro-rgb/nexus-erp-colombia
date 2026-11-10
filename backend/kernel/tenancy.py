@@ -177,7 +177,11 @@ def bind(ctx: TenantContext, using: str = "default") -> None:
 
 #: Cross-tenant platform jobs that have their own RLS policy (``kernel.db.platform_rls_policy_sql``).
 #: ``outbox``: the outbox relay and the dead-letter worker, on kernel_outbox / kernel_dead_letter only.
-PLATFORM_JOBS = frozenset({"outbox"})
+#: ``workflow_scheduler``: the scheduler leader (workflow_scheduled_job, workflow_job_run);
+#: ``workflow_webhooks``: the webhook deliverer (workflow_webhook_subscription, workflow_webhook_delivery);
+#: ``workflow_audit``: the audit-chain verifier/anchoring (workflow_audit_event, workflow_audit_anchor)
+#: — CCR P07-2 §5, policies installed by ``workflow/migrations/0003_rls.py`` (FIX-CI-W02).
+PLATFORM_JOBS = frozenset({"outbox", "workflow_scheduler", "workflow_webhooks", "workflow_audit"})
 
 
 def bind_platform(job: str, using: str = "default") -> None:
@@ -196,6 +200,32 @@ def bind_platform(job: str, using: str = "default") -> None:
     with conn.cursor() as cur:
         cur.execute("SELECT set_config(%s, %s, true)", [PLATFORM_JOB_SETTING, job])
     _log.debug("tenancy.platform_bind", job=job)
+
+
+def _require_atomic(using: str, name: str) -> Any:
+    conn = connections[using]
+    if not conn.in_atomic_block:
+        raise TenancyNotBound(f"{name}() must run inside a transaction (transaction-level advisory lock)")
+    return conn
+
+
+def advisory_xact_lock(using: str, key: int) -> None:
+    """``pg_advisory_xact_lock(key)``: wait for the transaction-level lock ``key`` (released at COMMIT/ROLLBACK).
+
+    Kept here because this module owns the tenancy/locking raw SQL (ADR-004 allow-list).
+    """
+    conn = _require_atomic(using, "advisory_xact_lock")
+    with conn.cursor() as cur:
+        cur.execute("SELECT pg_advisory_xact_lock(%s)", [int(key)])
+
+
+def try_advisory_xact_lock(using: str, key: int) -> bool:
+    """``pg_try_advisory_xact_lock(key)``: take the transaction-level lock without waiting; ``True`` if taken."""
+    conn = _require_atomic(using, "try_advisory_xact_lock")
+    with conn.cursor() as cur:
+        cur.execute("SELECT pg_try_advisory_xact_lock(%s)", [int(key)])
+        row = cur.fetchone()
+    return bool(row[0]) if row else False
 
 
 #: ``(relrowsecurity, relforcerowsecurity, has_policy)`` of one table (RLS self-checks and tests).

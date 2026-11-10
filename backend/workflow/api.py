@@ -15,8 +15,8 @@ from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
+from iam.api.base import ModuleSecuredView
 from kernel import clock, tenancy
 from kernel.errors import DomainError, NotAuthenticated, NotFound, ValidationFailed
 from kernel.events import to_jsonable
@@ -55,7 +55,7 @@ class IdempotencyKeyRequired(DomainError):
 
 
 def idem_key(request: Request) -> str:
-    key = request.headers.get("Idempotency-Key", "")
+    key = str(request.headers.get("Idempotency-Key", "") or "")
     if not 8 <= len(key) <= 128:
         raise IdempotencyKeyRequired("send an Idempotency-Key header (8-128 characters)")
     return key
@@ -180,13 +180,8 @@ def notification_out(n: Any) -> dict[str, Any]:
 
 
 # --------------------------------------------------------------------------- base view
-class WorkflowView(APIView):  # type: ignore[misc]
-    authentication_classes: list[Any] = []  # P04 binds the context before the view runs
-    permission_classes: list[Any] = []  # every view checks context() + policy explicitly (deny by default)
-
-    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
-        super().initial(request, *args, **kwargs)
-        context()
+class WorkflowView(ModuleSecuredView):
+    """P04's secured base: IAM authentication, context required (401); every view asks the policy (deny by default)."""
 
 
 # --------------------------------------------------------------------------- formulas

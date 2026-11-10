@@ -22,9 +22,11 @@ def register_services() -> None:
     from tax.service import EngineTaxService
 
     if services.optional(ParameterProvider) is None:
-        services.register(ParameterProvider, DbParameterProvider())
+        provider: ParameterProvider = DbParameterProvider()
+        services.register(ParameterProvider, provider)
     if services.optional(TaxService) is None:
-        services.register(TaxService, EngineTaxService())
+        tax_service: TaxService = EngineTaxService()
+        services.register(TaxService, tax_service)
     seed.register_loader("tax", seed_tax, order=20)
     seed.register_loader("localization", seed_localization, order=10)
 
