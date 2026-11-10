@@ -174,3 +174,23 @@ def test_T_P15_api_settings_refuse_direct_and_unknown_fields(api: ApiClient, pol
         "version",
         "audit",
     }
+
+
+def test_T_PT_OPEN_02_provider_export_neutralises_formulas(api: ApiClient, policy: Any, ctx: Any) -> None:
+    from einvoice.csv_export import safe_cell
+
+    grant_all(policy, ctx)
+    made = api.command(
+        "post",
+        "/api/v1/einvoice/providers",
+        {
+            "code": "F1",
+            "name": "=HYPERLINK(1)",
+            "adapter": "simulator",
+            "base_url": "https://pt-sandbox.invalid",
+            "environment": "SANDBOX",
+        },
+    )
+    assert made.status_code == 201
+    text = api.get("/api/v1/einvoice/providers:export").content.decode()
+    assert "'=HYPERLINK(1)" in text and safe_cell("@x") == "'@x" and safe_cell("ok") == "ok"

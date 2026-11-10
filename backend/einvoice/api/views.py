@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import csv
-import io
 import re
 import uuid
 from typing import Any
@@ -13,7 +11,7 @@ from django.http import HttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from einvoice import annex, habilitation, kpis, lifecycle, service
+from einvoice import annex, csv_export, habilitation, kpis, lifecycle, service
 from einvoice import secrets as sec
 from einvoice.adapters import registry
 from einvoice.api import base, serializers
@@ -877,12 +875,11 @@ class ProviderExport(EinvoiceAPIView):
         ctx = base.context(request)
         base.authorize(ctx, "einvoice.provider.export")
         company = base.company_id(request, ctx)
-        buf = io.StringIO()
-        writer = csv.writer(buf)
-        writer.writerow(serializers.PROVIDER_EXPORT_COLUMNS)
-        for p in _providers(ctx, company, "einvoice.provider.export").order_by("code"):
-            writer.writerow([sec.redact(v) for v in serializers.provider_export_row(p)])
-        resp = HttpResponse(buf.getvalue(), content_type="text/csv; charset=utf-8")
+        providers = _providers(ctx, company, "einvoice.provider.export").order_by("code")
+        body = csv_export.render(
+            serializers.PROVIDER_EXPORT_COLUMNS, (serializers.provider_export_row(p) for p in providers)
+        )
+        resp = HttpResponse(body, content_type="text/csv; charset=utf-8")
         resp["Content-Disposition"] = 'attachment; filename="proveedores-tecnologicos.csv"'
         return resp
 

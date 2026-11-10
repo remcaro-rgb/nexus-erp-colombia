@@ -52,7 +52,7 @@ class LedgerDummyAdapter:
             raise TransientTransmissionError("dummy PT: 503 temporarily unavailable")
         if key in self.ledger:
             return self.ledger[key]
-        tracking = "DUMMY-" + hashlib.sha1(key.encode(), usedforsecurity=False).hexdigest()[:20]
+        tracking = "DUMMY-" + hashlib.sha256(key.encode()).hexdigest()[:20]
         outcome = {"accept": "ACCEPTED", "accept_with_notices": "ACCEPTED_WITH_NOTICES", "reject": "REJECTED"}.get(
             request.fixture_outcome, "ACCEPTED"
         )
