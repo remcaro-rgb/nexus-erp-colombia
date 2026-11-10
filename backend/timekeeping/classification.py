@@ -20,6 +20,7 @@ hours. Limits (weekly maximum, Sunday habituality, compensatory rest) are report
 from __future__ import annotations
 
 import datetime as dt
+import itertools
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from decimal import Decimal
@@ -91,7 +92,7 @@ def classify(
             cuts = sorted({s, e, *(c for c in (ne, ns) if s < c < e)})
             if 0 < ordinary_left < e - s:
                 cuts = sorted({*cuts, s + ordinary_left})
-            for a, b in zip(cuts, cuts[1:], strict=False):
+            for a, b in itertools.pairwise(cuts):
                 night = a < ne or a >= ns
                 kind = "ordinary" if worked.get(day, 0) < int(rules.ordinary_hours * SIXTY) else "overtime"
                 hours_min[f"{rest}{kind}_{'night' if night else 'day'}"] += b - a

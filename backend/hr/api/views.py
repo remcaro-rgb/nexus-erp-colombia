@@ -55,7 +55,7 @@ def contract_dict(c: EmploymentContract) -> dict[str, Any]:
         "posting_date": c.posting_date,
         "status": c.status,
         "currency": c.currency,
-        "total": money(c.salary),
+        "total": None,  # a contract has no document total (the salary is confidential, never echoed)
         "notes": c.notes,
         "source": None,
         "employee_id": str(c.employee_id),

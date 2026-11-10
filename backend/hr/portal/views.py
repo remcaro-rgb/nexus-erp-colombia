@@ -30,7 +30,8 @@ from iam.api.base import DEFAULT_LIMIT, MAX_LIMIT, parse_uuid, to_json
 from iam.errors import FilterInvalid
 from iam.external.portal import PortalView
 from iam.policy.engine import get_engine
-from kernel import clock, services as registry, tenancy
+from kernel import clock, tenancy
+from kernel import services as registry
 from kernel.errors import ValidationFailed
 from kernel.interfaces.documents import DocumentRenderer
 from kernel.money import q_amount
@@ -47,7 +48,9 @@ def _audit(view: PortalView, action: str, resource: str, obj_id: Any) -> None:
         return
     portal = view.effective.portal
     with unit_of_work(view.ctx) as uow:
-        svc.record(uow, AuditEntry(action, resource, obj_id, portal.company_id if portal else None, {"channel": "portal"}))
+        svc.record(
+            uow, AuditEntry(action, resource, obj_id, portal.company_id if portal else None, {"channel": "portal"})
+        )
 
 
 class EmployeePortalView(PortalView):
@@ -69,7 +72,11 @@ class EmployeePortalView(PortalView):
                 raise FilterInvalid(f"unknown filter {key}")
         try:
             limit = int(request.query_params.get("limit", DEFAULT_LIMIT))
-            offset = int(base64.urlsafe_b64decode(request.query_params["cursor"].encode()).decode()) if request.query_params.get("cursor") else 0
+            offset = (
+                int(base64.urlsafe_b64decode(request.query_params["cursor"].encode()).decode())
+                if request.query_params.get("cursor")
+                else 0
+            )
         except (ValueError, UnicodeDecodeError) as exc:
             raise FilterInvalid("invalid cursor or limit") from exc
         if not 1 <= limit <= MAX_LIMIT or offset < 0:
@@ -178,7 +185,7 @@ class _CertificateBase(_PayslipBase):
     permissions: ClassVar[dict[str, str]] = {"GET": "portal.employee_certificate.read"}
     portal_fields = ("id", "tenant_id", "status", "certificate_type", "year", "version", "audit")
 
-    def certificates(self) -> tuple[Employee, list[certificates.Certificate], list[EmployeePayslipView]]:
+    def own_certificates(self) -> tuple[Employee, list[certificates.Certificate], list[EmployeePayslipView]]:
         with tenancy.scope(self.ctx):
             emp = self.employee()
             slips = self.own_payslips(emp)
@@ -186,7 +193,7 @@ class _CertificateBase(_PayslipBase):
 
     def find(self, pk: str) -> tuple[Employee, certificates.Certificate, list[EmployeePayslipView]]:
         wanted = parse_uuid(pk)
-        emp, certs, slips = self.certificates()
+        emp, certs, slips = self.own_certificates()
         for c in certs:
             if c.id == wanted:
                 return emp, c, slips
@@ -196,7 +203,7 @@ class _CertificateBase(_PayslipBase):
 class CertificatesView(_CertificateBase):
     def get(self, request: Request, pk: str | None = None) -> Response:
         if pk is None:
-            emp, certs, _ = self.certificates()
+            emp, certs, _ = self.own_certificates()
             return self.page(request, [certificate_dict(c, emp) for c in certs])
         emp, cert, _ = self.find(pk)
         return Response(self.serialize(certificate_dict(cert, emp)))
@@ -263,10 +270,23 @@ class _Collection(EmployeePortalView):
 
 
 class VacationsView(_Collection):
-    permissions: ClassVar[dict[str, str]] = {"GET": "portal.employee_vacation.read", "POST": "portal.employee_vacation.create"}
+    permissions: ClassVar[dict[str, str]] = {
+        "GET": "portal.employee_vacation.read",
+        "POST": "portal.employee_vacation.create",
+    }
     read_permission = "portal.employee_vacation.read"
     model = Absence
-    portal_fields = ("id", "tenant_id", "status", "start_date", "end_date", "days", "request_status", "version", "audit")
+    portal_fields = (
+        "id",
+        "tenant_id",
+        "status",
+        "start_date",
+        "end_date",
+        "days",
+        "request_status",
+        "version",
+        "audit",
+    )
 
     def base_qs(self) -> Any:
         return Absence.objects.filter(absence_type=VACATION)

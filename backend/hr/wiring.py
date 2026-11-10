@@ -32,7 +32,8 @@ def register_services() -> None:
 
     fields.register_all()
     if services.optional(PayrollEmployeeSource) is None:
-        services.register(PayrollEmployeeSource, DbPayrollEmployeeSource())
+        provider: PayrollEmployeeSource = DbPayrollEmployeeSource()
+        services.register(PayrollEmployeeSource, provider)
     payroll_ifaces = _payroll_interfaces()
     if payroll_ifaces is not None:
         protocol = getattr(payroll_ifaces, "PayrollEmployeeSource", None)
@@ -42,4 +43,5 @@ def register_services() -> None:
         from hr.portal.payslips import PayrollTablesPayslipSource
 
         if services.optional(EmployeePayslipSource) is None:
-            services.register(EmployeePayslipSource, PayrollTablesPayslipSource())
+            payslip_source: EmployeePayslipSource = PayrollTablesPayslipSource()
+            services.register(EmployeePayslipSource, payslip_source)

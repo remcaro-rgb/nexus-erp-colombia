@@ -183,7 +183,7 @@ class CollectionActionView(_Base):
 
 def _view(base: type[_Base], spec: Spec, permissions: dict[str, str], **attrs: Any) -> Any:
     name = base.__name__ + "_" + spec.resource.replace(".", "_") + "_" + attrs.get("action_name", "").replace("-", "_")
-    cls = type(name, (base,), {"spec": spec, "resource_type": spec.resource, "permissions": permissions, **attrs})
+    cls: Any = type(name, (base,), {"spec": spec, "resource_type": spec.resource, "permissions": permissions, **attrs})
     return cls.as_view()
 
 
@@ -191,13 +191,17 @@ def routes(spec: Spec) -> list[URLPattern]:
     """URL patterns of the documented operations of ``spec`` (actions before the detail route)."""
     out: list[URLPattern] = []
     for name, ca in spec.collection_actions.items():
-        out.append(path(f"{spec.url}:{name}", _view(CollectionActionView, spec, {"POST": ca.permission}, action_name=name)))
+        out.append(
+            path(f"{spec.url}:{name}", _view(CollectionActionView, spec, {"POST": ca.permission}, action_name=name))
+        )
     collection = {"GET": spec.perm("read")}
     if spec.create is not None:
         collection["POST"] = spec.perm("create")
     out.append(path(spec.url, _view(CollectionView, spec, collection)))
     for name, act in spec.actions.items():
-        out.append(path(f"{spec.url}/<str:pk>:{name}", _view(ActionView, spec, {"POST": act.permission}, action_name=name)))
+        out.append(
+            path(f"{spec.url}/<str:pk>:{name}", _view(ActionView, spec, {"POST": act.permission}, action_name=name))
+        )
     detail = {"GET": spec.perm("read")}
     if spec.update is not None:
         detail["PATCH"] = spec.perm("update")

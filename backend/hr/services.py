@@ -38,7 +38,7 @@ from hr.models import (
     Position,
 )
 from kernel import clock, services
-from kernel.errors import NotFound, ValidationFailed
+from kernel.errors import NotFound, ParameterNotVerified, ParameterUnknown, ValidationFailed
 from kernel.interfaces.audit import AuditEntry, AuditService
 from kernel.money import q_amount
 from kernel.parameters import ParameterProvider
@@ -161,8 +161,17 @@ def _text(value: Any, name: str, max_len: int, *, required: bool = False) -> str
 
 
 def parameter(code: str, at: dt.date, company_id: uuid.UUID) -> Any:
-    """A legal parameter through ``kernel.parameters`` (UNKNOWN / missing provider → fail closed)."""
-    return services.get(ParameterProvider).get(code, at, company_id)
+    """A legal parameter through ``kernel.parameters`` (UNKNOWN / missing provider → fail closed).
+
+    ``kernel.parameters.enforce`` passes the parameter code as the error ``code``; the stable API codes
+    ``parameter_unknown`` / ``parameter_not_verified`` are restored here and the parameter is named in ``errors``.
+    """
+    try:
+        return services.get(ParameterProvider).get(code, at, company_id)
+    except ParameterUnknown as exc:
+        raise ParameterUnknown(f"parameter {code} is UNKNOWN for {at.isoformat()}", parameter=code) from exc
+    except ParameterNotVerified as exc:
+        raise ParameterNotVerified(f"parameter {code} has no legal-review stamp", parameter=code) from exc
 
 
 # --------------------------------------------------------------------------- org units / positions
@@ -224,7 +233,9 @@ def create_position(uow: UnitOfWork, company_id: uuid.UUID, data: Mapping[str, A
         company_id=company_id,
         code=_check_code(Position, company_id, data.get("code")),
         name=_text(data.get("name"), "name", 200, required=True) or "",
-        org_unit=_same_company(OrgUnit, parse_uuid_field(data.get("org_unit_id"), "org_unit_id"), company_id, "org_unit_id"),
+        org_unit=_same_company(
+            OrgUnit, parse_uuid_field(data.get("org_unit_id"), "org_unit_id"), company_id, "org_unit_id"
+        ),
         created_by=uow.ctx.principal_id,
         updated_by=uow.ctx.principal_id,
     )
@@ -264,7 +275,13 @@ def _apply_employee(emp: Employee, data: Mapping[str, Any]) -> list[str]:
         emp.document_type, emp.document_number = str(doc["document_type"]), number
         emp.check_digit = str(doc["check_digit"]) if doc.get("check_digit") not in (None, "") else None
         changed += ["document_type", "document_number", "check_digit"]
-    for name, size in (("email", 254), ("phone", 30), ("address", 255), ("health_entity", 120), ("pension_entity", 120)):
+    for name, size in (
+        ("email", 254),
+        ("phone", 30),
+        ("address", 255),
+        ("health_entity", 120),
+        ("pension_entity", 120),
+    ):
         if name in data:
             setattr(emp, name, _text(data[name], name, size))
             changed.append(name)
@@ -370,7 +387,9 @@ def _check_overlap(contract: EmploymentContract) -> None:
 def _apply_contract(c: EmploymentContract, data: Mapping[str, Any]) -> None:
     if "contract_type" in data:
         if data["contract_type"] not in CONTRACT_TYPES:
-            raise ValidationFailed(f"contract_type must be one of {', '.join(CONTRACT_TYPES)}", fields=["contract_type"])
+            raise ValidationFailed(
+                f"contract_type must be one of {', '.join(CONTRACT_TYPES)}", fields=["contract_type"]
+            )
         c.contract_type = data["contract_type"]
     if "salary_type" in data:
         if data["salary_type"] not in SALARY_TYPES:
@@ -403,7 +422,9 @@ def _apply_contract(c: EmploymentContract, data: Mapping[str, Any]) -> None:
         raise ValidationFailed("a fixed-term contract needs end_date", fields=["end_date"])
 
 
-def _history(uow: UnitOfWork, c: EmploymentContract, change: str, on: dt.date, changes: dict[str, Any], reason: str = "") -> None:
+def _history(
+    uow: UnitOfWork, c: EmploymentContract, change: str, on: dt.date, changes: dict[str, Any], reason: str = ""
+) -> None:
     ContractHistory.objects.create(
         tenant_id=c.tenant_id,
         company_id=c.company_id,
@@ -472,7 +493,9 @@ def amend_contract(uow: UnitOfWork, c: EmploymentContract, payload: Mapping[str,
     snapshots = _check_integral(c.company_id, c.salary, on) if c.salary_type == "INTEGRAL" else {}
     c.save_versioned(uow.ctx.principal_id, [f.name for f in c._meta.concrete_fields if f.name not in ("id", "version")])
     after = {k: str(getattr(c, k)) for k in params}
-    _history(uow, c, "amended", on, {"before": before, "after": after, "parameters": snapshots}, payload.get("reason") or "")
+    _history(
+        uow, c, "amended", on, {"before": before, "after": after, "parameters": snapshots}, payload.get("reason") or ""
+    )
     audit(uow, "hr.contract.amended", "hr.contract", c, {"fields": sorted(params)})
 
 

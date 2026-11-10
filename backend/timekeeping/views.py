@@ -6,6 +6,7 @@ from typing import Any
 
 from django.urls import URLPattern
 
+from hr import services as hr_services
 from hr.api.crud import Action, CollectionAction, Spec, audit_dict, routes
 from timekeeping import services
 from timekeeping.models import Absence, ClockEvent, OvertimeRequest, Shift, Timesheet
@@ -90,7 +91,7 @@ SHIFTS = Spec(
     to_dict=shift_dict,
     create=services.create_shift,
     update=services.update_shift,
-    delete=services.hr.archive,
+    delete=hr_services.archive,
     input_fields=("code", "name", "start_time", "end_time"),
     filters={"code": "code", "status": "status"},
     sorts=("code", "name"),

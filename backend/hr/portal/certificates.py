@@ -47,16 +47,24 @@ def certificate_id(emp: Employee, kind: str, year: int) -> uuid.UUID:
 def available(emp: Employee, payslips: list[EmployeePayslipView], today: dt.date) -> list[Certificate]:
     out = []
     if services.first_contract(emp) is not None:
-        out.append(Certificate(certificate_id(emp, "LABORAL", today.year), emp.tenant_id, emp.id, "LABORAL", today.year))
+        out.append(
+            Certificate(certificate_id(emp, "LABORAL", today.year), emp.tenant_id, emp.id, "LABORAL", today.year)
+        )
     for year in sorted({p.period_end.year for p in payslips}, reverse=True):
         out.append(
-            Certificate(certificate_id(emp, "INGRESOS_RETENCIONES", year), emp.tenant_id, emp.id, "INGRESOS_RETENCIONES", year)
+            Certificate(
+                certificate_id(emp, "INGRESOS_RETENCIONES", year), emp.tenant_id, emp.id, "INGRESOS_RETENCIONES", year
+            )
         )
     return out
 
 
 def _label(snapshot: dict[str, Any]) -> str:
-    fixture = " (FIXTURE — NOT LEGALLY VERIFIED)" if snapshot.get("synthetic") or not snapshot.get("legal_review_stamp") else ""
+    fixture = (
+        " (FIXTURE — NOT LEGALLY VERIFIED)"
+        if snapshot.get("synthetic") or not snapshot.get("legal_review_stamp")
+        else ""
+    )
     return f"{snapshot.get('code')}={snapshot.get('status')}{fixture}"
 
 

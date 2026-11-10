@@ -31,7 +31,16 @@ from kernel.money import q_qty
 from kernel.uow import UnitOfWork
 from localization_co.holidays import is_holiday
 from timekeeping import classification
-from timekeeping.models import ABSENCE_TYPES, CLOCK_METHODS, VACATION, Absence, ClockEvent, OvertimeRequest, Shift, Timesheet
+from timekeeping.models import (
+    ABSENCE_TYPES,
+    CLOCK_METHODS,
+    VACATION,
+    Absence,
+    ClockEvent,
+    OvertimeRequest,
+    Shift,
+    Timesheet,
+)
 
 DOC_FIELDS = ("document_date", "posting_date", "currency", "notes", "lines")
 ABSENCE_FIELDS = (*DOC_FIELDS, "employee_id", "absence_type", "start_date", "end_date", "medical_note")
@@ -232,7 +241,9 @@ def submit_absence(uow: UnitOfWork, a: Absence, payload: Mapping[str, Any] | Non
     _mark(uow, a, "SUBMITTED")
     if a.absence_type == VACATION:
         uow.emit(
-            "portal.vacation_request.submitted.v1", {"request_id": str(a.id), "days": str(a.days)}, company_id=a.company_id
+            "portal.vacation_request.submitted.v1",
+            {"request_id": str(a.id), "days": str(a.days)},
+            company_id=a.company_id,
         )
 
 

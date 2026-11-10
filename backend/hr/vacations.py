@@ -47,7 +47,7 @@ class Balance:
 
     @property
     def available(self) -> Decimal:
-        return self.accrued - self.taken - self.approved_pending
+        return (self.accrued - self.taken - self.approved_pending).quantize(TWO)
 
 
 def balance(employee: Employee, on: dt.date, exclude_id: Any = None) -> Balance:

@@ -77,7 +77,9 @@ class EmployeePayslipView:
 
 @runtime_checkable
 class EmployeePayslipSource(Protocol):
-    def payslips_of(self, tenant_id: uuid.UUID, company_id: uuid.UUID, employee_id: uuid.UUID) -> list[EmployeePayslipView]:
+    def payslips_of(
+        self, tenant_id: uuid.UUID, company_id: uuid.UUID, employee_id: uuid.UUID
+    ) -> list[EmployeePayslipView]:
         """POSTED payslips of one employee, newest period first (called inside the caller's tenancy scope)."""
         ...
 

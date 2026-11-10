@@ -52,7 +52,9 @@ class PayrollTablesPayslipSource:
             "run__period"
         )
 
-    def payslips_of(self, tenant_id: uuid.UUID, company_id: uuid.UUID, employee_id: uuid.UUID) -> list[EmployeePayslipView]:
+    def payslips_of(
+        self, tenant_id: uuid.UUID, company_id: uuid.UUID, employee_id: uuid.UUID
+    ) -> list[EmployeePayslipView]:
         rows = self._qs(tenant_id, company_id).filter(employee_id=employee_id).order_by("-run__period__end_date", "-id")
         return [_view(s) for s in rows]
 
