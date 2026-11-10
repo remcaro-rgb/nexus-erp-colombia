@@ -35,3 +35,7 @@ class SodViolation(PermissionDenied):
 
 def invalid(detail: str, pointer: str, reason: str) -> ValidationFailed:
     return ValidationFailed(detail, pointer=pointer, reason=reason)
+
+
+class FilterInvalid(ValidationFailed):
+    code, status, title = "filter_invalid", 400, "Invalid filter"

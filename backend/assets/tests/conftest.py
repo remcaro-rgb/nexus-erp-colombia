@@ -121,9 +121,14 @@ class World:
             return Period.objects.get(tenant_id=self.ctx.tenant_id, company_id=company or self.company, code=code)
 
     def asset(self, code: str = "LAP-001", cost: str = "4800000", acquired: str = "2026-03-10", **kw: Any) -> Asset:
-        data = {"code": code, "name": kw.pop("name", f"Portátil {code} (SINTÉTICO)"),
-                "category_id": str(kw.pop("category", self.category).id), "acquisition_cost": {"amount": cost,
-                "currency": "COP"}, "acquisition_date": acquired, **kw}  # fmt: skip
+        data = {
+            "code": code,
+            "name": kw.pop("name", f"Portátil {code} (SINTÉTICO)"),
+            "category_id": str(kw.pop("category", self.category).id),
+            "acquisition_cost": {"amount": cost, "currency": "COP"},
+            "acquisition_date": acquired,
+            **kw,
+        }
         return self.run(lambda u: service.create_asset(u, self.company, data))
 
     def activate(self, asset: Asset, in_service: str = "2026-03-10", **params: Any) -> Asset:
@@ -138,8 +143,12 @@ class World:
 
     def depreciate(self, code: str, book: AssetBook | None = None, lines: list[dict[str, Any]] | None = None) -> Any:
         period = self.period(code)
-        data = {"document_date": period.end.isoformat(), "period_id": str(period.id),
-                "book_id": str((book or self.niif).id), "lines": lines or []}  # fmt: skip
+        data = {
+            "document_date": period.end.isoformat(),
+            "period_id": str(period.id),
+            "book_id": str((book or self.niif).id),
+            "lines": lines or [],
+        }
 
         def fn(u: Any) -> DepreciationRun:
             run = service.create_run(u, self.company, data)
@@ -166,9 +175,11 @@ class World:
         """Debit − credit of an account in a ledger book (posted lines)."""
         with tenancy.scope(self.ctx):
             qs = JournalLine.objects.filter(
-                tenant_id=self.ctx.tenant_id, company_id=self.company, account__code=account_code,
+                tenant_id=self.ctx.tenant_id,
+                company_id=self.company,
+                account__code=account_code,
                 entry__book__code=book_code,
-            )  # fmt: skip
+            )
             if until is not None:
                 qs = qs.filter(posting_date__lte=until)
             total = Decimal(0)
@@ -179,8 +190,9 @@ class World:
     def entries(self, source_type: str) -> list[JournalEntry]:
         with tenancy.scope(self.ctx):
             return list(
-                JournalEntry.objects.filter(tenant_id=self.ctx.tenant_id, company_id=self.company,
-                                            source_type=source_type).select_related("book")  # fmt: skip
+                JournalEntry.objects.filter(
+                    tenant_id=self.ctx.tenant_id, company_id=self.company, source_type=source_type
+                ).select_related("book")
             )
 
 
@@ -189,13 +201,22 @@ def bootstrap_ledger(ctx: tenancy.TenantContext, company: uuid.UUID) -> None:
         setup.setup_company(u, company)
         periods.ensure_year(u, company, 2026)
         periods.ensure_year(u, company, 2027)
+        periods.ensure_year(u, company, 2028)
         for code, name, typ, nature, roles, sources in ACCOUNTS:
             acc = Account.objects.create(
-                tenant_id=ctx.tenant_id, company_id=company, code=code, name=name, type=typ, nature=nature,
-                is_control=bool(sources), control_sources=sources,
-            )  # fmt: skip
+                tenant_id=ctx.tenant_id,
+                company_id=company,
+                code=code,
+                name=name,
+                type=typ,
+                nature=nature,
+                is_control=bool(sources),
+                control_sources=sources,
+            )
             for r in roles:
-                AccountDetermination.objects.create(tenant_id=ctx.tenant_id, company_id=company, role_code=r, account=acc)
+                AccountDetermination.objects.create(
+                    tenant_id=ctx.tenant_id, company_id=company, role_code=r, account=acc
+                )
         service.setup_company(u, company)
 
     run_in_unit_of_work(fn, ctx)
@@ -204,13 +225,19 @@ def bootstrap_ledger(ctx: tenancy.TenantContext, company: uuid.UUID) -> None:
 def make_category(ctx: tenancy.TenantContext, company: uuid.UUID, code: str = "COMPUTO", life: int = 36) -> Any:
     def fn(u: Any) -> AssetCategory:
         cat = AssetCategory.objects.create(
-            tenant_id=ctx.tenant_id, company_id=company, code=code, name=f"Equipo de cómputo {code} (SINTÉTICO)",
-            useful_life_months=life, method="STRAIGHT_LINE", created_by=ctx.principal_id,
-        )  # fmt: skip
+            tenant_id=ctx.tenant_id,
+            company_id=company,
+            code=code,
+            name=f"Equipo de cómputo {code} (SINTÉTICO)",
+            useful_life_months=life,
+            method="STRAIGHT_LINE",
+            created_by=ctx.principal_id,
+        )
         books = {b.code: b for b in service.active_books(u, company)}
         service.set_book_default(u, cat, books["NIIF"], method="STRAIGHT_LINE", life=life)
-        service.set_book_default(u, cat, books["FISCAL"], method="STRAIGHT_LINE", life=60,
-                                 rate_parameter_code=FISCAL_RATE_CODE)  # fmt: skip
+        service.set_book_default(
+            u, cat, books["FISCAL"], method="STRAIGHT_LINE", life=60, rate_parameter_code=FISCAL_RATE_CODE
+        )
         return cat
 
     return run_in_unit_of_work(fn, ctx)

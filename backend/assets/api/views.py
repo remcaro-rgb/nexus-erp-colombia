@@ -16,7 +16,6 @@ from assets import kpis, reports, service
 from assets.api import serializers as ser
 from assets.api.base import (
     AssetsAPIView,
-    FilterInvalid,
     body_of,
     check_if_match,
     command,
@@ -28,6 +27,7 @@ from assets.api.base import (
     visible,
     writable_check,
 )
+from assets.errors import FilterInvalid
 from assets.models import (
     Asset,
     AssetBook,

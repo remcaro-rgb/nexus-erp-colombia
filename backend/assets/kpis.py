@@ -15,6 +15,7 @@ from typing import Any
 from django.db.models import Q, QuerySet, Sum
 
 from assets import engine
+from assets.errors import FilterInvalid
 from assets.models import (
     Asset,
     AssetBook,
@@ -26,7 +27,6 @@ from assets.models import (
     RegisterEntry,
 )
 from kernel import clock, services
-from kernel.errors import ValidationFailed
 from kernel.interfaces.policy import PolicyService
 from kernel.tenancy import TenantContext
 
@@ -44,13 +44,13 @@ def period_bounds(ctx: TenantContext, company_id: uuid.UUID, period: str | None)
         except ValueError:
             row = None
         if row is None:
-            raise ValidationFailed("unknown period", code="filter_invalid")
+            raise FilterInvalid("unknown period")
         return row.start, row.end
     if period:
         try:
             start = dt.date.fromisoformat(f"{period}-01")
         except ValueError:
-            raise ValidationFailed("period must be YYYY-MM or a period id", code="filter_invalid") from None
+            raise FilterInvalid("period must be YYYY-MM or a period id") from None
     else:
         start = engine.month_start(clock.business_date())
     return start, engine.month_end(start)

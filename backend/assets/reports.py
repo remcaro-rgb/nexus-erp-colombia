@@ -15,6 +15,7 @@ from typing import Any
 from django.db.models import QuerySet, Sum
 
 from assets import engine
+from assets.errors import FilterInvalid
 from assets.models import (
     Asset,
     AssetBook,
@@ -32,7 +33,6 @@ from assets.service import (
     role,
     state_of,
 )
-from kernel.errors import ValidationFailed
 from kernel.tenancy import TenantContext
 
 ZERO = Decimal(0)
@@ -46,12 +46,12 @@ def parse_month(value: str | None, pointer: str, *, end: bool = False, default: 
     """``YYYY-MM`` (or an ISO date) → first (or last) day of that month."""
     if not value:
         if default is None:
-            raise ValidationFailed("a period is required", pointer=pointer, reason="required", code="filter_invalid")
+            raise FilterInvalid("a period is required", pointer=pointer, reason="required")
         return default
     try:
         day = dt.date.fromisoformat(value) if len(value) == 10 else dt.date.fromisoformat(f"{value}-01")
     except ValueError:
-        raise ValidationFailed("use YYYY-MM", pointer=pointer, reason="format", code="filter_invalid") from None
+        raise FilterInvalid("use YYYY-MM", pointer=pointer, reason="format") from None
     return engine.month_end(day) if end else engine.month_start(day)
 
 
@@ -250,9 +250,7 @@ def movement_report(
 ) -> dict[str, Any]:
     """Per category, carrying amount (NBV) roll-forward: opening + movements = closing."""
     if start > end:
-        raise ValidationFailed(
-            "period_from is after period_to", pointer="/period_from", reason="range", code="filter_invalid"
-        )
+        raise FilterInvalid("period_from is after period_to", pointer="/period_from", reason="range")
     if book_id is not None:
         entries = entries.filter(book_id=book_id)
     acc: dict[uuid.UUID, dict[str, Decimal]] = defaultdict(lambda: {c: ZERO for c in MOVEMENT_COLUMNS})

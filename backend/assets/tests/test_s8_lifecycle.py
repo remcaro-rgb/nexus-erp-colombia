@@ -34,16 +34,25 @@ def buy_laptop(world: World, *, fail_after: bool = False) -> Any:
         cap = asset_svc.capitalize_from_invoice_line(
             u,
             InvoiceLineCapitalization(
-                company_id=world.company, category_id=world.category.id, invoice=invoice, line_no=1,
-                description="Portátil 14 pulgadas (SINTÉTICO)", cost=D("4800000"),
-                acquisition_date=dt.date(2026, 3, 10), supplier=PartyRef(ids.new_id(), "vendor"),
-                in_service_date=dt.date(2026, 3, 10), code="LAP-S8",
+                company_id=world.company,
+                category_id=world.category.id,
+                invoice=invoice,
+                line_no=1,
+                description="Portátil 14 pulgadas (SINTÉTICO)",
+                cost=D("4800000"),
+                acquisition_date=dt.date(2026, 3, 10),
+                supplier=PartyRef(ids.new_id(), "vendor"),
+                in_service_date=dt.date(2026, 3, 10),
+                code="LAP-S8",
             ),
-        )  # fmt: skip
+        )
         services.get(PostingService).post(
             u,
             PostingRequest(
-                company_id=world.company, posting_date=dt.date(2026, 3, 10), source=invoice, purpose="issue",
+                company_id=world.company,
+                posting_date=dt.date(2026, 3, 10),
+                source=invoice,
+                purpose="issue",
                 journal_code="PURCHASES",
                 lines=(
                     PostingLine(cap.cost_account_role, "DEBIT", D("4800000")),
@@ -51,7 +60,7 @@ def buy_laptop(world: World, *, fail_after: bool = False) -> Any:
                     PostingLine("AP", "CREDIT", D("5712000"), party=PartyRef(ids.new_id(), "vendor")),
                 ),
             ),
-        )  # fmt: skip
+        )
         if fail_after:
             raise RuntimeError("synthetic failure after posting (failure injection)")
         return cap
@@ -103,9 +112,12 @@ def test_T_P14_06_disposal_gain_loss(world: World, asset_services: dict[str, Any
     def fn(u: Any) -> Disposal:
         obj = service.get_asset(u, world.company, asset.id, lock=True)
         return service.dispose(
-            u, obj, {"kind": "SALE", "proceeds": "4000000", "vat": "760000", "customer_id": str(customer)},
-            dt.date(2026, 12, 31), "Venta a empleado (SINTÉTICO)",
-        )  # fmt: skip
+            u,
+            obj,
+            {"kind": "SALE", "proceeds": "4000000", "vat": "760000", "customer_id": str(customer)},
+            dt.date(2026, 12, 31),
+            "Venta a empleado (SINTÉTICO)",
+        )
 
     disposal = world.run(fn)
     assert disposal.results["NIIF"]["nbv"] == "3600000.0300"
@@ -151,18 +163,27 @@ def test_T_P14_04_below_threshold_is_not_capitalized(world: World) -> None:
 
     world.run(fn)
     svc = services.get(AssetService)
-    assert world.run(lambda u: svc.should_capitalize(u, world.company, world.category.id, D("2000000"),
-                                                     dt.date(2026, 3, 10))) is False  # fmt: skip
+    assert (
+        world.run(
+            lambda u: svc.should_capitalize(u, world.company, world.category.id, D("2000000"), dt.date(2026, 3, 10))
+        )
+        is False
+    )
     with pytest.raises(DomainError) as err:
         world.run(
             lambda u: svc.capitalize_from_invoice_line(
                 u,
                 InvoiceLineCapitalization(
-                    world.company, world.category.id, DocumentRef("purchasing.vendor_invoice", ids.new_id()), 1,
-                    "Mouse (SINTÉTICO)", D("2000000"), dt.date(2026, 3, 10),
+                    world.company,
+                    world.category.id,
+                    DocumentRef("purchasing.vendor_invoice", ids.new_id()),
+                    1,
+                    "Mouse (SINTÉTICO)",
+                    D("2000000"),
+                    dt.date(2026, 3, 10),
                 ),
             )
-        )  # fmt: skip
+        )
     assert err.value.extra.get("reason") == "below_capitalization_threshold"
 
 

@@ -21,6 +21,7 @@ from django.db.models import Q, QuerySet
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from assets.errors import FilterInvalid
 from iam.api.base import ModuleSecuredView
 from kernel import services
 from kernel.errors import NotFound, PermissionDenied, PreconditionFailed, PreconditionRequired, ValidationFailed
@@ -51,10 +52,6 @@ class IdempotencyKeyRequired(ValidationFailed):
 
 class PolicyDenied(PermissionDenied):
     code, title = "policy_denied", "Denied by access policy"
-
-
-class FilterInvalid(ValidationFailed):
-    code, status, title = "filter_invalid", 400, "Invalid filter"
 
 
 class VersionConflict(PreconditionFailed):
