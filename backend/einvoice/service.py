@@ -538,7 +538,15 @@ def _record(
 def transmit(
     ctx: TenantContext, document_id: uuid.UUID, *, force: bool = False, adapter: ProviderAdapter | None = None
 ) -> FiscalDocument:
-    """Worker entry point: sign + submit one document. Never inside a unit of work."""
+    """Worker entry point: sign + submit one document. Never inside a unit of work.
+
+    In ``FISCAL_MODE=production`` nothing is signed or sent: :func:`mode.require_transmission_allowed`
+    refuses without the EG-1/EG-3 records (and refuses in any case in this DEV-only edition).
+    """
+    if mode.is_production():
+        with tenancy.scope(ctx):
+            company = FiscalDocument.objects.values_list("company_id", flat=True).get(pk=document_id)
+            mode.require_transmission_allowed("1", gate_records(ctx, company))
     request = run_in_unit_of_work(lambda u: _prepare(u, document_id, force), ctx)
     if request is None or not isinstance(request, SubmitRequest):
         with tenancy.scope(ctx):

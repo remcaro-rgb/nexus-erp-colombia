@@ -117,7 +117,8 @@ class InMemoryPtSandbox:
                 "tracking_id": "PT-" + hashlib.sha256(key.encode()).hexdigest()[:20],
                 "unique_code": data["unique_code"],
                 "simulated": True,
-                "messages": ["PT SANDBOX — sintético"] + (["PT-N01 aviso"] if status == "ACCEPTED_WITH_NOTICES" else []),
+                "messages": ["PT SANDBOX — sintético"]
+                + (["PT-N01 aviso"] if status == "ACCEPTED_WITH_NOTICES" else []),
                 "errors": ["PT-R01"] if status == "REJECTED" else [],
                 "application_response_base64": base64.b64encode(b"<PtApplicationResponse/>").decode(),
             }

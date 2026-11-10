@@ -14,13 +14,32 @@ import pytest
 ALL_PERMISSIONS = tuple(
     f"einvoice.{p}"
     for p in (
-        "document.read", "document.update", "document.export", "numbering_range.read", "numbering_range.create",
-        "numbering_range.update", "numbering_range.delete", "numbering_range.admin", "contingency.read",
-        "contingency.admin", "radian_event.read", "radian_event.create", "habilitation.read", "habilitation.create",
-        "habilitation.update", "certificate.read", "settings.read", "settings.admin", "provider.read",
-        "provider.create", "provider.update", "provider.delete", "provider.admin", "provider.export",
+        "document.read",
+        "document.update",
+        "document.export",
+        "numbering_range.read",
+        "numbering_range.create",
+        "numbering_range.update",
+        "numbering_range.delete",
+        "numbering_range.admin",
+        "contingency.read",
+        "contingency.admin",
+        "radian_event.read",
+        "radian_event.create",
+        "habilitation.read",
+        "habilitation.create",
+        "habilitation.update",
+        "certificate.read",
+        "settings.read",
+        "settings.admin",
+        "provider.read",
+        "provider.create",
+        "provider.update",
+        "provider.delete",
+        "provider.admin",
+        "provider.export",
     )
-)  # fmt: skip
+)
 
 _contexts: dict[str, Any] = {}
 
@@ -119,34 +138,59 @@ def invoice_model(number: str = "SETP990000001", outcome: str = "accept", **over
         "issue_date": "2026-11-02",
         "issue_time": "10:00:00-05:00",
         "supplier": {"id_number": "900000001", "check_digit": "1", "name": "EMPRESA SINTÉTICA S.A.S."},
-        "customer": {"id_number": "800000002", "id_type": "31", "name": "CLIENTE SINTÉTICO", "email": "cliente@example.invalid"},
+        "customer": {
+            "id_number": "800000002",
+            "id_type": "31",
+            "name": "CLIENTE SINTÉTICO",
+            "email": "cliente@example.invalid",
+        },
         "lines": [
-            {"description": "Servicio sintético", "quantity": "2", "unit_price": "50000.00", "line_extension": "100000.00",
-             "taxes": [{"scheme": "01", "rate": "19.00", "taxable": "100000.00", "amount": "19000.00"}]},
+            {
+                "description": "Servicio sintético",
+                "quantity": "2",
+                "unit_price": "50000.00",
+                "line_extension": "100000.00",
+                "taxes": [{"scheme": "01", "rate": "19.00", "taxable": "100000.00", "amount": "19000.00"}],
+            },
         ],
         "line_extension": "100000.00",
         "tax_exclusive": "100000.00",
         "tax_inclusive": "119000.00",
         "payable": "119000.00",
         "fixture_outcome": outcome,
-    }  # fmt: skip
+    }
     data.update(over)
     return FiscalDocumentModel.from_dict(data)
 
 
-def create_range(ctx: Any, company: uuid.UUID, *, code: str = "FE-SETP", prefix: str = "SETP",
-                 family: str = "FE", technical_key_ref: str = "") -> Any:  # fmt: skip
+def create_range(
+    ctx: Any,
+    company: uuid.UUID,
+    *,
+    code: str = "FE-SETP",
+    prefix: str = "SETP",
+    family: str = "FE",
+    technical_key_ref: str = "",
+) -> Any:
     from einvoice.models import NumberingRange
     from kernel.uow import run_in_unit_of_work
 
     return run_in_unit_of_work(
         lambda u: NumberingRange.objects.create(
-            tenant_id=ctx.tenant_id, company_id=company, code=code, family=family, prefix=prefix,
-            from_number=990000000, to_number=995000000, resolution="18760000001 (SINTÉTICA)",
-            valid_from=dt.date(2026, 1, 1), valid_to=dt.date(2027, 12, 31), technical_key_ref=technical_key_ref,
+            tenant_id=ctx.tenant_id,
+            company_id=company,
+            code=code,
+            family=family,
+            prefix=prefix,
+            from_number=990000000,
+            to_number=995000000,
+            resolution="18760000001 (SINTÉTICA)",
+            valid_from=dt.date(2026, 1, 1),
+            valid_to=dt.date(2027, 12, 31),
+            technical_key_ref=technical_key_ref,
         ),
         ctx,
-    )  # fmt: skip
+    )
 
 
 def register(ctx: Any, company: uuid.UUID, model: Any, source_id: uuid.UUID | None = None) -> Any:

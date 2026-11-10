@@ -19,7 +19,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 
 from einvoice import annex
-from einvoice.builders.ubl import NS
+from einvoice.builders.ubl import NS, serialize
 from einvoice.secrets import Secret
 from kernel import clock
 
@@ -124,7 +124,7 @@ def sign(xml: bytes, key: Secret, cert: CertificateInfo, *, signature_id: str) -
     _sub(key_info, DS, "KeyName", f"{SIGNATURE_MODE}:{cert.thumbprint[:16]}")
     sig.append(obj)
     _signature_slot(root).append(sig)
-    return bytes(ET.tostring(root, encoding="UTF-8", xml_declaration=True))
+    return serialize(root)
 
 
 def verify(xml: bytes, key: Secret) -> dict[str, str]:

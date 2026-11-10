@@ -18,7 +18,7 @@ from einvoice import secrets as sec
 from einvoice.adapters import registry
 from einvoice.api import base, serializers
 from einvoice.api.base import EinvoiceAPIView
-from einvoice.errors import ProviderNotConfigured, present
+from einvoice.errors import AdapterNotSupported, ProviderNotConfigured, present
 from einvoice.models import (
     EinvoiceSettings,
     FiscalDocument,
@@ -353,7 +353,7 @@ class RangeSync(EinvoiceAPIView):
         if not base.already_used(ctx, request):
             try:
                 rows = service.sync_numbering_ranges(ctx, company)
-            except ProviderNotConfigured as exc:
+            except (ProviderNotConfigured, AdapterNotSupported) as exc:
                 error = exc.to_problem()
 
         def fn(uow: UnitOfWork) -> tuple[Any, int, dict[str, str]]:

@@ -192,6 +192,12 @@ def _billing_reference(root: ET.Element, model: FiscalDocumentModel) -> None:
 
 def _serialize(root: ET.Element) -> bytes:
     ET.indent(root, space=" ")
+    return serialize(root)
+
+
+def serialize(root: ET.Element) -> bytes:
+    """UTF-8 with declaration. The root element is namespace-prefixed (``ns0:``): equivalent XML; stdlib
+    ElementTree cannot emit a default namespace next to unqualified attributes (``schemeID`` …)."""
     return bytes(ET.tostring(root, encoding="UTF-8", xml_declaration=True))
 
 
