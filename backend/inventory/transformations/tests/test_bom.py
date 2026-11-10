@@ -149,8 +149,9 @@ def test_T_INV_BOM_02_explosion_with_yields_and_scrap_is_exact_and_costed_explos
     xw.stock(i_water, "50", "3.333")
     xw.activate(xw.bom("R-MIX", i_mix, "3", [(i_water, "1", "0")]))
     bom = xw.activate(
-        xw.bom("R-PAN", i_fin, "10", [(i_flour, "4", "5"), (i_salt, "0.125", "0"), (i_mix, "2.4", "0")],
-               yield_percent="80")
+        xw.bom(
+            "R-PAN", i_fin, "10", [(i_flour, "4", "5"), (i_salt, "0.125", "0"), (i_mix, "2.4", "0")], yield_percent="80"
+        )
     )
     with inv.scope():
         exp = boms.explode(bom, D("20"), dt.date(2026, 11, 9))

@@ -67,9 +67,7 @@ def test_T_INV_XFORM_06_concurrent_transformation_and_pos_sale_on_same_lot_one_f
         )
 
     def order(qty: str) -> Any:
-        return xw.order(
-            "PORTIONING", [L("INPUT", queso.id, D(qty), lot_id=lot.id), L("OUTPUT", tajado.id, D(qty))]
-        )
+        return xw.order("PORTIONING", [L("INPUT", queso.id, D(qty), lot_id=lot.id), L("OUTPUT", tajado.id, D(qty))])
 
     # 1) the transformation reserves 8 kg of the lot; a POS sale of 5 kg can only see 2 kg → fails cleanly
     first = order("8")
@@ -87,7 +85,9 @@ def test_T_INV_XFORM_06_concurrent_transformation_and_pos_sale_on_same_lot_one_f
     # 2) race without reservation: 10 kg on hand, a transformation of 7 kg and a POS sale of 7 kg start together
     xw.stock(queso, "10", "15500", lot=lot)
     racing = order("7")
-    results, errors = run_threads([lambda: run_in_unit_of_work(lambda u: xf.post(u, racing), ctx), lambda: pos_sale("7")])
+    results, errors = run_threads(
+        [lambda: run_in_unit_of_work(lambda u: xf.post(u, racing), ctx), lambda: pos_sale("7")]
+    )
     assert len([r for r in results if r is not None]) == 1, (results, errors)
     assert len(errors) == 1 and getattr(errors[0], "code", None) == "stock_insufficient", errors
     with inv.scope():
@@ -104,7 +104,9 @@ def test_T_INV_XFORM_06_concurrent_transformation_and_pos_sale_on_same_lot_one_f
 
     # 3) reservation vs sale race: both try to claim the last 3 kg; exactly one gets them
     last = order("3")
-    results, errors = run_threads([lambda: run_in_unit_of_work(lambda u: xf.reserve(u, last), ctx), lambda: pos_sale("3")])
+    results, errors = run_threads(
+        [lambda: run_in_unit_of_work(lambda u: xf.reserve(u, last), ctx), lambda: pos_sale("3")]
+    )
     assert len([r for r in results if r is not None]) == 1 and len(errors) == 1, (results, errors)
     assert getattr(errors[0], "code", None) == "stock_insufficient"
     with inv.scope():

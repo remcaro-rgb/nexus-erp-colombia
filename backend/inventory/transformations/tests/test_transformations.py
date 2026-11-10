@@ -73,7 +73,13 @@ def test_T_INV_XFORM_01_repack_unpack_and_pack_canonical_stock_unchanged_no_entr
             "warehouse_id": str(xw.wh.id),
             "document_date": "2026-11-09",
             "lines": [
-                {"line_no": 1, "role": "INPUT", "item_id": str(item.id), "presentation_id": str(box.id), "qty_packages": "2"},
+                {
+                    "line_no": 1,
+                    "role": "INPUT",
+                    "item_id": str(item.id),
+                    "presentation_id": str(box.id),
+                    "qty_packages": "2",
+                },
                 {"line_no": 2, "role": "OUTPUT", "item_id": str(item.id), "quantity": {"value": "24", "uom": "UND"}},
             ],
         },
@@ -98,7 +104,13 @@ def test_T_INV_XFORM_01_repack_unpack_and_pack_canonical_stock_unchanged_no_entr
             "warehouse_id": str(xw.wh.id),
             "lines": [
                 {"line_no": 1, "role": "INPUT", "item_id": str(item.id), "quantity": "24"},
-                {"line_no": 2, "role": "OUTPUT", "item_id": str(item.id), "presentation_id": str(box.id), "qty_packages": "2"},
+                {
+                    "line_no": 2,
+                    "role": "OUTPUT",
+                    "item_id": str(item.id),
+                    "presentation_id": str(box.id),
+                    "qty_packages": "2",
+                },
             ],
         },
     )
@@ -113,7 +125,9 @@ def test_T_INV_XFORM_01_repack_unpack_and_pack_canonical_stock_unchanged_no_entr
     assert gl(inv, unpack["id"]) == {} and gl(inv, pack["id"]) == {}
 
     # packing more than the loose stock is refused (packages never exceed canonical stock, D-013)
-    o = xw.order("PRESENTATION", [L("INPUT", item.id, D(12)), L("OUTPUT", item.id, qty_packages=D(1), presentation_id=box.id)])
+    o = xw.order(
+        "PRESENTATION", [L("INPUT", item.id, D(12)), L("OUTPUT", item.id, qty_packages=D(1), presentation_id=box.id)]
+    )
     with pytest.raises(DomainError) as exc:
         xw.post(o)
     assert exc.value.code in ("stock_insufficient", "packaged_exceeds_canonical")
@@ -331,7 +345,9 @@ def test_T_INV_XFORM_04_manual_multi_input_output_balances_value_and_quantities_
         xw.post(o)
     assert exc.value.code == "transformation_unbalanced_value"
     # MANUAL needs its own permission
-    world.add_role("inv_no_manual", ["inventory.*.*"], denies=["inventory.transformation_manual.*"], max_cls="confidential")
+    world.add_role(
+        "inv_no_manual", ["inventory.*.*"], denies=["inventory.transformation_manual.*"], max_cls="confidential"
+    )
     world.add_user("operario", ["ALFA"], subject="operario-subject")
     world.assign("operario", "inv_no_manual", "ALFA")
     r = login("operario").post("/api/v1/inventory/transformations", payload)

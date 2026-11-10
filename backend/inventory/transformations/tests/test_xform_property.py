@@ -49,7 +49,9 @@ STEP = st.one_of(
 _N = {"n": 0}
 
 
-@settings(max_examples=20, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture, HealthCheck.too_slow])
+@settings(
+    max_examples=20, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture, HealthCheck.too_slow]
+)
 @given(steps=st.lists(STEP, min_size=2, max_size=8))
 def test_T_INV_XFORM_08_random_transformations_value_invariant_and_no_negative_stock(xw, inv, steps):
     _N["n"] += 1

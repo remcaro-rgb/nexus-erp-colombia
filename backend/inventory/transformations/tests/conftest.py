@@ -54,7 +54,9 @@ class Xf:
         return self.inv.bin(self.wh, code)
 
     def stock(self, item: Item, qty: str, cost: str, **kw: Any) -> Any:
-        return self.inv.receive(self.inv.line(item, self.wh, qty, cost=cost, location=kw.pop("location", self.bin()), **kw))
+        return self.inv.receive(
+            self.inv.line(item, self.wh, qty, cost=cost, location=kw.pop("location", self.bin()), **kw)
+        )
 
     # ------------------------------------------------------------------ BOM
     def bom(self, code: str, output: Item, out_qty: str, lines: list[tuple[Item, str, str]], **kw: Any) -> Any:
