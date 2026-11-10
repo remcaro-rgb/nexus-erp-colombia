@@ -1,5 +1,6 @@
 """T-INV-XFORM-08 — property: random receipts and random transformations (portioning with normal/abnormal waste and
-additional costs, manual multi-item) keep the value invariant and never create negative stock.
+additional costs, manual multi-item, approved by a second user above the threshold) keep the value invariant and never
+create negative stock.
 
 Invariant after every step (company-wide valuation, D-016):
     Σ inventory value (valuation rows) + Σ expensed waste = Σ received value + Σ additional costs
@@ -54,8 +55,9 @@ _N = {"n": 0}
 )
 @given(steps=st.lists(STEP, min_size=2, max_size=8))
 def test_T_INV_XFORM_08_random_transformations_value_invariant_and_no_negative_stock(
-    xw: Any, inv: Any, steps: Any
+    xw: Any, inv: Any, approver: Any, world: Any, steps: Any
 ) -> None:
+    boss = world.users[approver].id
     _N["n"] += 1
     n = _N["n"]
     kg = {"base_uom": "KG"}
@@ -111,12 +113,14 @@ def test_T_INV_XFORM_08_random_transformations_value_invariant_and_no_negative_s
                 b = qty - a
                 if a <= 0 or b <= 0:
                     continue
-                o = xw.post(
-                    xw.order(
-                        "MANUAL",
-                        [L("INPUT", raw.id, qty), L("OUTPUT", side.id, a, is_main=True), L("OUTPUT", outs[2].id, b)],
-                    )
+                o = xw.order(
+                    "MANUAL",
+                    [L("INPUT", raw.id, qty), L("OUTPUT", side.id, a, is_main=True), L("OUTPUT", outs[2].id, b)],
                 )
+                o = xw.run(lambda u, o=o: xf.submit(u, o))
+                if o.status == "SUBMITTED":  # above the manual threshold: a second user approves (SoD, D-023)
+                    o = xw.run(lambda u, o=o: xf.approve(u, o, "verificado (SINTÉTICO)"), boss)
+                o = xw.post(o)
                 assert o.value_out == o.value_in
         except DomainError as exc:
             assert exc.code in ("stock_insufficient", "transformation_unbalanced_value"), exc
