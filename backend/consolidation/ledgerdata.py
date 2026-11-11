@@ -133,7 +133,9 @@ def party_balances(
     return dict(out)
 
 
-def cop_per_unit(ctx: TenantContext, company_id: uuid.UUID, currency: str, start: dt.date, end: dt.date) -> tuple[Decimal, Decimal]:
+def cop_per_unit(
+    ctx: TenantContext, company_id: uuid.UUID, currency: str, start: dt.date, end: dt.date
+) -> tuple[Decimal, Decimal]:
     """``(closing, average)`` COP per one unit of ``currency`` from ``ledger.ExchangeRate`` of ``company_id``.
 
     Closing = the last rate on or before ``end``; average = arithmetic mean of the daily rates within

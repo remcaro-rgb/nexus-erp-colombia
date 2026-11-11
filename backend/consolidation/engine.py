@@ -406,7 +406,10 @@ def _investment_and_nci(
 
 
 def _equity_method(
-    parent: Member, members: list[Member], translated: dict[uuid.UUID, dict[str, Decimal]], acc: dict[str, tuple[str, str, str]]
+    parent: Member,
+    members: list[Member],
+    translated: dict[uuid.UUID, dict[str, Decimal]],
+    acc: dict[str, tuple[str, str, str]],
 ) -> list[EntryDraft]:
     out = []
     for m in members:

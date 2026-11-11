@@ -37,7 +37,7 @@ from consolidation.models import (
     MasterStatus,
     PricingRule,
 )
-from kernel import clock, sequences, services, tenancy
+from kernel import clock, ids, sequences, services, tenancy
 from kernel.errors import NotFound, SequenceNotFound, ValidationFailed
 from kernel.interfaces.common import DocumentRef, PartyRef
 from kernel.interfaces.posting import PostingLine, PostingRequest, PostingResult, PostingService
@@ -117,7 +117,9 @@ def agreement_accounts(obj: IntercompanyAgreement) -> dict[str, Any]:
 def visible_agreements(ctx: TenantContext, action: str = "intercompany.agreement.read") -> list[IntercompanyAgreement]:
     """Agreements of companies the principal may read (either side)."""
     qs = IntercompanyAgreement.objects.filter(tenant_id=ctx.tenant_id)
-    return [a for a in qs if access.allowed(ctx, action, [a.company_a_id]) or access.allowed(ctx, action, [a.company_b_id])]
+    return [
+        a for a in qs if access.allowed(ctx, action, [a.company_a_id]) or access.allowed(ctx, action, [a.company_b_id])
+    ]
 
 
 def get_agreement(ctx: TenantContext, pk: uuid.UUID, action: str, lock: bool = False) -> IntercompanyAgreement:
@@ -179,7 +181,9 @@ def update_agreement(uow: UnitOfWork, obj: IntercompanyAgreement, data: dict[str
         if key in data and _uuid(data[key], f"/{key}") != getattr(obj, key):
             if obj.links.exists():
                 raise DocumentImmutable("the companies of an agreement with IC documents cannot change")
-            raise invalid("the company pair of an agreement cannot change; create a new agreement", f"/{key}", "immutable")
+            raise invalid(
+                "the company pair of an agreement cannot change; create a new agreement", f"/{key}", "immutable"
+            )
     if "accounts" in data:
         _apply_accounts(obj, data["accounts"])
         fields += ["accounts", "pricing_rule", "markup_pct", "auto_mirror", "default_warehouse_id"]
@@ -364,7 +368,30 @@ def mirror_sales_invoice(
     user_ctx = ctx
     with acting_as_system(uow, {request.company_b_id}) as system:
         number = _number(uow, request.company_b_id, IcDocumentType.MIRROR_VENDOR_INVOICE, request.document_date)
-        doc = IntercompanyDocument(
+        doc_id = ids.new_id()
+        party_a = PartyRef(request.company_a_id, ledgerdata.COMPANY_PARTY_KIND)
+        lines: list[PostingLine] = []
+        if goods:
+            lines.append(PostingLine(agreement.role("inventory"), "DEBIT", goods, request.currency))
+        if services_amount:
+            lines.append(PostingLine(agreement.role("expense"), "DEBIT", services_amount, request.currency))
+        if tax:
+            lines.append(PostingLine(agreement.role("vat_recoverable"), "DEBIT", tax, request.currency))
+        lines.append(
+            PostingLine(agreement.role("ic_payable"), "CREDIT", subtotal + tax, request.currency, party=party_a)
+        )
+        posted = _post(
+            uow,
+            PostingRequest(
+                request.company_b_id,
+                request.document_date,
+                DocumentRef(MIRROR_SOURCE, doc_id, number),
+                "ic_mirror",
+                tuple(lines),
+            ),
+        )
+        doc = IntercompanyDocument.objects.create(
+            id=doc_id,
             tenant_id=system.tenant_id,
             agreement=agreement,
             company_id=request.company_b_id,
@@ -380,32 +407,12 @@ def mirror_sales_invoice(
             tax_amount=_q(tax),
             total=_q(subtotal + tax),
             lines=[_line_json(i, ln) for i, ln in enumerate(request.lines, start=1)],
+            entry_ids=[str(posted.entry_id)],
             created_by=system.principal_id,
             on_behalf_of=system.on_behalf_of,
+            causation_id=user_ctx.correlation_id,
             created_at=clock.now(),
         )
-        doc.save()
-        party_a = PartyRef(request.company_a_id, ledgerdata.COMPANY_PARTY_KIND)
-        lines: list[PostingLine] = []
-        if goods:
-            lines.append(PostingLine(agreement.role("inventory"), "DEBIT", goods, request.currency))
-        if services_amount:
-            lines.append(PostingLine(agreement.role("expense"), "DEBIT", services_amount, request.currency))
-        if tax:
-            lines.append(PostingLine(agreement.role("vat_recoverable"), "DEBIT", tax, request.currency))
-        lines.append(PostingLine(agreement.role("ic_payable"), "CREDIT", subtotal + tax, request.currency, party=party_a))
-        posted = _post(
-            uow,
-            PostingRequest(
-                request.company_b_id,
-                request.document_date,
-                DocumentRef(MIRROR_SOURCE, doc.id, number),
-                "ic_mirror",
-                tuple(lines),
-            ),
-        )
-        doc.entry_ids = [str(posted.entry_id)]
-        IntercompanyDocument.objects.filter(pk=doc.pk).update(entry_ids=doc.entry_ids)
         link = IntercompanyLink.objects.create(
             tenant_id=system.tenant_id,
             agreement=agreement,
@@ -434,11 +441,17 @@ def mirror_sales_invoice(
             "intercompany.document",
             doc.id,
             request.company_b_id,
-            {"number": number, "ic_link_id": str(link.id), "source": request.source.type, "on_behalf_of": str(user_ctx.principal_id)},
+            {
+                "number": number,
+                "ic_link_id": str(link.id),
+                "source": request.source.type,
+                "on_behalf_of": str(user_ctx.principal_id),
+            },
             "mirror of an intercompany sales invoice",
         )
+        result = _result(link)
     access.audit(uow, "post", "intercompany.link", link.id, request.company_a_id, {"b_document": number})
-    return _result(link)
+    return result
 
 
 def _line_json(no: int, ln: IcLine) -> dict[str, Any]:
@@ -516,11 +529,25 @@ def _two_sided(uow: UnitOfWork, request: IcSettlementRequest, kind: str) -> IcRe
             PostingLine(agreement.role("ic_receivable"), "CREDIT", amount, request.currency, party=party_a),
         )
         doc_type, source_type = IcDocumentType.NETTING, NETTING_SOURCE
-    a_post = _post(uow, PostingRequest(request.company_a_id, request.document_date, request.source, f"ic_{kind.lower()}", a_lines))
+    a_post = _post(
+        uow, PostingRequest(request.company_a_id, request.document_date, request.source, f"ic_{kind.lower()}", a_lines)
+    )
     user_ctx = ctx
     with acting_as_system(uow, {request.company_b_id}) as system:
         number = _number(uow, request.company_b_id, doc_type, request.document_date)
+        doc_id = ids.new_id()
+        b_post = _post(
+            uow,
+            PostingRequest(
+                request.company_b_id,
+                request.document_date,
+                DocumentRef(source_type, doc_id, number),
+                f"ic_{kind.lower()}",
+                b_lines,
+            ),
+        )
         doc = IntercompanyDocument.objects.create(
+            id=doc_id,
             tenant_id=system.tenant_id,
             agreement=agreement,
             company_id=request.company_b_id,
@@ -534,15 +561,12 @@ def _two_sided(uow: UnitOfWork, request: IcSettlementRequest, kind: str) -> IcRe
             currency=request.currency,
             subtotal=amount,
             total=amount,
+            entry_ids=[str(b_post.entry_id)],
             created_by=system.principal_id,
             on_behalf_of=system.on_behalf_of,
+            causation_id=user_ctx.correlation_id,
             created_at=clock.now(),
         )
-        b_post = _post(
-            uow,
-            PostingRequest(request.company_b_id, request.document_date, DocumentRef(source_type, doc.id, number), f"ic_{kind.lower()}", b_lines),
-        )
-        IntercompanyDocument.objects.filter(pk=doc.pk).update(entry_ids=[str(b_post.entry_id)])
         link = IntercompanyLink.objects.create(
             tenant_id=system.tenant_id,
             agreement=agreement,
@@ -562,14 +586,21 @@ def _two_sided(uow: UnitOfWork, request: IcSettlementRequest, kind: str) -> IcRe
             on_behalf_of=system.on_behalf_of,
             created_at=clock.now(),
         )
-        access.audit(uow, "create", "intercompany.document", doc.id, request.company_b_id, {"number": number, "kind": kind})
-    return _result(link)
+        access.audit(
+            uow, "create", "intercompany.document", doc.id, request.company_b_id, {"number": number, "kind": kind}
+        )
+        result = _result(link)
+    return result
 
 
 def record_consumption(uow: UnitOfWork, link_id: uuid.UUID, amount: Decimal) -> None:
     """The buyer consumed/sold ``amount`` (transfer-price value) of the IC goods of ``link_id``."""
     ctx = uow.ctx
-    link = IntercompanyLink.objects.select_for_update().filter(tenant_id=ctx.tenant_id, id=link_id, kind=LinkKind.SALE).first()
+    link = (
+        IntercompanyLink.objects.select_for_update()
+        .filter(tenant_id=ctx.tenant_id, id=link_id, kind=LinkKind.SALE)
+        .first()
+    )
     if link is None or link.company_b_id not in ctx.company_ids:
         raise NotFound("intercompany link not found")
     access.require(ctx, POST_PERMISSION, [link.company_b_id])

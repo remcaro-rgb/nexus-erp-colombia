@@ -15,3 +15,16 @@ class ConsolidationConfig(AppConfig):
     EXTRA_URL_MOUNTS: ClassVar[dict[str, tuple[str, str]]] = {
         "api/v1/intercompany/": ("consolidation.urls:intercompany_urlpatterns", "intercompany")
     }
+
+    def ready(self) -> None:
+        # Registers IntercompanyService (consolidation.interface) in dev/compose; off under erp.settings.test so
+        # registry tests stay deterministic; the module's tests register it per test.
+        from django.conf import settings
+
+        from consolidation import access  # noqa: F401  (registers the [A] ``consolidation`` feature flag)
+
+        default = getattr(settings, "ERP_ENVIRONMENT", "dev") != "test"
+        if getattr(settings, "ERP_CONSOLIDATION_AUTOREGISTER", default):
+            from consolidation import registry
+
+            registry.register_services()

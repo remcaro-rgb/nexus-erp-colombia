@@ -172,7 +172,9 @@ class IntercompanyDocument(TenantModel):
     class Meta:
         db_table = "consolidation_ic_document"
         constraints = [
-            models.UniqueConstraint(fields=["tenant_id", "company_id", "number"], name="consolidation_ic_doc_number_uq"),
+            models.UniqueConstraint(
+                fields=["tenant_id", "company_id", "number"], name="consolidation_ic_doc_number_uq"
+            ),
             models.UniqueConstraint(
                 fields=["tenant_id", "company_id", "doc_type", "source_type", "source_id"],
                 name="consolidation_ic_doc_source_uq",
@@ -211,7 +213,7 @@ class GroupMember(TenantModel):
     position = models.PositiveIntegerField(default=0)
     ownership_pct = PctField(default=HUNDRED)
     method = models.CharField(max_length=14, choices=Method.choices, default=Method.FULL)
-    #: historical rate (presentation per functional unit) for equity translation when the currencies differ
+    #: historical rate (COP per presentation-currency unit) for equity translation when the currencies differ
     equity_historical_rate = FxRateField(null=True, blank=True)
     #: parent's investment account code (local CoA of the parent) eliminated against this member's equity
     investment_account_code = models.CharField(max_length=20, blank=True, default="")
