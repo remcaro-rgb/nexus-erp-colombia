@@ -409,13 +409,15 @@ class ImportReport(DataioView):
         ctx, company = self.company(request)
         service.require(ctx, "dataio.import.read")
         job = service.get_job(ctx, company, pk)
-        fmt = request.query_params.get("file_format", "json")
+        wanted = request.query_params.get("file_format", "json")
         headers, rows = service.report_rows(job)
-        if fmt == "json":
+        if wanted == "json":
             return respond(
                 {"import": import_json(job), "errors": job.errors, "results": job.results, "counts": job.counts}
             )
-        if fmt not in formats.FORMATS:
+        # allow-listed constant, never the request value itself
+        fmt = next((f for f in formats.FORMATS if f == wanted), None)
+        if fmt is None:
             raise FilterInvalid("format must be json, csv, xlsx or jsonl")
         content = formats.write(fmt, headers, rows, sheet="resultado")
         return _file_response(content, formats.CONTENT_TYPES[fmt], f"resultado-{job.entity}-{job.id}.{fmt}", request)
