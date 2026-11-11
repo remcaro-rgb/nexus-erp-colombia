@@ -69,7 +69,7 @@ def _file(content: bytes, media_type: str, filename: str) -> HttpResponse:
 class CustomerPortalView(PortalView):
     portal_kind = "customer"
     permissions: ClassVar[dict[str, str]] = {}
-    portal_fields = DOC_FIELDS
+    portal_fields: ClassVar[tuple[str, ...]] = DOC_FIELDS
 
     def scope(self) -> service.Scope:
         portal = self.effective.portal
@@ -264,7 +264,17 @@ class PaymentIntentsView(CustomerPortalView):
         "GET": service.PERM_INTENT_READ,
         "POST": service.PERM_INTENT_CREATE,
     }
-    portal_fields = ("id", "tenant_id", "status", "documents", "amount", "intent_status", "provider", "version", "audit")
+    portal_fields = (
+        "id",
+        "tenant_id",
+        "status",
+        "documents",
+        "amount",
+        "intent_status",
+        "provider",
+        "version",
+        "audit",
+    )
 
     def get(self, request: Request, pk: str | None = None) -> Response:
         with tenancy.scope(self.ctx):

@@ -22,7 +22,7 @@ import io
 from collections.abc import Iterable, Sequence
 from decimal import Decimal
 from typing import Any
-from xml.etree import ElementTree as ET  # noqa: S405 - building (not parsing) XML
+from xml.etree import ElementTree as ET
 
 from kernel import services
 from kernel.interfaces.common import DocumentRef
@@ -186,7 +186,13 @@ def minimal_pdf(title: str, lines: Sequence[str]) -> bytes:
     kids = b" ".join(str(p).encode() + b" 0 R" for p in page_ids)
     actual_pages = add(b"<< /Type /Pages /Kids [" + kids + b"] /Count " + str(len(page_ids)).encode() + b" >>")
     assert actual_pages == pages_id  # noqa: S101 - layout invariant of this tiny writer
-    info = add(b"<< /Title (" + _pdf_text(title) + b") /Subject (" + _pdf_text(FISCAL_LABEL) + b") /Producer (Nexus ERP DEV) >>")
+    info = add(
+        b"<< /Title ("
+        + _pdf_text(title)
+        + b") /Subject ("
+        + _pdf_text(FISCAL_LABEL)
+        + b") /Producer (Nexus ERP DEV) >>"
+    )
     catalog = add(b"<< /Type /Catalog /Pages " + str(pages_id).encode() + b" 0 R >>")
     out = io.BytesIO()
     out.write(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")

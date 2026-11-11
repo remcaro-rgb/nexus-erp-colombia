@@ -172,7 +172,7 @@ def open_items(scope: Scope) -> list[dict[str, Any]]:
 def own_invoice_row(scope: Scope, pk: Any) -> Invoice:
     """The POSTED invoice model row (for the synthetic PDF/XML), after the projection proved ownership."""
     invoice(scope, pk)  # permission + party ownership (404 otherwise)
-    row = own(
+    row: Invoice | None = own(
         scope, core.PERM_INVOICE, Invoice.objects.filter(id=_uuid(pk), status=Invoice.Status.POSTED)
     ).first()
     if row is None:
@@ -182,7 +182,7 @@ def own_invoice_row(scope: Scope, pk: Any) -> Invoice:
 
 def own_note_row(scope: Scope, pk: Any) -> SalesNote:
     credit_note(scope, pk)
-    row = own(
+    row: SalesNote | None = own(
         scope,
         core.PERM_CREDIT_NOTE,
         SalesNote.objects.filter(id=_uuid(pk), kind=SalesNote.Kind.CREDIT, status=SalesNote.Status.POSTED),
@@ -364,7 +364,7 @@ def internal_request(ctx: TenantContext, pk: Any) -> CustomerRequest:
         key = uuid.UUID(str(pk))
     except (TypeError, ValueError) as exc:
         raise NotFound("not found") from exc
-    row = internal_requests(ctx).filter(id=key).first()
+    row: CustomerRequest | None = internal_requests(ctx).filter(id=key).first()
     if row is None:
         raise NotFound("not found")
     return row
@@ -436,7 +436,9 @@ def approve_request(uow: UnitOfWork, pk: Any, reason: str) -> CustomerRequest:
     require(ctx, PERM_INTERNAL_REQUEST_APPROVE)
     req = _lock_request(ctx, pk)
     if req.request_status != CustomerRequest.Status.SUBMITTED:
-        raise InvalidStateTransition(f"a {req.request_status} request is already decided", status_now=req.request_status)
+        raise InvalidStateTransition(
+            f"a {req.request_status} request is already decided", status_now=req.request_status
+        )
     if req.created_by == ctx.principal_id:
         from sales.errors import SodViolation
 
@@ -462,7 +464,9 @@ def reject_request(uow: UnitOfWork, pk: Any, reason: str) -> CustomerRequest:
         raise ValidationFailed("reason is required", code="reason_required", field="reason")
     req = _lock_request(ctx, pk)
     if req.request_status != CustomerRequest.Status.SUBMITTED:
-        raise InvalidStateTransition(f"a {req.request_status} request is already decided", status_now=req.request_status)
+        raise InvalidStateTransition(
+            f"a {req.request_status} request is already decided", status_now=req.request_status
+        )
     _decide(uow, req, CustomerRequest.Status.REJECTED, reason)
     audit(uow, "sales.portal_request.reject", "sales.portal_request", req.id, req.company_id, {}, reason)
     return req
@@ -583,7 +587,9 @@ def simulate_intent(uow: UnitOfWork, scope: Scope, pk: Any, outcome: str) -> Pay
     require(scope.ctx, PERM_INTENT_CREATE, {"company_id": scope.company_id, "party_id": scope.party_id})
     if outcome not in ("success", "failure"):
         raise ValidationFailed("parameters.outcome must be success or failure", field="parameters")
-    pi = own(scope, PERM_INTENT_CREATE, PaymentIntent.objects.select_for_update().filter(id=_uuid(pk))).first()
+    pi: PaymentIntent | None = own(
+        scope, PERM_INTENT_CREATE, PaymentIntent.objects.select_for_update().filter(id=_uuid(pk))
+    ).first()
     if pi is None:
         raise PortalDocumentNotOwned("not found")
     if pi.intent_status != PaymentIntent.Status.CREATED:
@@ -740,22 +746,17 @@ def kpis(scope: Scope, start: dt.date, end: dt.date) -> dict[str, Decimal | int]
     running = own(
         scope,
         core.PERM_ORDER,
-        SalesOrder.objects.filter(
-            status__in=(SalesOrder.Status.CONFIRMED, SalesOrder.Status.PARTIALLY_DELIVERED)
-        ),
+        SalesOrder.objects.filter(status__in=(SalesOrder.Status.CONFIRMED, SalesOrder.Status.PARTIALLY_DELIVERED)),
     ).count()
-    paid = (
-        ArApplication.objects.filter(
-            tenant_id=scope.ctx.tenant_id,
-            company_id=scope.company_id,
-            open_item__party_id=scope.party_id,
-            source_type="sales.receipt",
-            reversed_by__isnull=True,
-            applied_on__gte=start,
-            applied_on__lte=end,
-        ).aggregate(s=Sum("amount_cop"))["s"]
-        or Decimal(0)
-    )
+    paid = ArApplication.objects.filter(
+        tenant_id=scope.ctx.tenant_id,
+        company_id=scope.company_id,
+        open_item__party_id=scope.party_id,
+        source_type="sales.receipt",
+        reversed_by__isnull=True,
+        applied_on__gte=start,
+        applied_on__lte=end,
+    ).aggregate(s=Sum("amount_cop"))["s"] or Decimal(0)
     return {
         "cp_saldo_pendiente": q_amount(balance),
         "cp_facturas_vencidas": overdue,

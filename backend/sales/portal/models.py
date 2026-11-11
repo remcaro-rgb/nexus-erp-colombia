@@ -13,7 +13,8 @@ Both carry ``tenant_id`` + ``company_id`` + ``party_id`` (the token's party, D-0
 
 from __future__ import annotations
 
-from typing import ClassVar
+import uuid
+from typing import TYPE_CHECKING, ClassVar
 
 from django.db import models
 
@@ -35,7 +36,11 @@ class CustomerRequest(CompanyModel, AuditedModel):
         REJECTED = "REJECTED"
         RESOLVED = "RESOLVED"  # general request answered
 
+    objects: ClassVar[models.Manager[CustomerRequest]] = models.Manager()
+
     party = models.ForeignKey("sales.Party", on_delete=models.PROTECT, related_name="+")
+    if TYPE_CHECKING:
+        party_id: uuid.UUID
     external_account_id = models.UUIDField()
     number = models.CharField(max_length=60)
     request_type = models.CharField(max_length=20, choices=Type.choices)
@@ -63,7 +68,11 @@ class PaymentIntent(CompanyModel, AuditedModel):
         FAILED = "FAILED"
         CONFIRMED_BY_TREASURY = "CONFIRMED_BY_TREASURY"  # the RC draft was posted by treasury (derived on read)
 
+    objects: ClassVar[models.Manager[PaymentIntent]] = models.Manager()
+
     party = models.ForeignKey("sales.Party", on_delete=models.PROTECT, related_name="+")
+    if TYPE_CHECKING:
+        party_id: uuid.UUID
     external_account_id = models.UUIDField()
     documents = models.JSONField(default=list)  # invoice ids of the customer (open AR items)
     amount = AmountField()
