@@ -1,6 +1,6 @@
 # UI progress — after wave 05
 
-Integrated commit: `5d40fc9d05ca` · captured 2026-11-11T03:23:51Z (UTC) · viewport 1440×900 · device scale 1 · 1.68 MB · browser: system Chrome via Playwright 1.65.0
+Integrated commit: `30ed3376cdf1` · captured 2026-11-11T04:36:08Z (UTC) · viewport 1440×900 · device scale 1 · 1.87 MB · browser: system Chrome via Playwright 1.65.0
 
 **Status: OK**
 
@@ -16,6 +16,8 @@ Signed in as: throwaway DEV user `ui-preview` of a synthetic tenant, bootstrappe
 | Inicio | `/m/inicio` | dark | captured | header 64 ✓; sidebar 256 ✓; AI panel not found; dark class ✓ |
 | Contabilidad | `/m/contabilidad` | light | captured | header 64 ✓; sidebar 256 ✓; AI panel not found |
 | Contabilidad | `/m/contabilidad` | dark | captured | header 64 ✓; sidebar 256 ✓; AI panel not found; dark class ✓ |
+| Tesorería | `/m/tesoreria` | light | captured | header 64 ✓; sidebar 256 ✓; AI panel not found |
+| Tesorería | `/m/tesoreria` | dark | captured | header 64 ✓; sidebar 256 ✓; AI panel not found; dark class ✓ |
 | Activos fijos | `/m/activos` | light | captured | header 64 ✓; sidebar 256 ✓; AI panel not found |
 | Activos fijos | `/m/activos` | dark | captured | header 64 ✓; sidebar 256 ✓; AI panel not found; dark class ✓ |
 | Ventas y CRM | `/m/ventas` | light | captured | header 64 ✓; sidebar 256 ✓; AI panel not found |
@@ -36,7 +38,6 @@ Signed in as: throwaway DEV user `ui-preview` of a synthetic tenant, bootstrappe
 
 | Page | Route | Why |
 |---|---|---|
-| Tesorería | `/m/tesoreria` | not yet built (owner P16 not accepted) |
 | Punto de venta | `/m/pos` | not yet built (owner P12 not accepted) |
 | Reportes | `/m/reportes` | not yet built (owner P17 not accepted) |
 | Importar y exportar | `/m/datos` | not yet built (owner P18 not accepted) |
@@ -71,6 +72,14 @@ Signed in as: throwaway DEV user `ui-preview` of a synthetic tenant, bootstrappe
 ### Contabilidad — dark
 
 ![Contabilidad dark](contabilidad-dark.png)
+
+### Tesorería — light
+
+![Tesorería light](tesoreria-light.png)
+
+### Tesorería — dark
+
+![Tesorería dark](tesoreria-dark.png)
 
 ### Activos fijos — light
 
