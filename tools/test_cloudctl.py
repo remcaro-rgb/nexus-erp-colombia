@@ -13,6 +13,10 @@ PLAN, STATE = load(C.PLAN_REL), load(C.STATE_REL)
 REG, LEGACY = load("docs/spec/features/feature-registry.json"), load("docs/spec/plan.json")
 
 
+def _git_repo(*a):
+    return subprocess.run(["git", *a], cwd=REPO, capture_output=True, text=True)
+
+
 class PlanTests(unittest.TestCase):
     def test_plan_valid(self):
         E, order = C.validate_plan(PLAN, REG, LEGACY)
@@ -78,9 +82,16 @@ class PlanTests(unittest.TestCase):
         self.assertEqual(PLAN["limits"]["max_attempts"], 3)
 
 
+def initial_state():
+    """The plan's initial STATE.json as seeded (3.0.4: the working copy's STATE.json advances every wave, so tests that start from
+    wave 01 take the seed's copy; falls back to the working copy when the seed is not in this clone's history)."""
+    p = _git_repo("show", f"{C.PINNED_SEED_COMMITS['seed']}:{C.STATE_REL}")
+    return json.loads(p.stdout) if p.returncode == 0 and p.stdout.strip() else copy.deepcopy(STATE)
+
+
 class StateTests(unittest.TestCase):
     def setUp(self):
-        self.st = copy.deepcopy(STATE)
+        self.st = initial_state()
 
     def test_initial_ready(self):
         ready = sorted(t for t, s in self.st["tasks"].items() if s["status"] == "READY")
@@ -194,10 +205,6 @@ class ReportTests(unittest.TestCase):
         self.assertTrue(C.validate_report(self.rep(reason="ghp_" + "x" * 36), "P01"))
 
 
-def _git_repo(*a):
-    return subprocess.run(["git", *a], cwd=REPO, capture_output=True, text=True)
-
-
 _HIST302 = []
 
 
@@ -217,6 +224,26 @@ def hist_302():
 
 def content_302(path):
     return _git_repo("show", f"{hist_302()}:{path}").stdout
+
+
+_HIST303 = []
+
+
+def hist_303():
+    """The commit of this repository holding the pinned 3.0.3 contents. Since 3.0.4 the working copy no longer holds them."""
+    if not _HIST303:
+        keep = C.ROOT
+        C.ROOT = REPO
+        try:
+            hs = _git_repo("log", "--all", "--format=%H", "--fixed-strings", "--grep", C.UPDATE_303_TRAILER).stdout.split()
+            _HIST303.append(next((h for h in hs if C.tree_matches_303(h)), None))
+        finally:
+            C.ROOT = keep
+    return _HIST303[0]
+
+
+def content_303(path):
+    return _git_repo("show", f"{hist_303()}:{path}").stdout
 
 
 class AuditTests(unittest.TestCase):
@@ -274,7 +301,7 @@ class AuditTests(unittest.TestCase):
 
     def files_303(self):
         for p in list(C.PIN_303_FILES) + ["tools/cloudctl.py"]:
-            self.w(p, open(os.path.join(REPO, p), encoding="utf-8").read())
+            self.w(p, content_303(p))
 
     def apply_303(self):
         self.files_303()
@@ -283,6 +310,105 @@ class AuditTests(unittest.TestCase):
     def need_303(self):
         if not C.PIN_303_FILES:
             self.skipTest("3.0.3 pins not generated")
+        if not hist_303():
+            self.skipTest("the pinned 3.0.3 contents are not in this clone's history (shallow clone?)")
+
+    def files_304(self):
+        for p in list(C.PIN_304_FILES) + ["tools/cloudctl.py"]:
+            self.w(p, open(os.path.join(REPO, p), encoding="utf-8").read())
+
+    def apply_304(self):
+        self.files_304()
+        return self.c("Nexus prompts update 3.0.4-claude-cloud", C.UPDATE_304_TRAILER)
+
+    def need_304(self):
+        self.need_303()
+        if not C.PIN_304_FILES:
+            self.skipTest("3.0.4 pins not generated")
+
+    def test_T_OPS_304_legit_304_after_303_accepted(self):
+        self.need_304()
+        self.apply_302()
+        self.apply_303()
+        self.w("docs/run/STATE.json", "{\"w\": 6}\n")
+        self.c("state: W05", "Nexus-Integrator: wave 05 close-gates")   # main moved between 3.0.3 and 3.0.4: still fine
+        self.apply_304()
+        self.assertEqual(C.audit_main("HEAD"), [])
+
+    def test_T_OPS_304_without_303_rejected(self):
+        self.need_304()
+        self.apply_302()
+        h = self.apply_304()
+        why = {}
+        self.assertEqual(C.audit_main("HEAD", full=True, explain=why), [h])
+        self.assertIn("3.0.3 update first", why[h])
+
+    def test_T_OPS_304_second_commit_rejected(self):
+        self.need_304()
+        self.apply_302()
+        self.apply_303()
+        self.apply_304()
+        h = self.c("Nexus prompts update 3.0.4-claude-cloud", C.UPDATE_304_TRAILER, allow_empty=True)
+        why = {}
+        self.assertEqual(C.audit_main("HEAD", full=True, explain=why), [h])
+        self.assertIn("second 3.0.4", why[h])
+
+    def test_T_OPS_304_touching_other_path_rejected(self):
+        self.need_304()
+        self.apply_302()
+        self.apply_303()
+        self.files_304()
+        self.w("backend/evil.py", "x\n")
+        h = self.c("Nexus prompts update 3.0.4-claude-cloud", C.UPDATE_304_TRAILER)
+        why = {}
+        self.assertEqual(C.audit_main("HEAD", full=True, explain=why), [h])
+        self.assertIn("unpinned paths", why[h])
+
+    def test_T_OPS_304_modified_content_rejected(self):
+        self.need_304()
+        self.apply_302()
+        self.apply_303()
+        self.files_304()
+        self.w("tools/parity_gate.py", open(os.path.join(REPO, "tools/parity_gate.py"), encoding="utf-8").read() + "# tampered\n")
+        h = self.c("Nexus prompts update 3.0.4-claude-cloud", C.UPDATE_304_TRAILER)
+        why = {}
+        self.assertEqual(C.audit_main("HEAD", full=True, explain=why), [h])
+        self.assertIn("differs from the pinned 3.0.4", why[h])
+
+    def test_T_OPS_304_normalized_self_hash(self):
+        self.need_304()
+        txt = open(os.path.join(REPO, "tools/cloudctl.py"), encoding="utf-8").read()
+        self.assertEqual(C.normalized_cloudctl_sha256(txt, "3.0.4"), C.PIN_304_CLOUDCTL_SHA256)
+
+    def test_T_OPS_304_pin_303_block_unchanged(self):
+        self.need_303()
+        blk = lambda t: t[t.index("# >>> PIN-3.0.3"):t.index("# <<< PIN-3.0.3")]
+        self.assertEqual(blk(open(os.path.join(REPO, "tools/cloudctl.py"), encoding="utf-8").read()), blk(content_303("tools/cloudctl.py")))
+
+    def test_T_OPS_304_shallow_clone_refused(self):
+        shallow = tempfile.mkdtemp(prefix="nexus-audit-shallow-")
+        try:
+            subprocess.run(["git", "clone", "-q", "--depth", "1", "file://" + self.tmp, shallow], check=True, capture_output=True)
+            C.ROOT = shallow
+            bad = C.audit_main("HEAD")
+            self.assertEqual(len(bad), 1)
+            self.assertIn("shallow", bad[0])
+        finally:
+            C.ROOT = self.tmp
+            shutil.rmtree(shallow, ignore_errors=True)
+
+    def test_T_OPS_304_fetch_unshallows(self):
+        shallow = tempfile.mkdtemp(prefix="nexus-fetch-shallow-")
+        try:
+            subprocess.run(["git", "clone", "-q", "--depth", "1", "file://" + self.tmp, shallow], check=True, capture_output=True)
+            C.ROOT = shallow
+            self.assertTrue(C.is_shallow())
+            C.fetch_retry()
+            self.assertFalse(C.is_shallow())
+            self.assertEqual(C.audit_main("HEAD"), [])
+        finally:
+            C.ROOT = self.tmp
+            shutil.rmtree(shallow, ignore_errors=True)
 
     def test_legit_303_after_302_accepted(self):
         self.need_303()
@@ -322,7 +448,7 @@ class AuditTests(unittest.TestCase):
         self.need_303()
         self.apply_302()
         self.files_303()
-        self.w("tools/parity_gate.py", open(os.path.join(REPO, "tools/parity_gate.py"), encoding="utf-8").read() + "# tampered\n")
+        self.w("tools/parity_gate.py", content_303("tools/parity_gate.py") + "# tampered\n")
         h = self.c("Nexus prompts update 3.0.3-claude-cloud", C.UPDATE_303_TRAILER)
         why = {}
         self.assertEqual(C.audit_main("HEAD", full=True, explain=why), [h])
@@ -415,14 +541,55 @@ class AuditTests(unittest.TestCase):
     def test_normalized_302_hash_from_history(self):
         self.assertEqual(C.normalized_cloudctl_sha256(content_302("tools/cloudctl.py")), C.PIN_302_CLOUDCTL_SHA256)
 
-    def test_normalized_303_self_hash(self):
+    def test_normalized_303_hash_from_history(self):
         self.need_303()
-        txt = open(os.path.join(REPO, "tools/cloudctl.py"), encoding="utf-8").read()
-        self.assertEqual(C.normalized_cloudctl_sha256(txt, "3.0.3"), C.PIN_303_CLOUDCTL_SHA256)
+        self.assertEqual(C.normalized_cloudctl_sha256(content_303("tools/cloudctl.py"), "3.0.3"), C.PIN_303_CLOUDCTL_SHA256)
 
     def test_pin_302_block_unchanged(self):
         blk = lambda t: t[t.index("# >>> PIN-3.0.2"):t.index("# <<< PIN-3.0.2")]
         self.assertEqual(blk(open(os.path.join(REPO, "tools/cloudctl.py"), encoding="utf-8").read()), blk(content_302("tools/cloudctl.py")))
+
+
+class CollectResultsTests(unittest.TestCase):
+    """3.0.4: collect_results empties reports/playwright although Playwright's outputDir (artifacts/) is a directory."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="nexus-collect-")
+        self.root_keep, self.ids_keep = C.ROOT, os.environ.get("NEXUS_IDS")
+        C.ROOT = self.tmp
+
+    def tearDown(self):
+        C.ROOT = self.root_keep
+        if self.ids_keep is None:
+            os.environ.pop("NEXUS_IDS", None)
+        else:
+            os.environ["NEXUS_IDS"] = self.ids_keep
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def test_T_OPS_304_collect_results_removes_playwright_artifacts_dir(self):
+        art = os.path.join(self.tmp, "reports", "playwright", "artifacts", "x")
+        os.makedirs(art)
+        open(os.path.join(art, "trace.zip"), "wb").write(b"PK")
+        open(os.path.join(self.tmp, "reports", "playwright", "old.json"), "w").write("{}")
+        os.makedirs(os.path.join(self.tmp, "reports", "junit"))
+        open(os.path.join(self.tmp, "reports", "junit", "old.xml"), "w").write("<x/>")
+        log = []
+        for _round in range(2):  # integrate calls it once per retry round; round 2 used to crash with IsADirectoryError
+            C.collect_results(["T-X-01"], "0" * 40, "docs/run/evidence/W99/feature-results.json", log, "mkdir -p reports/playwright/artifacts/y")
+            self.assertEqual(os.listdir(os.path.join(self.tmp, "reports", "junit")), [])
+            self.assertEqual(os.listdir(os.path.join(self.tmp, "reports", "playwright")), ["artifacts"])  # only what this run created
+            self.assertEqual(os.listdir(os.path.join(self.tmp, "reports", "playwright", "artifacts")), ["y"])
+
+    def test_T_OPS_304_clear_report_dir_keeps_symlink_target(self):
+        target = os.path.join(self.tmp, "elsewhere")
+        os.makedirs(target)
+        open(os.path.join(target, "keep.txt"), "w").write("k")
+        d = os.path.join(self.tmp, "reports", "playwright")
+        os.makedirs(d)
+        os.symlink(target, os.path.join(d, "link"))
+        C.clear_report_dir("reports/playwright")
+        self.assertEqual(os.listdir(d), [])
+        self.assertTrue(os.path.isfile(os.path.join(target, "keep.txt")))
 
 
 class ParityGateTests(unittest.TestCase):
@@ -463,6 +630,34 @@ class ParityGateTests(unittest.TestCase):
         self.assertNotIn("s3cr3tpw", G.scrub("postgres://erp:" + "s3cr3tpw" + "@db:5432/erp"))
         self.assertIn("a" * 40, G.scrub("HEAD " + "a" * 40))
 
+    def test_T_OPS_304_sh_interleaves_stderr_in_order(self):
+        rc, out = self.G.sh("echo one; echo two >&2; echo three; echo four >&2; exit 3")
+        self.assertEqual(rc, 3)
+        self.assertEqual(out.split(), ["one", "two", "three", "four"])
+
+    def test_T_OPS_304_socket_database_url_dropped(self):
+        G = self.G
+        for sock in ("postgres:///nexus_erp", "postgresql:///nexus_erp?host=/var/run/postgresql", "postgres://u@/db?host=/tmp",
+                     "dbname=nexus_erp host=/var/run/postgresql"):
+            self.assertTrue(G.is_socket_db_url(sock), sock)
+        for tcp in ("", "postgres://nexus_ci@127.0.0.1:5432/nexus_erp", "postgresql://u@localhost/db?sslmode=disable"):
+            self.assertFalse(G.is_socket_db_url(tcp), tcp)
+        keep = os.environ.get("DATABASE_URL")
+        try:
+            os.environ["DATABASE_URL"] = "postgres:///nexus_erp"
+            env, note = G.child_env()
+            self.assertNotIn("DATABASE_URL", env)
+            self.assertIn("DATABASE_URL dropped", note)
+            os.environ["DATABASE_URL"] = "postgres://nexus_ci@127.0.0.1:5432/nexus_erp"
+            env, note = G.child_env()
+            self.assertEqual(env["DATABASE_URL"], "postgres://nexus_ci@127.0.0.1:5432/nexus_erp")
+            self.assertIsNone(note)
+        finally:
+            if keep is None:
+                os.environ.pop("DATABASE_URL", None)
+            else:
+                os.environ["DATABASE_URL"] = keep
+
 
 class DevLoginTests(unittest.TestCase):
     """tools/dev_login.py: loopback-only origin and the 0600 throw-away credentials file (3.0.3)."""
@@ -490,6 +685,37 @@ class DevLoginTests(unittest.TestCase):
             os.environ["ERP_PUBLIC_ORIGIN"] = bad
             with self.assertRaises(D.LoginError):
                 D.public_origin()
+
+    def test_T_OPS_304_principal_line_parsed_in_full(self):
+        D = self.D
+        t, c, u = "6f1c2b0e-3a4d-5e6f-8a9b-0c1d2e3f4a5b", "1b2c3d4e-5f60-4718-9a0b-1c2d3e4f5a6b", "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d"
+        line = (f"DEV-UI-PRINCIPAL OK tenant={t} company={c} user={u} permissions=137 "
+                "display_name=\"Vista previa UI (sintético)\" initials=VU")
+        self.assertGreater(len(line), 160)
+        f = D.parse_principal(line)
+        self.assertEqual(f, {"tenant": t, "company": c, "user": u, "permissions": "137", "display_name": "Vista previa UI (sintético)", "initials": "VU"})
+        s = D.principal_summary(f)
+        self.assertLessEqual(len(s), 160)
+        self.assertTrue(s.endswith("…"))
+        self.assertEqual(D.principal_summary({"tenant": t}), f"tenant={t}")
+
+    def test_T_OPS_304_erp_principal_returns_all_fields(self):
+        D = self.D
+        keep = {k: os.environ.get(k) for k in ("NEXUS_REHEARSAL", "NEXUS_DEV_LOGIN_ERP_CMD")}
+        try:
+            os.environ["NEXUS_REHEARSAL"] = "1"
+            os.environ["NEXUS_DEV_LOGIN_ERP_CMD"] = ('echo "noise"; echo "DEV-UI-PRINCIPAL OK tenant=$3 company=' + "c" * 60 +
+                                                     ' user=$1 permissions=12 initials=UP"')
+            f = D.erp_principal("subject-" + "s" * 60)
+            self.assertEqual(f["initials"], "UP")
+            self.assertEqual(f["user"], "subject-" + "s" * 60)
+            self.assertEqual(f["tenant"], D.TENANT_ID)
+        finally:
+            for k, v in keep.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
 
     def test_secret_file_mode(self):
         d = tempfile.mkdtemp(prefix="nexus-devlogin-")
