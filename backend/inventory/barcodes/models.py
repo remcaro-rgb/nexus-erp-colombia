@@ -1,7 +1,7 @@
 """F-INV-BARCODE models (P09b): barcodes per owner, company GS1 prefix, label templates and print jobs.
 
 Imported by ``inventory.models`` so they register under the ``inventory`` app label (P09a extension point).
-Tables are tenant + company scoped with forced RLS (migration ``0101_p09b_issues_barcodes``).
+Tables are tenant + company scoped with forced RLS (migration ``0123_p09b_issues_barcodes``).
 """
 
 from __future__ import annotations

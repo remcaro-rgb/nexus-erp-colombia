@@ -101,7 +101,7 @@ for _t in TABLES:
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("inventory", "0002_db_guards"),
+        ("inventory", "0122_p09c_db_guards"),
         ("iam", "0002_security"),
     ]
 
