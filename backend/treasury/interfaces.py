@@ -26,8 +26,10 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Protocol, runtime_checkable
 
+from kernel import services
 from kernel.errors import NotFound
 from kernel.interfaces.common import DocumentRef
+from kernel.interfaces.policy import PolicyService
 from kernel.interfaces.treasury import PaymentStatusInfo, VoucherState
 from kernel.tenancy import require_current
 from kernel.uow import UnitOfWork
@@ -43,6 +45,9 @@ POLICY_CE = "TES-CE"
 POLICY_DUAL = "TES-DUAL"
 #: Label of every simulated bank file (no live bank; formats pending EG-5).
 BANK_FILE_LABEL = "FIXTURE_NOT_CERTIFIED"
+#: Party-scoped portal grants accepted by :class:`TreasuryPaymentStatus` (P10b / P11b portals).
+PORTAL_RECEIPT = "portal.customer_receipt.read"
+PORTAL_PAYMENT = "portal.supplier_payment.read"
 
 
 @dataclass(frozen=True, slots=True)
@@ -118,8 +123,17 @@ class TreasuryPaymentStatus:
 
         ctx = require_current()
         ctx.require_company(company_id)
-        read = "treasury.receipt.read" if document.type.startswith("sales.") else "treasury.disbursement.read"
-        qs = scoped(ctx, read, TreasuryVoucher.objects.filter(company_id=company_id))
+        receipt = document.type.startswith("sales.")
+        read = "treasury.receipt.read" if receipt else "treasury.disbursement.read"
+        portal = PORTAL_RECEIPT if receipt else PORTAL_PAYMENT
+        policy = services.get(PolicyService)
+        if policy.authorize(ctx, read).allowed:
+            qs = scoped(ctx, read, TreasuryVoucher.objects.filter(company_id=company_id))
+        else:
+            # Portals (D-033): a dedicated, party-scoped grant; the portal caller passes only its own party's
+            # documents, and only the voucher status projection (no party, lines or accounts) is returned.
+            policy.require(ctx, portal)
+            qs = TreasuryVoucher.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id)
         rows = qs.filter(lines__open_item_document__id=str(document.id)).distinct().order_by("document_date", "id")
         return [self._info(v) for v in rows]
 
