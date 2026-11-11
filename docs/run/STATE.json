@@ -4,7 +4,7 @@
   "repo_url": "https://github.com/remcaro-rgb/nexus-erp-colombia",
   "plan_sha256": "593796320d7b832515b6c33e344d08904c9a24185528abcd51c8e09fe8ba089f",
   "registry_sha256": "a62fa1d937c13533ddc08f22b87a65d9bce24d662e6df7e8996f3aa7ee939ab4",
-  "updated_at": "2026-11-11T03:22:40Z",
+  "updated_at": "2026-11-11T04:34:37Z",
   "tasks": {
     "P01": {
       "status": "ACCEPTED",
@@ -111,7 +111,9 @@
       "notes": [
         "attempt 1 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 policy: last line: secret scan OK (1632 files) log=docs/run/evidence/W04/parity-gate/P09b-1.log",
         "attempt 2 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 policy: last line: secret scan OK (1812 files) log=docs/run/evidence/W05/parity-gate/P09b-1.log",
-        "attempt 3 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 policy: last line: secret scan OK (1836 files) log=docs/run/evidence/W05/parity-gate/P09b-2.log"
+        "attempt 3 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 policy: last line: secret scan OK (1836 files) log=docs/run/evidence/W05/parity-gate/P09b-2.log",
+        "operator reset: policy rejections were a shallow-clone gitleaks false positive (f6813f0); re-integrating attempt 3",
+        "attempt 3 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 make-ci: pytest: 1 backend/workflow(P07); 1 tests failed log=docs/run/evidence/W05/parity-gate/P09b-3.log"
       ]
     },
     "P09c": {
@@ -164,12 +166,16 @@
       "accepted_at": "2026-11-11T00:16:35Z"
     },
     "P10b": {
-      "status": "REWORK",
-      "attempt": 2,
+      "status": "ACCEPTED",
+      "attempt": 1,
       "notes": [
         "attempt 1: no report found on any branch (session ended before reporting?)",
-        "attempt 1 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P10b) 1/4 policy: last line: secret scan OK (1823 files) log=docs/run/evidence/W05/parity-gate/P10b-1.log"
-      ]
+        "attempt 1 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P10b) 1/4 policy: last line: secret scan OK (1823 files) log=docs/run/evidence/W05/parity-gate/P10b-1.log",
+        "operator reset: policy rejections were a shallow-clone gitleaks false positive (f6813f0); re-integrating attempt 1"
+      ],
+      "accepted_sha": "007affadca94ce3bdd500485235e9fa55dd88220",
+      "branch": "claude/new-session-9e7r6p",
+      "accepted_at": "2026-11-11T04:34:37Z"
     },
     "P14": {
       "status": "ACCEPTED",
@@ -179,20 +185,28 @@
       "accepted_at": "2026-11-10T20:44:40Z"
     },
     "P16a": {
-      "status": "REWORK",
-      "attempt": 2,
+      "status": "ACCEPTED",
+      "attempt": 1,
       "notes": [
         "attempt 1: no report found on any branch (session ended before reporting?)",
-        "attempt 1 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P16a) 1/4 policy: last line: secret scan OK (1848 files) log=docs/run/evidence/W05/parity-gate/P16a-1.log"
-      ]
+        "attempt 1 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P16a) 1/4 policy: last line: secret scan OK (1848 files) log=docs/run/evidence/W05/parity-gate/P16a-1.log",
+        "operator reset: policy rejections were a shallow-clone gitleaks false positive (f6813f0); re-integrating attempt 1"
+      ],
+      "accepted_sha": "007affadca94ce3bdd500485235e9fa55dd88220",
+      "branch": "claude/new-session-5om04x",
+      "accepted_at": "2026-11-11T04:34:37Z"
     },
     "P16b": {
-      "status": "REWORK",
-      "attempt": 2,
+      "status": "ACCEPTED",
+      "attempt": 1,
       "notes": [
         "attempt 1: no report found on any branch (session ended before reporting?)",
-        "attempt 1 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P16b) 1/4 policy: last line: secret scan OK (1835 files) log=docs/run/evidence/W05/parity-gate/P16b-1.log"
-      ]
+        "attempt 1 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P16b) 1/4 policy: last line: secret scan OK (1835 files) log=docs/run/evidence/W05/parity-gate/P16b-1.log",
+        "operator reset: policy rejections were a shallow-clone gitleaks false positive (f6813f0); re-integrating attempt 1"
+      ],
+      "accepted_sha": "007affadca94ce3bdd500485235e9fa55dd88220",
+      "branch": "claude/new-session-fs2hdz",
+      "accepted_at": "2026-11-11T04:34:37Z"
     },
     "P12": {
       "status": "PENDING",
@@ -467,6 +481,57 @@
       "task": "P16b",
       "reason": "CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P16b) 1/4 policy: last line: secret scan OK (1835 files) log=docs/run/evidence/W05/parity-gate/P16b-1.log",
       "at": "2026-11-11T03:22:40Z"
+    },
+    {
+      "type": "operator_reset",
+      "task": "P09b",
+      "attempt": 3,
+      "at": "2026-11-11T03:35:23Z"
+    },
+    {
+      "type": "operator_reset",
+      "task": "P10b",
+      "attempt": 1,
+      "at": "2026-11-11T03:35:23Z"
+    },
+    {
+      "type": "operator_reset",
+      "task": "P16a",
+      "attempt": 1,
+      "at": "2026-11-11T03:35:23Z"
+    },
+    {
+      "type": "operator_reset",
+      "task": "P16b",
+      "attempt": 1,
+      "at": "2026-11-11T03:35:23Z"
+    },
+    {
+      "type": "reject",
+      "task": "P09b",
+      "reason": "CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 make-ci: pytest: 1 backend/workflow(P07); 1 tests failed log=docs/run/evidence/W05/parity-gate/P09b-3.log",
+      "at": "2026-11-11T04:34:37Z"
+    },
+    {
+      "type": "accept",
+      "task": "P10b",
+      "sha": "007affadca94ce3bdd500485235e9fa55dd88220",
+      "branch": "claude/new-session-9e7r6p",
+      "at": "2026-11-11T04:34:37Z"
+    },
+    {
+      "type": "accept",
+      "task": "P16a",
+      "sha": "007affadca94ce3bdd500485235e9fa55dd88220",
+      "branch": "claude/new-session-5om04x",
+      "at": "2026-11-11T04:34:37Z"
+    },
+    {
+      "type": "accept",
+      "task": "P16b",
+      "sha": "007affadca94ce3bdd500485235e9fa55dd88220",
+      "branch": "claude/new-session-fs2hdz",
+      "at": "2026-11-11T04:34:37Z"
     }
   ]
 }

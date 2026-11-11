@@ -1,6 +1,6 @@
 # STATUS — Nexus ERP (edition 3.0.0-claude-cloud)
 
-Updated: 2026-11-11T03:22:40Z (UTC). Repository: https://github.com/remcaro-rgb/nexus-erp-colombia.
+Updated: 2026-11-11T04:34:37Z (UTC). Repository: https://github.com/remcaro-rgb/nexus-erp-colombia.
 
 Written only by the integrator (`python3 tools/cloudctl.py status`). A task counts as working only when it is ACCEPTED with
 integrator-run test evidence under `docs/run/evidence/`.
@@ -8,12 +8,7 @@ integrator-run test evidence under `docs/run/evidence/`.
 ## What to paste next
 
 ```
-STOP-OPERATOR: P09b failed 3 attempts (attempt 3 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 policy: last line: secret scan OK (1836 files) log=docs/run/evidence/W05/parity-gat)
-NEXT: wave 05 — open 3 NEW Claude Code cloud session(s) on remcaro-rgb/nexus-erp-colombia (at most 5 at the same time; start the next one when one finishes) and paste exactly one file into each:
-  prompts/RETRY-P10b.md   (attempt 2: attempt 1 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P10b) 1/4 policy: last line: secret scan OK (1823 fil)
-  prompts/RETRY-P16a.md   (attempt 2: attempt 1 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P16a) 1/4 policy: last line: secret scan OK (1848 fil)
-  prompts/RETRY-P16b.md   (attempt 2: attempt 1 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P16b) 1/4 policy: last line: secret scan OK (1835 fil)
-THEN: when every one of those sessions has ended (DONE or BLOCKED), paste prompts/INTEGRATOR-after-W05.md into 1 NEW session.
+STOP-OPERATOR: P09b failed 3 attempts (attempt 3 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 make-ci: pytest: 1 backend/workflow(P07); 1 tests failed log=docs/run/evidence/W05/)
 ```
 
 ## Tasks
@@ -42,10 +37,10 @@ THEN: when every one of those sessions has ended (DONE or BLOCKED), paste prompt
 | 04 | P11b | worker | ACCEPTED | 1 | 2026-11-11T00:16:35Z |  |
 | 04 | P09c | worker | ACCEPTED | 1 | 2026-11-11T00:16:35Z |  |
 | 04 | P09b | worker | FAILED | 3 |  | attempt 3 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE  |
-| 05 | P16a | worker | REWORK | 2 |  | attempt 1 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE  |
+| 05 | P16a | worker | ACCEPTED | 1 | 2026-11-11T04:34:37Z | operator reset: policy rejections were a shallow-clone gitleaks false positive (f6813f0);  |
 | 05 | P12 | worker | PENDING | 1 |  |  |
-| 05 | P10b | worker | REWORK | 2 |  | attempt 1 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE  |
-| 05 | P16b | worker | REWORK | 2 |  | attempt 1 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE  |
+| 05 | P10b | worker | ACCEPTED | 1 | 2026-11-11T04:34:37Z | operator reset: policy rejections were a shallow-clone gitleaks false positive (f6813f0);  |
+| 05 | P16b | worker | ACCEPTED | 1 | 2026-11-11T04:34:37Z | operator reset: policy rejections were a shallow-clone gitleaks false positive (f6813f0);  |
 | 05 | G2 | gate | PENDING | 1 |  |  |
 | 06 | P18 | worker | PENDING | 1 |  |  |
 | 06 | P22c | worker | PENDING | 1 |  |  |

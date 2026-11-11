@@ -23,3 +23,18 @@ $ python3 tools/parity_gate.py  [after P10b] -> exit 1 in 620s
 $ python3 tools/parity_gate.py  [after P16a] -> exit 1 in 627s
 $ python3 tools/parity_gate.py  [after P16b] -> exit 1 in 621s
 ```
+
+## integrate — 2026-11-11T04:34:37Z
+
+* P09b: REWORK: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 make-ci: pytest: 1 backend/workflow(P07); 1 tests failed log=docs/run/evidence/W05/parity-gate/P09b-3.l
+* P10b: ACCEPTED
+* P16a: ACCEPTED
+* P16b: ACCEPTED
+
+```
+$ python3 tools/parity_gate.py  [after P09b] -> exit 1 in 853s
+$ python3 tools/parity_gate.py  [after P10b] -> exit 0 in 855s
+$ python3 tools/parity_gate.py  [after P16a] -> exit 0 in 867s
+$ python3 tools/parity_gate.py  [after P16b] -> exit 0 in 913s
+$ (make dev-up && make dev-seed) > /tmp/nexus-devup.log 2>&1; make test-ids IDS="$NEXUS_IDS"  [feature tests (16 ids)] -> exit 0 in 63s
+```

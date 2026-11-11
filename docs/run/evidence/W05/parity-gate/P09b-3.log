@@ -1,0 +1,158 @@
+# parity gate — merge of P09b — 20261111T033524Z — HEAD 27c416d
+# excerpts of the failing ci-parity jobs (secrets scrubbed)
+
+## make-ci (exit 2)
+
+```
+backend/purchasing/tests/test_real_ledger.py ..                          [ 16%]
+backend/purchasing/tests/test_rfq_cycle.py .......                       [ 16%]
+backend/sales/tests/test_kit_sale.py ..                                  [ 16%]
+backend/sales/tests/test_order_to_cash.py ...                            [ 16%]
+backend/sales/tests/test_portal_security.py ..                           [ 17%]
+backend/sales/tests/test_pricing.py .......                              [ 17%]
+backend/tax/tests/test_calendar_commands.py .....                        [ 17%]
+backend/tax/tests/test_engine.py .....................                   [ 19%]
+backend/tax/tests/test_exogena_packs.py ...                              [ 19%]
+backend/tax/tests/test_parameters_api.py ............                    [ 20%]
+backend/timekeeping/tests/test_timekeeping_api.py .....                  [ 20%]
+backend/workflow/tests/test_api.py ........                              [ 21%]
+backend/workflow/tests/test_approvals.py ................                [ 22%]
+backend/workflow/tests/test_attachments.py ....                          [ 22%]
+backend/workflow/tests/test_audit.py ..........                          [ 23%]
+backend/workflow/tests/test_dsr.py ..                                    [ 23%]
+backend/workflow/tests/test_formula_lifecycle.py ..........              [ 24%]
+backend/workflow/tests/test_notifications.py ...                         [ 24%]
+backend/workflow/tests/test_scheduler.py ........                        [ 25%]
+backend/workflow/tests/test_webhooks.py .........                        [ 25%]
+backend/inventory/barcodes/tests/test_barcodes.py .                      [ 26%]
+backend/inventory/issues/tests/test_issue_concurrency.py .               [ 26%]
+backend/inventory/tests/test_concurrency.py .                            [ 26%]
+backend/inventory/transformations/tests/test_xform_concurrency.py .      [ 26%]
+backend/kernel/tests/test_fields.py .                                    [ 26%]
+backend/kernel/tests/test_fix_ci_w02_advisory_locks.py ..                [ 26%]
+backend/kernel/tests/test_fix_d_w01_1_rls.py ...                         [ 26%]
+backend/kernel/tests/test_idempotency.py ....                            [ 26%]
+backend/kernel/tests/test_models.py ..                                   [ 27%]
+backend/kernel/tests/test_outbox.py ....                                 [ 27%]
+backend/kernel/tests/test_seed_commands.py ..                            [ 27%]
+backend/kernel/tests/test_sequences.py ..                                [ 27%]
+backend/kernel/tests/test_tenancy.py ...                                 [ 27%]
+backend/kernel/tests/test_uow.py ......                                  [ 28%]
+backend/ledger/tests/test_posting_engine.py .                            [ 28%]
+backend/purchasing/requisitions/tests/test_inv_req_concurrency.py ..     [ 28%]
+backend/workflow/tests/test_fix_ci_w02_platform.py ..                    [ 28%]
+backend/workflow/tests/test_scheduler.py .                               [ 28%]
+backend/assets/tests/test_engine.py ........                             [ 29%]
+backend/einvoice/tests/test_documents.py ...........                     [ 30%]
+backend/einvoice/tests/test_hashing.py ..........                        [ 30%]
+backend/erp/tests/test_fix_ci_w02_wiring.py .........                    [ 31%]
+backend/inventory/barcodes/tests/test_barcode_core.py ............       [ 32%]
+backend/inventory/tests/test_presentations_unit.py .....                 [ 32%]
+backend/kernel/tests/test_boot.py ....                                   [ 33%]
+backend/kernel/tests/test_errors.py ...                                  [ 33%]
+backend/kernel/tests/test_fields.py .                                    [ 33%]
+backend/kernel/tests/test_fix_d_w01_1_settings.py ........               [ 33%]
+backend/kernel/tests/test_idempotency.py .                               [ 33%]
+backend/kernel/tests/test_ids.py ....                                    [ 34%]
+backend/kernel/tests/test_interfaces.py .....                            [ 34%]
+backend/kernel/tests/test_io_guard.py .                                  [ 34%]
+backend/kernel/tests/test_lint_devdb.py .....                            [ 35%]
+backend/kernel/tests/test_misc.py .........                              [ 35%]
+backend/kernel/tests/test_models.py .                                    [ 35%]
+backend/kernel/tests/test_money.py .........                             [ 36%]
+backend/kernel/tests/test_outbox.py ..                                   [ 36%]
+backend/kernel/tests/test_seed_commands.py .                             [ 36%]
+backend/kernel/tests/test_tenancy.py ...                                 [ 36%]
+backend/kernel/tests/test_uow.py .                                       [ 36%]
+backend/kernel/tests/test_views.py ....                                  [ 37%]
+backend/ledger/tests/test_csv_export.py ..                               [ 37%]
+backend/ledger/tests/test_dimension_e2e.py .                             [ 37%]
+backend/ledger/tests/test_fakes.py .                                     [ 37%]
+backend/localization_co/tests/test_localization.py ..................... [ 39%]
+.....                                                                    [ 39%]
+backend/payroll/tests/test_pay_formula_04_adversarial.py ............... [ 40%]
+........................................................................ [ 45%]
+........................................................................ [ 50%]
+........................................................................ [ 56%]
+...................................................                      [ 59%]
+backend/purchasing/tests/test_scoring.py ..........                      [ 60%]
+backend/tax/tests/test_engine.py .                                       [ 60%]
+backend/tax/tests/test_exogena_packs.py ...................              [ 61%]
+backend/timekeeping/tests/test_classification.py ......                  [ 62%]
+backend/workflow/tests/test_dsr.py .........                             [ 62%]
+backend/workflow/tests/test_formula_adversarial.py ..................... [ 64%]
+........................................................................ [ 69%]
+........................................................................ [ 74%]
+........................                                                 [ 76%]
+backend/workflow/tests/test_formula_budget.py ...............            [ 77%]
+backend/workflow/tests/test_formula_exfiltration.py .................... [ 79%]
+..                                                                       [ 79%]
+backend/workflow/tests/test_formula_golden.py .......................... [ 81%]
+........................................................................ [ 86%]
+........................................................................ [ 91%]
+........................................................................ [ 96%]
+.........................                                                [ 98%]
+backend/workflow/tests/test_formula_graph.py ......F......               [ 99%]
+backend/workflow/tests/test_scheduler.py .......                         [100%]
+
+=================================== FAILURES ===================================
+______________ *** ______________
+
+    def ***() -> None:
+        defs = [F("f0", "1")] + [F(f"f{i}", f"f{i - 1} + 1", (f"f{i - 1}",)) for i in range(1, 199)]
+        g = FormulaGraph(defs)
+        assert g.order == [f"f{i}" for i in range(199)] or g.order[0] == "f0"
+>       assert g.evaluate({})["f198"].value == D(199)
+               ^^^^^^^^^^^^^^
+
+backend/workflow/tests/test_formula_graph.py:63: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+backend/workflow/formula/engine.py:342: in evaluate
+    raw = ev.run(a.root)
+          ^^^^^^^^^^^^^^
+backend/workflow/formula/evaluator.py:78: in run
+    return self.eval(root)
+           ^^^^^^^^^^^^^^^
+backend/workflow/formula/evaluator.py:103: in eval
+    self.budget.tick()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = Budget(limits=Limits(max_expression_chars=4000, max_ast_nodes=500, max_nesting=32, max_graph_formulas=200, max_node_vi...max_cpu_ms=50), clock=<function _cpu_clock at 0x7fecb6485da0>, visits=1, _start=166.846307138, _deadline=166.896307138)
+
+    def tick(self) -> None:
+        self.visits += 1
+        if self.visits > self.limits.max_node_visits:
+            raise FormulaBudgetExceeded(f"more than {self.limits.max_node_visits} node visits", budget="node_visits")
+        # Checking the clock on every visit is cheap (thread_time is a syscall-free vDSO read
+        # on Linux) and bounds the overshoot to one node.
+        if self.clock() > self._deadline:
+>           raise FormulaBudgetExceeded(f"more than {self.limits.max_cpu_ms} ms of CPU", budget="cpu_ms")
+E           workflow.formula.errors.FormulaBudgetExceeded: more than 50 ms of CPU
+
+backend/workflow/formula/limits.py:88: FormulaBudgetExceeded
+- generated xml file: /home/user/nexus-erp-colombia/reports/junit/ci-backend.xml -
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.13.18-final-0 _______________
+
+Name                                                 Stmts   Miss Branch BrPart  Cover   Missing
+------------------------------------------------------------------------------------------------
+backend/kernel/db.py                                    43      1      4      1    96%   124
+backend/kernel/devdb.py                                 91      7     40     10    85%   83, 94, 102, 108-109, 113, 114->116, 128->134, 139->141, 144->146, 151
+backend/kernel/envconfig.py                             45      1     18      0    98%   54
+backend/kernel/io_guard.py                              49      1     10      3    93%   53, 75->81, 84->86, 86->92
+backend/kernel/lint/no_float.py                         73      1     40      1    98%   114
+backend/kernel/management/commands/outbox_relay.py      22      0      4      1    96%   30->24
+backend/kernel/tenancy.py                              149      1     22      1    99%   92
+backend/kernel/testing/fakes.py                        460      1    126      3    99%   201, 221->220, 306->297
+backend/kernel/uow.py                                  122      1     32      1    99%   186
+backend/kernel/views.py                                114      0     18      1    99%   180->183
+------------------------------------------------------------------------------------------------
+TOTAL                                                 2824     14    536     22    99%
+
+48 files skipped due to complete coverage.
+Coverage XML written to file reports/coverage/backend.xml
+=========================== short test summary info ============================
+FAILED backend/workflow/tests/test_formula_graph.py::***
+================== 1 failed, 1385 passed in 275.04s (0:04:35) ==================
+```
+
