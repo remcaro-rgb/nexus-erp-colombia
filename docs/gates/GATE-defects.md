@@ -27,3 +27,6 @@ Resolved by FIX-IMG-W02 v1 (branch claude/new-session-u1ozj6, merge b2c00de): we
 
 ### UI-LOGIN-W03 — RESOLVED (UI preview could not sign in; CCR P08-6, P08-1)
 Resolved by FIX-UI-LOGIN-W03 v1 (branch claude/new-session-aw85gy, merge 5df2568): backend image ships the permission catalog and the module registry; /api/v1/ui/context activates the bearer context and returns companies/roles/permissions; /api/v1/ui/modules filters the registry server-side; registry navigation codes resolved from catalog permissions; SPA OIDC authorization code + PKCE with client erp-web (callback /oidc/callback, RP-initiated logout); API client sends the bearer token. Integrator re-ran tools/parity_gate.py (4/4), tools/dev_login.py and tools/ui_snapshot.py (login OK) at 2026-11-10T19:39Z UTC.
+
+### P07-CPU-W05 — RESOLVED (flaky formula CPU budget; rejected P09b in wave 05)
+Resolved by FIX-P07-CPU-W05 v1 (branch claude/beautiful-ptolemy-yx764c, merge e62aebc): the 50 ms per-formula CPU budget (D-008, unchanged) no longer charges cyclic-GC pauses of the evaluating thread; topology/perf tests use deterministic clocks. Integrator re-ran tools/parity_gate.py (4/4), the GC fault injection (3/3) and the formula tests 10/10 at 2026-11-11T16:46Z UTC.
