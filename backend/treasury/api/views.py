@@ -8,6 +8,7 @@ PATCH/DELETE). Foreign / out-of-scope ids answer 404.
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import uuid
 from collections.abc import Callable
 from typing import Any, ClassVar
@@ -17,9 +18,10 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from kernel.errors import ValidationFailed
+from kernel.errors import NotFound, ValidationFailed
 from kernel.tenancy import TenantContext
 from kernel.uow import UnitOfWork
+from treasury import kpis
 from treasury.api import serializers as ser
 from treasury.api.base import TreasuryView, action_body, body, check_if_match, command, page
 from treasury.batches import service as batches
@@ -521,7 +523,8 @@ class StatementImport(TreasuryView):
                 "error": None,
             }, 202
 
-        return command(request, ctx, "treasury.statement.import", fn)
+        digest = hashlib.sha256(content).hexdigest()
+        return command(request, ctx, "treasury.statement.import", fn, payload={"path": request.path, "sha256": digest})
 
 
 class StatementLineList(TreasuryView):
@@ -552,3 +555,32 @@ class StatementLineAction(TreasuryView):
             return ser.statement_line_json(recon.unmatch(u, obj, reason)), 200
 
         return command(request, ctx, f"treasury.statement_line.{action}", fn, etag=_etag(StatementLine))
+
+
+# --------------------------------------------------------------------------- KPIs (module-registry "tesoreria")
+
+
+class KpiView(TreasuryView):
+    def _kpi_company(self, request: Request) -> tuple[TenantContext, uuid.UUID]:
+        raw = request.query_params.get("company_id")
+        if raw:
+            ctx = self.context()
+            cid = uuid_in(raw, "company_id")
+            assert cid is not None  # noqa: S101 - required above
+            return ctx, ctx.require_company(cid)
+        return self.ctx_company(request)
+
+    def get(self, request: Request) -> Response:
+        ctx, company = self._kpi_company(request)
+        period = request.query_params.get("period_id") or request.query_params.get("period")
+        compare = request.query_params.get("compare", "previous") == "previous"
+        return Response(kpis.tesoreria_kpis(ctx, company, period, compare))
+
+
+class KpiPanelView(KpiView):
+    def get(self, request: Request, panel: str = "") -> Response:
+        if panel != "flujo_caja":
+            raise NotFound("panel not found")
+        ctx, company = self._kpi_company(request)
+        period = request.query_params.get("period_id") or request.query_params.get("period")
+        return Response(kpis.cash_flow_panel(ctx, company, period))

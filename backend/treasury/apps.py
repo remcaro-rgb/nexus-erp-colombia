@@ -5,6 +5,8 @@ field classifications (P04 field policy) and the services other modules consume:
 the AP open-item adapter used by CE vouchers (``treasury.interfaces.ApOpenItems``, CCR P16a-1).
 """
 
+from typing import ClassVar
+
 from django.apps import AppConfig
 
 
@@ -13,6 +15,10 @@ class TreasuryConfig(AppConfig):
     label = "treasury"
     verbose_name = "Tesorería"
     default_auto_field = "django.db.models.BigAutoField"
+    #: ``erp.discovery``: routes at ``api/v1/treasury/`` plus ``GET /api/v1/kpis/tesoreria[/panels/flujo_caja]``.
+    EXTRA_URL_MOUNTS: ClassVar[dict[str, tuple[str, str]]] = {
+        "api/v1/kpis/": ("treasury.urls:kpi_urlpatterns", "kpis-tesoreria")
+    }
 
     def ready(self) -> None:
         from kernel import services

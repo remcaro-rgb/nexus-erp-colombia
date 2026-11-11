@@ -49,3 +49,9 @@ urlpatterns: list[Any] = [
     path("statement-lines/<uuid:pk>", views.StatementLineDetail.as_view()),
     *_actions("statement-lines", views.StatementLineAction.as_view(), LINE_ACTIONS),
 ]
+
+#: mounted at ``api/v1/kpis/`` by ``TreasuryConfig.EXTRA_URL_MOUNTS`` (module-registry ``tesoreria``)
+kpi_urlpatterns: list[Any] = [
+    path("tesoreria", views.KpiView.as_view(), name="kpis-tesoreria"),
+    path("tesoreria/panels/<str:panel>", views.KpiPanelView.as_view(), name="kpis-tesoreria-panel"),
+]

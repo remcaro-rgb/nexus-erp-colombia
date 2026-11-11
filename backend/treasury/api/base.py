@@ -93,9 +93,10 @@ def command(
     fn: Callable[[UnitOfWork], tuple[Any, int]],
     *,
     etag: Callable[[Any], str | None] | None = None,
+    payload: Any = None,
 ) -> Response:
     key = idempotency_key(request)
-    payload = {"path": request.path, "body": body(request)}
+    payload = payload if payload is not None else {"path": request.path, "body": body(request)}
     holder: dict[str, Any] = {}
 
     def run(uow: UnitOfWork) -> tuple[Any, int]:
