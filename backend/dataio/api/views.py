@@ -201,7 +201,12 @@ class DataioView(ModuleSecuredView):
         raise ValidationFailed("X-Company-Id header required", pointer="/headers/X-Company-Id", reason="required")
 
 
-def _file_response(content: bytes, content_type: str, filename: str) -> HttpResponse:
+def _file_response(content: bytes, content_type: str, filename: str, request: Request | None = None) -> Any:
+    """The file; ``?encoding=base64`` returns it as JSON (the shell's API client speaks JSON only, CCR P18-3)."""
+    if request is not None and request.query_params.get("encoding") == "base64":
+        return respond(
+            {"filename": filename, "content_type": content_type, "content_base64": base64.b64encode(content).decode()}
+        )
     resp = HttpResponse(content, content_type=content_type)
     resp["Content-Disposition"] = f'attachment; filename="{filename}"'
     resp["X-Content-Type-Options"] = "nosniff"
@@ -242,7 +247,7 @@ class TemplateDownload(DataioView):
         ctx, _company = self.company(request)
         fmt = request.query_params.get("file_format", "csv")
         examples = request.query_params.get("examples", "1") != "0"
-        return _file_response(*exports.template_file(ctx, entity, fmt, examples))
+        return _file_response(*exports.template_file(ctx, entity, fmt, examples), request)
 
 
 # --------------------------------------------------------------------------- imports
@@ -299,18 +304,32 @@ class ImportUpload(DataioView):
         ctx, company = self.company(request)
         idempotency_key(request)
         upload = request.FILES.get("file")
-        if upload is None:
-            raise ValidationFailed("multipart field 'file' is required", pointer="/file", reason="required")
-        if upload.size is not None and upload.size > formats.MAX_FILE_BYTES:
-            raise ValidationFailed("file too large", pointer="/file", reason="size")
-        data = upload.read(formats.MAX_FILE_BYTES + 1)
         profile = request.data.get("profile_id") if hasattr(request.data, "get") else None
+        if upload is not None:
+            if upload.size is not None and upload.size > formats.MAX_FILE_BYTES:
+                raise ValidationFailed("file too large", pointer="/file", reason="size")
+            data = upload.read(formats.MAX_FILE_BYTES + 1)
+            filename = upload.name or ""
+        else:
+            # JSON variant for the shell's JSON-only API client (CCR P18-3): {filename, content_base64}
+            raw = request.data.get("content_base64") if hasattr(request.data, "get") else None
+            if not isinstance(raw, str) or len(raw) > formats.MAX_FILE_BYTES * 4 // 3 + 4:
+                raise ValidationFailed(
+                    "multipart field 'file' (or content_base64) is required", pointer="/file", reason="required"
+                )
+            try:
+                data = base64.b64decode(raw, validate=True)
+            except (binascii.Error, ValueError):
+                raise ValidationFailed(
+                    "content_base64 is not valid base64", pointer="/content_base64", reason="format"
+                ) from None
+            filename = str(request.data.get("filename") or "")
 
         def fn(uow: UnitOfWork) -> ImportJob:
             job = service.get_job(uow.ctx, company, pk, lock=True)
             if job.file_hash and job.file_hash == hashlib.sha256(data).hexdigest():
                 return job  # same file re-sent (retry): idempotent
-            return service.upload(uow, job, upload.name or "", data, profile_id=profile)
+            return service.upload(uow, job, filename, data, profile_id=profile)
 
         job = service.run(fn, ctx)
         return respond(import_json(job, full=True), 200, etag=job.etag)
@@ -399,7 +418,7 @@ class ImportReport(DataioView):
         if fmt not in formats.FORMATS:
             raise FilterInvalid("format must be json, csv, xlsx or jsonl")
         content = formats.write(fmt, headers, rows, sheet="resultado")
-        return _file_response(content, formats.CONTENT_TYPES[fmt], f"resultado-{job.entity}-{job.id}.{fmt}")
+        return _file_response(content, formats.CONTENT_TYPES[fmt], f"resultado-{job.entity}-{job.id}.{fmt}", request)
 
 
 # --------------------------------------------------------------------------- exports
@@ -416,9 +435,14 @@ class ExportCollection(DataioView):
 
     def post(self, request: Request) -> Response:
         ctx, company = self.company(request)
-        data = _body(request, ("source", "format", "start"))
-        if not data.get("source") or not data.get("format"):
-            raise ValidationFailed("source and format are required", pointer="/source", reason="required")
+        # ``entity``/``params``/``company_id``/``period_id`` is the shell module-bar body (P08 exportContext).
+        data = _body(request, ("source", "format", "start", "entity", "params", "company_id", "period_id"))
+        data["source"] = data.get("source") or data.get("entity")
+        data["format"] = data.get("format") or "csv"
+        if data.get("company_id") and str(data["company_id"]) != str(company):
+            raise ValidationFailed("company_id must be the request company", pointer="/company_id", reason="mismatch")
+        if not data.get("source"):
+            raise ValidationFailed("source is required", pointer="/source", reason="required")
 
         def fn(uow: UnitOfWork) -> tuple[Any, int]:
             job = exports.create_export(uow, company, str(data["source"]), str(data["format"]))
@@ -453,7 +477,7 @@ class ExportFile(DataioView):
     def get(self, request: Request, pk: uuid.UUID) -> HttpResponse:
         ctx, company = self.company(request)
         job = exports.get_export(ctx, company, pk)
-        return _file_response(*exports.file_of(ctx, job))
+        return _file_response(*exports.file_of(ctx, job), request)
 
 
 # --------------------------------------------------------------------------- mapping profiles

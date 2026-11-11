@@ -80,6 +80,14 @@ def test_T_P18_10_import_through_the_api_with_a_service_account(w, api):
     assert r2.status_code == 202 and r2.json()["import"]["counts"] == r.json()["import"]["counts"]
     rep = c.get(f"{BASE}/imports/{job['id']}/report", {"file_format": "csv"})
     assert rep.status_code == 200 and b"_resultado" in rep.content and b"created" in rep.content
+    j = c.post(f"{BASE}/imports", {"entity": "branches"}, format="json", **idem()).json()
+    up = c.post(
+        f"{BASE}/imports/{j['id']}:upload",
+        {"filename": "b.csv", "content_base64": __import__("base64").b64encode(CSV).decode()},
+        format="json",
+        **idem(),
+    )
+    assert up.status_code == 200 and up.json()["row_count"] == 2
     assert c.post(f"{BASE}/imports", {"entity": "branches"}, format="json").status_code == 400  # Idempotency-Key
     assert c.post(f"{BASE}/imports", {"entity": "nope"}, format="json", **idem()).json()["code"] == "template_unknown"
     assert (
@@ -109,12 +117,21 @@ def test_api_templates_exports_profiles_and_kpis(w, api):
     assert r.status_code == 201 and r.json()["export_status"] == "COMPLETED" and r.json()["row_count"] == 3
     f = c.get(f"{BASE}/exports/{r.json()['id']}/file")
     assert f.status_code == 200 and f.content.startswith(b"code,name")
+    b64 = c.get(f"{BASE}/exports/{r.json()['id']}/file", {"encoding": "base64"}).json()
+    assert __import__("base64").b64decode(b64["content_base64"]) == f.content and b64["filename"].endswith(".csv")
+    shell = c.post(
+        f"{BASE}/exports",
+        {"entity": "branches", "params": {}, "company_id": str(w.companies["ALFA"]), "period_id": None},
+        format="json",
+        **idem(),
+    )
+    assert shell.status_code == 201 and shell.json()["format"] == "csv"
     k1 = c.get("/api/v1/kpis/datos", {"period": "2026-11"}).json()
     assert {k["id"]: k["value"] for k in k1["kpis"]} == {
         "lotes_importados": "1",
         "filas_importadas": "2",
         "lotes_rechazados": "1",
-        "exportaciones": "1",
+        "exportaciones": "2",
     }
     assert {k["id"]: k["previous"] for k in k1["kpis"]} == {
         "lotes_importados": "0",
