@@ -4,7 +4,7 @@
   "repo_url": "https://github.com/remcaro-rgb/nexus-erp-colombia",
   "plan_sha256": "593796320d7b832515b6c33e344d08904c9a24185528abcd51c8e09fe8ba089f",
   "registry_sha256": "a62fa1d937c13533ddc08f22b87a65d9bce24d662e6df7e8996f3aa7ee939ab4",
-  "updated_at": "2026-11-11T01:26:24Z",
+  "updated_at": "2026-11-11T03:22:40Z",
   "tasks": {
     "P01": {
       "status": "ACCEPTED",
@@ -106,11 +106,12 @@
       "accepted_at": "2026-11-10T20:44:40Z"
     },
     "P09b": {
-      "status": "REWORK",
+      "status": "FAILED",
       "attempt": 3,
       "notes": [
         "attempt 1 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 policy: last line: secret scan OK (1632 files) log=docs/run/evidence/W04/parity-gate/P09b-1.log",
-        "attempt 2 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 policy: last line: secret scan OK (1812 files) log=docs/run/evidence/W05/parity-gate/P09b-1.log"
+        "attempt 2 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 policy: last line: secret scan OK (1812 files) log=docs/run/evidence/W05/parity-gate/P09b-1.log",
+        "attempt 3 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 policy: last line: secret scan OK (1836 files) log=docs/run/evidence/W05/parity-gate/P09b-2.log"
       ]
     },
     "P09c": {
@@ -163,10 +164,11 @@
       "accepted_at": "2026-11-11T00:16:35Z"
     },
     "P10b": {
-      "status": "READY",
-      "attempt": 1,
+      "status": "REWORK",
+      "attempt": 2,
       "notes": [
-        "attempt 1: no report found on any branch (session ended before reporting?)"
+        "attempt 1: no report found on any branch (session ended before reporting?)",
+        "attempt 1 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P10b) 1/4 policy: last line: secret scan OK (1823 files) log=docs/run/evidence/W05/parity-gate/P10b-1.log"
       ]
     },
     "P14": {
@@ -177,17 +179,19 @@
       "accepted_at": "2026-11-10T20:44:40Z"
     },
     "P16a": {
-      "status": "READY",
-      "attempt": 1,
+      "status": "REWORK",
+      "attempt": 2,
       "notes": [
-        "attempt 1: no report found on any branch (session ended before reporting?)"
+        "attempt 1: no report found on any branch (session ended before reporting?)",
+        "attempt 1 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P16a) 1/4 policy: last line: secret scan OK (1848 files) log=docs/run/evidence/W05/parity-gate/P16a-1.log"
       ]
     },
     "P16b": {
-      "status": "READY",
-      "attempt": 1,
+      "status": "REWORK",
+      "attempt": 2,
       "notes": [
-        "attempt 1: no report found on any branch (session ended before reporting?)"
+        "attempt 1: no report found on any branch (session ended before reporting?)",
+        "attempt 1 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P16b) 1/4 policy: last line: secret scan OK (1835 files) log=docs/run/evidence/W05/parity-gate/P16b-1.log"
       ]
     },
     "P12": {
@@ -439,6 +443,30 @@
       "task": "P09b",
       "reason": "CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 policy: last line: secret scan OK (1812 files) log=docs/run/evidence/W05/parity-gate/P09b-1.log",
       "at": "2026-11-11T01:26:24Z"
+    },
+    {
+      "type": "reject",
+      "task": "P09b",
+      "reason": "CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 policy: last line: secret scan OK (1836 files) log=docs/run/evidence/W05/parity-gate/P09b-2.log",
+      "at": "2026-11-11T03:22:40Z"
+    },
+    {
+      "type": "reject",
+      "task": "P10b",
+      "reason": "CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P10b) 1/4 policy: last line: secret scan OK (1823 files) log=docs/run/evidence/W05/parity-gate/P10b-1.log",
+      "at": "2026-11-11T03:22:40Z"
+    },
+    {
+      "type": "reject",
+      "task": "P16a",
+      "reason": "CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P16a) 1/4 policy: last line: secret scan OK (1848 files) log=docs/run/evidence/W05/parity-gate/P16a-1.log",
+      "at": "2026-11-11T03:22:40Z"
+    },
+    {
+      "type": "reject",
+      "task": "P16b",
+      "reason": "CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P16b) 1/4 policy: last line: secret scan OK (1835 files) log=docs/run/evidence/W05/parity-gate/P16b-1.log",
+      "at": "2026-11-11T03:22:40Z"
     }
   ]
 }
