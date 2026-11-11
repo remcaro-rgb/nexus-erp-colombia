@@ -60,7 +60,8 @@ def test_T_FORMULA_ENGINE_04_long_chain_with_back_edge() -> None:
     defs = [F("f0", "1")] + [F(f"f{i}", f"f{i - 1} + 1", (f"f{i - 1}",)) for i in range(1, 199)]
     g = FormulaGraph(defs)
     assert g.order == [f"f{i}" for i in range(199)] or g.order[0] == "f0"
-    assert g.evaluate({})["f198"].value == D(199)
+    # topology test; CPU budget is T-FORMULA-ENGINE-03
+    assert g.evaluate({}, clock=lambda: 0.0)["f198"].value == D(199)
     defs[0] = F("f0", "f198 + 1", ("f198",))
     with pytest.raises(FormulaDependencyCycle) as exc:
         FormulaGraph(defs)
