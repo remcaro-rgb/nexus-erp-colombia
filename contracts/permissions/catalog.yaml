@@ -766,6 +766,12 @@ codes:
   operations:
   - consolidation_runs_by_update
   source: P02
+- code: consolidation.run.void
+  module: consolidation
+  owner: P16
+  description: Reversar corridas de consolidación contabilizadas (asientos de reverso en el libro de consolidación, con motivo)
+  operations: []
+  source: P16b
 - code: crm.activity.create
   module: crm
   owner: P10
@@ -1820,6 +1826,12 @@ codes:
   operations:
   - intercompany_agreements_by_update
   source: P02
+- code: intercompany.document.post
+  module: intercompany
+  owner: P16
+  description: Contabilizar documentos intercompañía (venta IC con factura espejo en la compañía vinculada, pagos y cruces IC)
+  operations: []
+  source: P16b
 - code: intercompany.event.read
   module: intercompany
   owner: P16
