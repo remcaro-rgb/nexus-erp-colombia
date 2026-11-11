@@ -112,12 +112,20 @@ See `docs/run/reports/FIX-P07-CPU-W05.json` for the exact lines. Summary:
 
 * fault injection before: hang (full command) / 16 failed (starvation test deselected), all
   `more than 50 ms of CPU`. After: 3/3 `516 passed`.
-* mypy Success; workflow suite, consumers, `FIX_P07_CPU` tests, STRESS-LOOP, CPU-STRESS, the
-  full backend suite twice, `make ci` and the parity gate: see the report.
+* mypy `Success: no issues found in 611 source files`; `backend/workflow` 600 passed; consumers
+  (payroll/sales `-k "formula or pricing or concept"`) 310 passed; `FIX_P07_CPU` tests 5 passed.
+* `STRESS-LOOP 30/30 passed`; `CPU-STRESS 10/10 passed` (one busy loop per core).
+* full backend suite twice: `1474 passed in 173.67s`, `1474 passed in 182.29s`; `make ci exit=0`.
+* parity gate: `PARITY-GATE OK 4/4 (HEAD 07910d9) tree=4646fb59026a63b34930`. The first attempt
+  was red only in policy/gitleaks because the Docker daemon was not running yet when that step
+  ran. The gate starts dockerd later, in the pytest step. The clone was also shallow
+  (`git fetch --unshallow origin`). With both fixed it re-ran green.
 
 ## GitHub Actions
 
-Not observed from this session. See `github_actions.note` in the report.
+Observed through the GitHub MCP: run 43043731722 (`ci`, push) on 07910d9, which has the same code
+tree as the tested commit. All 4 jobs passed (`success`): policy, P03 tests, make ci, and the
+T-P03-01 compose startup.
 
 ## Residual risk / follow-up
 
