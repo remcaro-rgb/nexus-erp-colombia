@@ -87,7 +87,7 @@ CONFIDENTIAL_READ = {
 
 #: Synthetic PUC-like accounts (SINTÉTICO, not a legal chart of accounts): code, name, type, nature, control
 #: sources, role.
-ACCOUNTS = (
+ACCOUNTS: tuple[tuple[str, str, str, str, list[str], str], ...] = (
     ("111005", "Bancos cuenta corriente (SINTÉTICO)", "asset", "debit", [], ""),
     ("110505", "Caja general (SINTÉTICO)", "asset", "debit", [], ""),
     ("130505", "Clientes nacionales (SINTÉTICO)", "asset", "debit", ["sales.", "treasury."], "AR"),
