@@ -1,6 +1,6 @@
 # UI progress — after wave 05
 
-Integrated commit: `06c93b73f39f` · captured 2026-11-11T01:27:38Z (UTC) · viewport 1440×900 · device scale 1 · 1.68 MB · browser: system Chrome via Playwright 1.65.0
+Integrated commit: `5d40fc9d05ca` · captured 2026-11-11T03:23:51Z (UTC) · viewport 1440×900 · device scale 1 · 1.68 MB · browser: system Chrome via Playwright 1.65.0
 
 **Status: OK**
 
