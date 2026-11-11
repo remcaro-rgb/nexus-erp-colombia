@@ -3652,6 +3652,12 @@ codes:
   - customer_quotes_by_get
   - customer_quotes_list
   source: P02
+- code: portal.customer_quote.update
+  module: portal
+  owner: P10
+  description: Aceptar desde el portal una cotización enviada (genera el pedido en borrador)
+  operations: []
+  source: P10b
 - code: portal.customer_receipt.read
   module: portal
   owner: P10
@@ -5039,6 +5045,30 @@ codes:
   - sales_parties_by_merge
   - sales_parties_by_update
   source: P02
+- code: sales.payment_intent.read
+  module: sales
+  owner: P10
+  description: Consultar intenciones de pago simuladas del portal de clientes (tesorería)
+  operations: []
+  source: P10b
+- code: sales.portal_request.approve
+  module: sales
+  owner: P10
+  description: Aprobar cambios de datos o cerrar solicitudes del portal de clientes
+  operations: []
+  source: P10b
+- code: sales.portal_request.read
+  module: sales
+  owner: P10
+  description: Consultar solicitudes del portal de clientes
+  operations: []
+  source: P10b
+- code: sales.portal_request.update
+  module: sales
+  owner: P10
+  description: Cotizar o rechazar solicitudes del portal de clientes
+  operations: []
+  source: P10b
 - code: sales.price_formula.create
   module: sales
   owner: P10
