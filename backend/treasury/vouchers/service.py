@@ -34,7 +34,7 @@ from decimal import Decimal
 from typing import Any, Literal
 
 from kernel import clock, services
-from kernel.errors import DomainError, NotFound, ValidationFailed
+from kernel.errors import DomainError, NotFound, ParameterUnknown, ValidationFailed
 from kernel.interfaces.ar import Application, ArOpenItems
 from kernel.interfaces.common import DocumentRef, PartyRef
 from kernel.interfaces.periods import PeriodService
@@ -332,9 +332,11 @@ def compute_withholdings(
         result = services.get(TaxService).withholdings(
             voucher.company_id, kind_of(voucher).doc_type, day, voucher.party_id, inputs
         )
+    except ParameterUnknown as exc:  # kernel.parameters puts the parameter code in ``code``
+        raise TaxParameterUnknown(str(exc.detail), parameter=exc.code) from exc
     except DomainError as exc:
         if exc.code in ("parameter_unknown", "tax_parameter_unknown"):
-            raise TaxParameterUnknown(str(exc.detail), **exc.extra) from exc
+            raise TaxParameterUnknown(str(exc.detail)) from exc
         raise
     by_line: dict[str, Any] = {r.line_ref: r for r in result.lines}
     for s in wanted:
@@ -793,6 +795,10 @@ def post(uow: UnitOfWork, voucher: TreasuryVoucher) -> TreasuryVoucher:
             raise TreasuryApprovalRequired(
                 "the voucher reaches the approval threshold; submit it and wait for the approval", dual=dual
             )
+    elif voucher.status == V.State.SUBMITTED:
+        raise TreasuryApprovalRequired(
+            "the voucher is waiting for its approval", approval_id=str(voucher.approval_request_id)
+        )
     elif voucher.status != V.State.APPROVED:
         raise InvalidStateTransition(f"a {voucher.status} voucher cannot be posted")
     specs = specs_of(voucher)
