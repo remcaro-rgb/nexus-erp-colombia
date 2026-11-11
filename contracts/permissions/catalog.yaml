@@ -5877,6 +5877,12 @@ codes:
   operations:
   - treasury_funds_by_update
   source: P02
+- code: treasury.kpi.read
+  module: treasury
+  owner: P16
+  description: Consultar los KPI y el panel de flujo de caja del tablero de Tesorería (GET /api/v1/kpis/tesoreria)
+  operations: []
+  source: P16a
 - code: treasury.payment_batch.approve
   module: treasury
   owner: P16
