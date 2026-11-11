@@ -368,7 +368,16 @@ def _shift(c: Cond, mode: str) -> Cond:
 
 
 def _totals(spec: Spec, rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Σ of additive measures (sum, count) over the published rows; without grouping the single row is the total."""
     totals: dict[str, Any] = {}
+    if not spec.dimensions:
+        row = rows[0] if rows else {}
+        for m in spec.measures:
+            v = row.get(m.name)
+            if v is None and m.agg in ("sum", "count", "count_distinct"):
+                v = "0" if m.type in ("money", "decimal") else 0
+            totals[m.name] = v
+        return totals
     for m in spec.measures:
         if m.agg not in ("sum", "count"):
             continue
