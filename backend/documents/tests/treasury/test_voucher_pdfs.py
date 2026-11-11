@@ -27,8 +27,9 @@ def named(world: World, who: str, display: str) -> None:
 
     ctx = world.ctx(who)
     with world.scope():
-        User.objects.create(id=ctx.principal_id, tenant_id=world.tenant_id, email=f"{who}@example.invalid",
-                            display_name=display)  # fmt: skip
+        User.objects.create(
+            id=ctx.principal_id, tenant_id=world.tenant_id, email=f"{who}@example.invalid", display_name=display
+        )
 
 
 def render(world: World, who: str, source_type: str, voucher_id: str) -> service.Rendered:
@@ -86,15 +87,26 @@ def test_T_TRE_RC_07_rc_pdf_number_party_lines_words_fund_preparer_approver_dete
     assert "RECIBO DE CAJA N.º RC-000001" in text
     assert any("Cliente C-PDF01 S.A.S. (SINTÉTICO)" in t and "NIT/CC 900100000-" in t for t in text)  # party
     # lines: the two applied invoices, the advance and the withholding (with base), each with its amount
-    for expected in ("SETT-2001", "SETT-2002", "Anticipo saldo a favor", "Retefuente practicada (RTE25)",
-                     "$ 600.000,00", "$ 1.500.000,00", "$ 400.000,00", "$ 2.100.000,00", "$ 52.500,00"):  # fmt: skip
+    for expected in (
+        "SETT-2001",
+        "SETT-2002",
+        "Anticipo saldo a favor",
+        "Retefuente practicada (RTE25)",
+        "$ 600.000,00",
+        "$ 1.500.000,00",
+        "$ 400.000,00",
+        "$ 2.100.000,00",
+        "$ 52.500,00",
+    ):
         assert any(expected in t for t in text), expected
     # total received 2,447,500 and its value in words (es-CO)
     assert "$ 2.447.500,00" in text
     assert "Valor en letras: DOS MILLONES CUATROCIENTOS CUARENTA Y SIETE MIL QUINIENTOS PESOS M/CTE" in text
     # fund, payment method and reference
-    assert any("Fondo: BCO-1 — Banco sintético cuenta corriente (Banco)" in t and "Transferencia" in t
-               and "TRF-778899" in t for t in text)  # fmt: skip
+    assert any(
+        "Fondo: BCO-1 — Banco sintético cuenta corriente (Banco)" in t and "Transferencia" in t and "TRF-778899" in t
+        for t in text
+    )
     # preparer and approver
     i = text.index("Elaboró")
     assert text[i : i + 4] == ["Elaboró", "Aprobó", "Carolina Cajera (SINTÉTICA)", "Andrés Aprobador (SINTÉTICO)"]
@@ -143,7 +155,9 @@ def test_T_TRE_RC_07_render_api_returns_the_pdf_and_replays_idempotently(world: 
     assert replay.content == first.content
     missing_key = api.client.post("/api/v1/documents/render", body, format="json")
     assert missing_key.status_code == 400 and missing_key.json()["code"] == "idempotency_key_required"
-    denied = api.as_("outsider").client.post("/api/v1/documents/render", body, format="json", HTTP_IDEMPOTENCY_KEY="rc-pdf-denied-1")
+    denied = api.as_("outsider").client.post(
+        "/api/v1/documents/render", body, format="json", HTTP_IDEMPOTENCY_KEY="rc-pdf-denied-1"
+    )
     assert denied.status_code == 403
 
 
@@ -151,9 +165,13 @@ def fund_bank(world: World, api: ApiClient, amount: str) -> None:
     capital = world.concept(f"APORTE-{amount}", "IN", "CAPITAL")
     rc = api.post(
         "receipts",
-        {"document_date": TODAY.isoformat(), "fund_id": str(world.env["fund"].id), "payment_method": "TRANSFER",
-         "lines": [{"line_no": 1, "concept_id": str(capital.id), "applied_amount": money(amount)}]},
-    ).json()  # fmt: skip
+        {
+            "document_date": TODAY.isoformat(),
+            "fund_id": str(world.env["fund"].id),
+            "payment_method": "TRANSFER",
+            "lines": [{"line_no": 1, "concept_id": str(capital.id), "applied_amount": money(amount)}],
+        },
+    ).json()
     assert api.post(f"receipts/{rc['id']}:post").status_code == 200
 
 
@@ -193,7 +211,7 @@ def test_T_TRE_CE_06_ce_pdf_deterministic_with_totals_in_words(world: World, api
     assert "COMPROBANTE DE EGRESO N.º CE-000001" in text
     assert any(t.startswith("Pagado a: Proveedor P-CE-PDF S.A.S. (SINTÉTICO)") for t in text)
     assert "TOTAL PAGADO" in text and "$ 2.925.001,46" in text
-    assert ("Valor en letras: DOS MILLONES NOVECIENTOS VEINTICINCO MIL UN PESOS CON 46/100 M/CTE" in text)
+    assert "Valor en letras: DOS MILLONES NOVECIENTOS VEINTICINCO MIL UN PESOS CON 46/100 M/CTE" in text
     assert "Andrés Aprobador (SINTÉTICO)" in text and "Carolina Cajera (SINTÉTICA)" in text
     for expected in ("FP-PDF-1", "FP-PDF-2", "Pago a proveedor", "Retefuente (RTE25)"):
         assert any(expected in t for t in text), expected

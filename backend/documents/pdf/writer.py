@@ -58,7 +58,9 @@ class Page:
     images: list[str] = field(default_factory=list)
     fonts: set[str] = field(default_factory=set)
 
-    def text(self, x: float | Decimal, y: float | Decimal, value: str, font: str = "Helvetica", size: float = 10) -> None:
+    def text(
+        self, x: float | Decimal, y: float | Decimal, value: str, font: str = "Helvetica", size: float = 10
+    ) -> None:
         if not value:
             return
         key = FONT_KEYS[font]
@@ -82,9 +84,7 @@ class Page:
     def line(
         self, x1: float | Decimal, y1: float | Decimal, x2: float | Decimal, y2: float | Decimal, width: float = 0.5
     ) -> None:
-        self.ops.append(
-            f"{num(width)} w {num(x1)} {num(y1)} m {num(x2)} {num(y2)} l S".encode()
-        )
+        self.ops.append(f"{num(width)} w {num(x1)} {num(y1)} m {num(x2)} {num(y2)} l S".encode())
 
     def rect(
         self, x: float | Decimal, y: float | Decimal, w: float | Decimal, h: float | Decimal, *, fill: bool = False,

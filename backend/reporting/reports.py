@@ -29,8 +29,8 @@ from kernel.tenancy import TenantContext
 from kernel.uow import UnitOfWork
 from reporting import engine
 from reporting.compiler import freshness
-from reporting.semantic import registry
 from reporting.models import ReportRun, SavedReport
+from reporting.semantic import registry
 
 RESOURCE = "reporting.report"
 FIELDS = ("code", "name", "definition", "schedule", "recipients")
@@ -58,14 +58,17 @@ def visible(ctx: TenantContext, company_id: uuid.UUID) -> Any:
 
 
 def get(ctx: TenantContext, company_id: uuid.UUID, report_id: uuid.UUID) -> SavedReport:
-    r = visible(ctx, company_id).filter(id=report_id).first()
+    r: SavedReport | None = visible(ctx, company_id).filter(id=report_id).first()
     if r is None:
         raise NotFound("report not found")
     return r
 
 
 def _owned(ctx: TenantContext, r: SavedReport) -> None:
-    if r.owner_id != (ctx.on_behalf_of or ctx.principal_id) and not _policy().authorize(ctx, "reporting.report.admin").allowed:
+    if (
+        r.owner_id != (ctx.on_behalf_of or ctx.principal_id)
+        and not _policy().authorize(ctx, "reporting.report.admin").allowed
+    ):
         raise NotFound("report not found")  # someone else's report: no existence oracle on writes
 
 

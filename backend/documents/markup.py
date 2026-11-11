@@ -147,7 +147,8 @@ def parse(body: str) -> list[Any]:
         top = stack[-1]
         if isinstance(top, For):
             return top.body
-        return top.other if top.in_else else top.then
+        branch: list[Any] = top.other if top.in_else else top.then
+        return branch
 
     pos = 0
     for m in _TOKEN.finditer(body):
@@ -221,7 +222,7 @@ def lookup(scope: Sequence[Mapping[str, Any]], path: Path) -> Any:
             return None  # never getattr: a path only walks plain data
         if value is None:
             return None
-    if not isinstance(value, _PLAIN + (Mapping, list, tuple)):
+    if not isinstance(value, (*_PLAIN, Mapping, list, tuple)):
         raise TemplateError(f"value of {'.'.join(path.parts)} is not plain data")
     return value
 

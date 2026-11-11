@@ -243,7 +243,9 @@ def _boot(w: World) -> None:
                 tenant_id=w.tenant_id, company_id=w.company, code=code, name=name, type=typ, nature=nature
             )
             w.accounts[code] = acc
-            AccountDetermination.objects.create(tenant_id=w.tenant_id, company_id=w.company, role_code=role, account=acc)
+            AccountDetermination.objects.create(
+                tenant_id=w.tenant_id, company_id=w.company, role_code=role, account=acc
+            )
 
     w.run("admin", boot)
 
@@ -307,7 +309,9 @@ class ApiClient:
     def get(self, url: str, **params: Any) -> Any:
         return self.client.get(url, params)
 
-    def send(self, method: str, url: str, data: Any = None, *, key: str | None = None, if_match: str | None = None) -> Any:
+    def send(
+        self, method: str, url: str, data: Any = None, *, key: str | None = None, if_match: str | None = None
+    ) -> Any:
         extra = {"HTTP_IDEMPOTENCY_KEY": key or f"test-{uuid.uuid4()}"}
         if if_match:
             extra["HTTP_IF_MATCH"] = if_match

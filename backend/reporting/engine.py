@@ -438,8 +438,14 @@ def run(
 
 
 def _execute(ctx: TenantContext, companies: list[uuid.UUID], spec: Spec, opts: QueryOptions) -> dict[str, Any]:
-    columns = [{"key": d.key, "label": d.field.label + (f" ({d.level or d.grain})" if d.level or d.grain else ""),
-                "type": "date" if d.grain else ("uuid" if d.level else d.field.type)} for d in spec.dimensions]
+    columns = [
+        {
+            "key": d.key,
+            "label": d.field.label + (f" ({d.level or d.grain})" if d.level or d.grain else ""),
+            "type": "date" if d.grain else ("uuid" if d.level else d.field.type),
+        }
+        for d in spec.dimensions
+    ]
     columns += [{"key": m.name, "label": m.label, "type": m.type} for m in spec.measures]  # fmt: skip
     base = {
         "report": spec.entity.key,

@@ -105,10 +105,7 @@ def party_info(company_id: uuid.UUID, party_id: uuid.UUID | None, kind: str) -> 
     if p:
         return {"name": p["legal_name"], "tax_id": f"{p['nit']}-{p['dv']}" if p["dv"] else p["nit"]}
     s = (
-        Supplier.objects.filter(company_id=company_id)
-        .filter(id=party_id)
-        .values("name", "nit")
-        .first()
+        Supplier.objects.filter(company_id=company_id).filter(id=party_id).values("name", "nit").first()
         or Supplier.objects.filter(company_id=company_id, party_id=party_id).values("name", "nit").first()
     )
     if s:

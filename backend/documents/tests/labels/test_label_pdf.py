@@ -18,9 +18,14 @@ pytestmark = pytest.mark.django_db
 def _template(api: Any, code: str, symbology: str = "CODE128") -> dict[str, Any]:
     r = api.post(
         f"{BASE}/label-templates",
-        {"code": code, "name": f"Etiqueta {code}", "symbology": symbology,
-         "layout": {"fields": ["value", "code", "name"]}, "size_mm": "50x25"},
-    )  # fmt: skip
+        {
+            "code": code,
+            "name": f"Etiqueta {code}",
+            "symbology": symbology,
+            "layout": {"fields": ["value", "code", "name"]},
+            "size_mm": "50x25",
+        },
+    )
     assert r.status_code == 201, r.content
     return dict(r.json())
 
@@ -34,16 +39,19 @@ def test_T_INV_BARCODE_04_label_pdf_barcode_image_decodes_to_value_and_is_determ
     from kernel.uow import run_in_unit_of_work
 
     values = [
-        run_in_unit_of_work(lambda u, i=item: barcodes.generate(u, inv.company(), "item", i.id, "CODE128").value,
-                            inv.ctx())
+        run_in_unit_of_work(
+            lambda u, i=item: barcodes.generate(u, inv.company(), "item", i.id, "CODE128").value, inv.ctx()
+        )
         for item in items
-    ]  # fmt: skip
+    ]
     tpl = _template(api, "ET-P17")
     job = api.post(
         f"{BASE}/label-print-jobs",
-        {"template_id": tpl["id"], "targets": {"items": [{"id": str(items[0].id), "copies": 2},
-                                                         {"id": str(items[1].id), "copies": 1}]}},
-    )  # fmt: skip
+        {
+            "template_id": tpl["id"],
+            "targets": {"items": [{"id": str(items[0].id), "copies": 2}, {"id": str(items[1].id), "copies": 1}]},
+        },
+    )
     assert job.status_code == 201, job.content
     jid = job.json()["id"]
 

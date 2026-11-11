@@ -116,8 +116,8 @@ class Render(SecuredView):
         )
         replayed = isinstance(result, StoredResponse)
         if isinstance(result, StoredResponse):
-            doc_id = (result.body or {}).get("document_id")
-            row = GeneratedDocument.objects.filter(company_id=company, id=doc_id).first()
+            doc_id = str((result.body or {}).get("document_id") or "")
+            row = GeneratedDocument.objects.filter(company_id=company, id=doc_id).first() if doc_id else None
             if row is None:
                 raise NotFound("document not found")
         else:
@@ -147,4 +147,3 @@ class RenderBatchView(SecuredView):
             return {"Location": f"/api/v1/operations/{data['id']}"}
 
         return command(request, ctx, f"{SCOPE}.render_batch", fn, headers=headers)
-

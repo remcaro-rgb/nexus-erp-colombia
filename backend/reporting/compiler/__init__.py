@@ -94,7 +94,7 @@ def _hierarchy_join(n: int, d: Dim, plan: Plan, params: list[Any]) -> tuple[str,
         sql += f" AND {c}.distance = 1"
     else:  # root: the ancestor that has no proper ancestor itself in the same effective hierarchy
         sql += (
-            f" AND NOT EXISTS (SELECT 1 FROM {CLOSURE} {x} WHERE {x}.descendant_id = {c}.ancestor_id"
+            f" AND NOT EXISTS (SELECT 1 FROM {CLOSURE} {x} WHERE {x}.descendant_id = {c}.ancestor_id"  # noqa: S608  (identifiers from the semantic registry; values are bound parameters)
             f" AND {x}.dimension = {c}.dimension AND {x}.company_id = {c}.company_id AND {x}.distance > 0 AND "
             + _validity(x, plan.as_of, params)
             + ")"
@@ -138,7 +138,7 @@ def _cond(c: Cond, plan: Plan, params: list[Any]) -> str:
         # set semantics: selecting a group and one of its children counts each leaf once (DIM-R07)
         params.extend([c.field.hierarchy, list(value), plan.companies])
         sub = (
-            f"SELECT hs.descendant_id FROM {CLOSURE} hs WHERE hs.dimension = %s AND hs.ancestor_id = ANY(%s)"
+            f"SELECT hs.descendant_id FROM {CLOSURE} hs WHERE hs.dimension = %s AND hs.ancestor_id = ANY(%s)"  # noqa: S608  (identifiers from the semantic registry; values are bound parameters)
             " AND hs.company_id = ANY(%s) AND " + _validity("hs", plan.as_of, params)
         )
         return f"{expr} IN ({sub})"
@@ -185,7 +185,7 @@ def compile_plan(plan: Plan) -> Compiled:
         select.append(f"COUNT(DISTINCT {e.k_subject}) AS k_subjects")
         keys.append("__k")
 
-    sql = f"SELECT {', '.join(select)} FROM {e.table} {e.alias}"
+    sql = f"SELECT {', '.join(select)} FROM {e.table} {e.alias}"  # noqa: S608  (identifiers from the semantic registry; values are bound parameters)
     for name in joins_needed:
         j = e.joins[name]
         sql += f" {j.kind} JOIN {j.table} {j.alias} ON {j.on}"

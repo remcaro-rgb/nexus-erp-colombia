@@ -15,6 +15,7 @@ from typing import Any
 
 from django.db.models import QuerySet
 from django.http import HttpResponse
+from rest_framework.negotiation import DefaultContentNegotiation
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -168,7 +169,9 @@ def page(
     return Response({"items": [to_json(r) for r in rows], "next_cursor": next_cursor})
 
 
-def file_response(content: bytes, media_type: str, filename: str, extra: Mapping[str, str] | None = None) -> HttpResponse:
+def file_response(
+    content: bytes, media_type: str, filename: str, extra: Mapping[str, str] | None = None
+) -> HttpResponse:
     response = HttpResponse(content, content_type=media_type)
     response["Content-Disposition"] = f'inline; filename="{filename}"'
     for k, v in (extra or {}).items():
@@ -176,8 +179,21 @@ def file_response(content: bytes, media_type: str, filename: str, extra: Mapping
     return response
 
 
+class _NoUrlFormatOverride:
+    URL_FORMAT_OVERRIDE = None
+
+
+class ContractNegotiation(DefaultContentNegotiation):  # type: ignore[misc]  # DRF ships no type stubs (Any)
+    """The contract's ``format`` query parameter selects an export file (handled by the views), not a DRF
+    renderer: DRF's URL format override is disabled for these modules."""
+
+    settings = _NoUrlFormatOverride()
+
+
 class SecuredView(ModuleSecuredView):
     """P04's secured base; handlers authorize every action through ``PolicyService``."""
+
+    content_negotiation_class = ContractNegotiation
 
     def context(self) -> TenantContext:
         ctx = self.ctx

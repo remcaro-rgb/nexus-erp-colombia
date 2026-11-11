@@ -42,7 +42,9 @@ def _policy() -> PolicyService:
     return services.get(PolicyService)
 
 
-def audit(uow: UnitOfWork, action: str, resource: str, rid: uuid.UUID | None, company: uuid.UUID, **changes: Any) -> None:
+def audit(
+    uow: UnitOfWork, action: str, resource: str, rid: uuid.UUID | None, company: uuid.UUID, **changes: Any
+) -> None:
     svc = services.optional(AuditService)
     if svc is not None:
         svc.record(uow, AuditEntry(action, resource, rid, company, dict(changes)))
@@ -57,7 +59,7 @@ def templates_qs(ctx: TenantContext, company_id: uuid.UUID) -> Any:
 
 
 def get_template(ctx: TenantContext, company_id: uuid.UUID, template_id: uuid.UUID) -> DocumentTemplate:
-    t = templates_qs(ctx, company_id).filter(id=template_id).first()
+    t: DocumentTemplate | None = templates_qs(ctx, company_id).filter(id=template_id).first()
     if t is None:
         raise NotFound("template not found")
     return t
@@ -139,9 +141,9 @@ def update_template(uow: UnitOfWork, t: DocumentTemplate, data: Mapping[str, Any
     values = _validated(data, partial=True)
     if t.status != Status.ACTIVE:
         raise Conflict("an archived template cannot change", code="invalid_state_transition")
-    if "code" in values and values["code"] != t.code:
-        if DocumentTemplate.objects.filter(company_id=t.company_id, code=values["code"]).exclude(id=t.id).exists():
-            raise Conflict(f"a template with code {values['code']} already exists", code="validation_failed")
+    clash = DocumentTemplate.objects.filter(company_id=t.company_id, code=values.get("code")).exclude(id=t.id)
+    if "code" in values and values["code"] != t.code and clash.exists():
+        raise Conflict(f"a template with code {values['code']} already exists", code="validation_failed")
     changed = [k for k, v in values.items() if getattr(t, k) != v]
     for k in changed:
         setattr(t, k, values[k])
@@ -198,7 +200,8 @@ def resolve_template(company_id: uuid.UUID, code: str) -> tuple[str | None, str]
     """``(body, version)`` of the company's active template ``code`` (``None`` = use the built-in renderer)."""
     t = DocumentTemplate.objects.filter(company_id=company_id, code=code, status=Status.ACTIVE).first()
     if t is None:
-        return None, builtin.builtin(code).version if builtin.builtin(code) else "builtin"
+        known = builtin.builtin(code)
+        return None, known.version if known is not None else "builtin"
     return t.body, f"c{t.version}"
 
 
@@ -275,7 +278,12 @@ def render_source(
 
 
 def render_data(
-    uow: UnitOfWork, company_id: uuid.UUID, template_code: str, data: Mapping[str, Any], *, media_type: str | None = None
+    uow: UnitOfWork,
+    company_id: uuid.UUID,
+    template_code: str,
+    data: Mapping[str, Any],
+    *,
+    media_type: str | None = None,
 ) -> Rendered:
     """Render explicit data with a template code (company template or built-in); stored without a source link."""
     ctx = uow.ctx
@@ -305,7 +313,8 @@ def render_request(uow: UnitOfWork, company_id: uuid.UUID, params: Mapping[str, 
 def preview(uow: UnitOfWork, t: DocumentTemplate, sample: Mapping[str, Any] | None) -> dict[str, Any]:
     """SimulationResult of rendering ``t`` against sample data (built-in sample by default); never persisted."""
     _policy().require(uow.ctx, f"{TEMPLATE}.read")
-    data = sample if sample is not None else (builtin.builtin(t.code).sample if builtin.builtin(t.code) else {})
+    known = builtin.builtin(t.code)
+    data = sample if sample is not None else (known.sample if known is not None else {})
     if not isinstance(data, Mapping):
         raise ValidationFailed("sample must be an object", pointer="/parameters/sample")
     try:

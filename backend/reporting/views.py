@@ -25,7 +25,7 @@ def _format(request: Request) -> str:
     fmt = request.query_params.get("format", "json")
     if fmt not in FORMATS:
         raise ValidationFailed("format is json, csv, xlsx or pdf", field="format", code="filter_invalid")
-    return fmt
+    return str(fmt)
 
 
 def respond(result: dict[str, Any], fmt: str, title: str) -> Any:

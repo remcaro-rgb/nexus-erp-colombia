@@ -50,23 +50,62 @@ def cc_tree(world: World) -> dict[str, Any]:
 
 def test_T_ACC_DIM_10_group_and_child_together_no_double_count_and_as_of_vs_current_same_totals(world: World) -> None:
     t = cc_tree(world)
-    base = {"entity": "ledger.journal_line", "measures": ["net_credit", "lines"],
-            "filters": [{"field": "account_code", "op": "eq", "value": "413505"}]}  # fmt: skip
+    base = {
+        "entity": "ledger.journal_line",
+        "measures": ["net_credit", "lines"],
+        "filters": [{"field": "account_code", "op": "eq", "value": "413505"}],
+    }
 
     # group + child selected together: each leaf once (A1 150,000 + A2 250,000 = 400,000; never 550,000)
-    both = q(world, "analyst", {**base, "filters": [*base["filters"],
-             {"field": "cost_center", "op": "in_subtree", "value": [str(t["ADMIN"].id), str(t["A1"].id)]}]})
+    both = q(
+        world,
+        "analyst",
+        {
+            **base,
+            "filters": [
+                *base["filters"],
+                {"field": "cost_center", "op": "in_subtree", "value": [str(t["ADMIN"].id), str(t["A1"].id)]},
+            ],
+        },
+    )
     assert total(both) == D("400000")
     assert both["totals"]["lines"] == 3
-    only_group = q(world, "analyst", {**base, "filters": [*base["filters"],
-                   {"field": "cost_center", "op": "in_subtree", "value": [str(t["ADMIN"].id)]}]})
+    only_group = q(
+        world,
+        "analyst",
+        {
+            **base,
+            "filters": [*base["filters"], {"field": "cost_center", "op": "in_subtree", "value": [str(t["ADMIN"].id)]}],
+        },
+    )
     assert total(only_group) == total(both)
-    child_twice = q(world, "analyst", {**base, "filters": [*base["filters"],
-                    {"field": "cost_center", "op": "in_subtree", "value": [str(t["A1"].id), str(t["A1"].id)]}]})
+    child_twice = q(
+        world,
+        "analyst",
+        {
+            **base,
+            "filters": [
+                *base["filters"],
+                {"field": "cost_center", "op": "in_subtree", "value": [str(t["A1"].id), str(t["A1"].id)]},
+            ],
+        },
+    )
     assert total(child_twice) == D("150000")
-    everything = q(world, "analyst", {**base, "filters": [*base["filters"],
-                   {"field": "cost_center", "op": "in_subtree",
-                    "value": [str(t["ADMIN"].id), str(t["VENTAS"].id), str(t["A2"].id), str(t["V1"].id)]}]})
+    everything = q(
+        world,
+        "analyst",
+        {
+            **base,
+            "filters": [
+                *base["filters"],
+                {
+                    "field": "cost_center",
+                    "op": "in_subtree",
+                    "value": [str(t["ADMIN"].id), str(t["VENTAS"].id), str(t["A2"].id), str(t["V1"].id)],
+                },
+            ],
+        },
+    )
     assert total(everything) == D("800000") == total(q(world, "analyst", base))
 
     # re-parent A2 from ADMIN to VENTAS on 2026-11-09 (posted lines untouched, DIM-R06)
@@ -74,16 +113,39 @@ def test_T_ACC_DIM_10_group_and_child_together_no_double_count_and_as_of_vs_curr
     grouped = {**base, "dimensions": ["cost_center:root"]}
     current = q(world, "analyst", grouped)
     as_of = q(world, "analyst", {**grouped, "as_of": "2026-10-31"})
-    assert by(current, "cost_center:root") == {"ADMIN — ADMIN (SINTÉTICO)": D("150000"),
-                                               "VENTAS — VENTAS (SINTÉTICO)": D("650000")}
-    assert by(as_of, "cost_center:root") == {"ADMIN — ADMIN (SINTÉTICO)": D("400000"),
-                                             "VENTAS — VENTAS (SINTÉTICO)": D("400000")}
+    assert by(current, "cost_center:root") == {
+        "ADMIN — ADMIN (SINTÉTICO)": D("150000"),
+        "VENTAS — VENTAS (SINTÉTICO)": D("650000"),
+    }
+    assert by(as_of, "cost_center:root") == {
+        "ADMIN — ADMIN (SINTÉTICO)": D("400000"),
+        "VENTAS — VENTAS (SINTÉTICO)": D("400000"),
+    }
     assert total(current) == total(as_of) == D("800000")  # totals never change, only the grouping
     # the subtree filter follows the chosen hierarchy too, still without double counting
-    sub_now = q(world, "analyst", {**base, "filters": [*base["filters"],
-                {"field": "cost_center", "op": "in_subtree", "value": [str(t["VENTAS"].id), str(t["A2"].id)]}]})
-    sub_then = q(world, "analyst", {**base, "as_of": "2026-10-31", "filters": [*base["filters"],
-                 {"field": "cost_center", "op": "in_subtree", "value": [str(t["VENTAS"].id), str(t["A2"].id)]}]})
+    sub_now = q(
+        world,
+        "analyst",
+        {
+            **base,
+            "filters": [
+                *base["filters"],
+                {"field": "cost_center", "op": "in_subtree", "value": [str(t["VENTAS"].id), str(t["A2"].id)]},
+            ],
+        },
+    )
+    sub_then = q(
+        world,
+        "analyst",
+        {
+            **base,
+            "as_of": "2026-10-31",
+            "filters": [
+                *base["filters"],
+                {"field": "cost_center", "op": "in_subtree", "value": [str(t["VENTAS"].id), str(t["A2"].id)]},
+            ],
+        },
+    )
     assert total(sub_now) == D("650000") and total(sub_then) == D("650000")  # A2 counted once in both
     # leaf grouping is unaffected by the move
     leaves = q(world, "analyst", {**base, "dimensions": ["cost_center"]})
@@ -98,8 +160,15 @@ def test_T_ACC_BRANCH_05_branch_report_equals_sum_of_its_warehouses_and_pos_docu
     docs: list[tuple[Any, str, str]] = []  # (branch, source type, amount)
     for n, (wh, amount) in enumerate(((w_n1, "120000"), (w_n2, "80000"), (w_s1, "300000"), (w_n2, "15500.50"))):
         br = norte if wh.branch_id == norte.id else sur
-        world.post("inventory.stock_issue", f"SAL-{n}", amount, debit_role="COGS", credit_role="INVENTORY",
-                   branch=br, warehouse=wh)  # fmt: skip
+        world.post(
+            "inventory.stock_issue",
+            f"SAL-{n}",
+            amount,
+            debit_role="COGS",
+            credit_role="INVENTORY",
+            branch=br,
+            warehouse=wh,
+        )
         docs.append((br, "inventory.stock_issue", amount))
     for n, (cfg, amount) in enumerate(((pos_n, "45000"), (pos_s, "60000"), (pos_n, "9999.99"))):
         br = norte if cfg.branch_id == norte.id else sur
@@ -107,11 +176,20 @@ def test_T_ACC_BRANCH_05_branch_report_equals_sum_of_its_warehouses_and_pos_docu
         world.post("pos.ticket", f"POS-{n}", amount, branch=br, warehouse=wh)
         docs.append((br, "pos.ticket", amount))
 
-    def report(branch: Any, extra: list[dict[str, Any]] | None = None, dims: list[str] | None = None,
-               who: str = "analyst") -> dict[str, Any]:
+    def report(
+        branch: Any, extra: list[dict[str, Any]] | None = None, dims: list[str] | None = None, who: str = "analyst"
+    ) -> dict[str, Any]:
         filters = [{"field": "branch_id", "op": "eq", "value": str(branch.id)}] if branch is not None else []
-        return q(world, who, {"entity": "ledger.journal_line", "measures": ["debit", "credit", "entries"],
-                              "filters": filters + (extra or []), "dimensions": dims or []})  # fmt: skip
+        return q(
+            world,
+            who,
+            {
+                "entity": "ledger.journal_line",
+                "measures": ["debit", "credit", "entries"],
+                "filters": filters + (extra or []),
+                "dimensions": dims or [],
+            },
+        )
 
     for br in (norte, sur):
         expected = sum((D(a) for b, _, a in docs if b.id == br.id), D(0))
@@ -121,14 +199,23 @@ def test_T_ACC_BRANCH_05_branch_report_equals_sum_of_its_warehouses_and_pos_docu
         assert D(result["totals"]["debit"]) == expected == D(result["totals"]["credit"])
         assert result["totals"]["entries"] == expected_docs
         # = the sum over the branch's warehouses (joined through inventory_warehouse.branch_id)
-        per_wh = q(world, "analyst", {"entity": "ledger.journal_line", "measures": ["debit"],
-                                      "dimensions": ["warehouse_code", "warehouse_branch_id"]})  # fmt: skip
+        per_wh = q(
+            world,
+            "analyst",
+            {
+                "entity": "ledger.journal_line",
+                "measures": ["debit"],
+                "dimensions": ["warehouse_code", "warehouse_branch_id"],
+            },
+        )
         wh_sum = sum((D(r["debit"]) for r in per_wh["rows"] if r["warehouse_branch_id"] == str(br.id)), D(0))
         assert wh_sum == expected
         # = stock documents of its warehouses + POS documents of its POS configurations
         by_source = report(br, dims=["source_type"])
         split = {r["source_type"]: D(r["debit"]) for r in by_source["rows"]}
-        assert split["inventory.stock_issue"] == sum((D(a) for b, s, a in docs if b.id == br.id and s != "pos.ticket"), D(0))
+        assert split["inventory.stock_issue"] == sum(
+            (D(a) for b, s, a in docs if b.id == br.id and s != "pos.ticket"), D(0)
+        )
         assert split["pos.ticket"] == sum((D(a) for b, s, a in docs if b.id == br.id and s == "pos.ticket"), D(0))
     assert D(report(norte)["totals"]["debit"]) + D(report(sur)["totals"]["debit"]) == D(report(None)["totals"]["debit"])
 

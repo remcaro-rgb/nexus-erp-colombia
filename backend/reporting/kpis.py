@@ -60,7 +60,9 @@ def _runs(ctx: TenantContext, company_id: uuid.UUID) -> Any:
     )
 
 
-def reportes_kpis(ctx: TenantContext, company_id: uuid.UUID, period: str | None, compare: bool = True) -> dict[str, Any]:
+def reportes_kpis(
+    ctx: TenantContext, company_id: uuid.UUID, period: str | None, compare: bool = True
+) -> dict[str, Any]:
     ctx.require_company(company_id)
     start, end = _month(period)
     prev_end = start - dt.timedelta(days=1)
@@ -79,7 +81,7 @@ def reportes_kpis(ctx: TenantContext, company_id: uuid.UUID, period: str | None,
         def count(lo: dt.date, hi: dt.date, failed: bool) -> int:
             a, b = _bounds(lo, hi)
             qs = runs.filter(started_at__gte=a, started_at__lt=b)
-            return qs.filter(state=ReportRun.State.FAILED).count() if failed else qs.count()
+            return int(qs.filter(state=ReportRun.State.FAILED).count() if failed else qs.count())
 
         for kid, failed in (("ejecuciones", False), ("ejecuciones_fallidas", True)):
             kpis.append(_kpi(kid, count(start, end, failed), count(prev_start, prev_end, failed) if compare else None))
