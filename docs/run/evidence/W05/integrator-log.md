@@ -38,3 +38,12 @@ $ python3 tools/parity_gate.py  [after P16a] -> exit 0 in 867s
 $ python3 tools/parity_gate.py  [after P16b] -> exit 0 in 913s
 $ (make dev-up && make dev-seed) > /tmp/nexus-devup.log 2>&1; make test-ids IDS="$NEXUS_IDS"  [feature tests (16 ids)] -> exit 0 in 63s
 ```
+
+## integrate — 2026-11-11T14:24:26Z
+
+* P09b: ACCEPTED
+
+```
+$ python3 tools/parity_gate.py  [after P09b] -> exit 0 in 995s
+$ (make dev-up && make dev-seed) > /tmp/nexus-devup.log 2>&1; make test-ids IDS="$NEXUS_IDS"  [feature tests (7 ids)] -> exit 0 in 52s
+```

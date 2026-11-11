@@ -1,7 +1,7 @@
 {
   "schema": "erp-features/results/v1",
   "registry_sha256": "a62fa1d937c13533ddc08f22b87a65d9bce24d662e6df7e8996f3aa7ee939ab4",
-  "commit": "007affadca94ce3bdd500485235e9fa55dd88220",
+  "commit": "be5e72156f40b06f088f6680086abfd020e8a9d0",
   "tests": {
     "T-ACC-DIM-12": {
       "status": "FAILED",
@@ -10,6 +10,34 @@
     "T-FORMULA-ENGINE-06": {
       "status": "FAILED",
       "evidence": "reports/junit/test-ids-frontend.xml#T-FORMULA-ENGINE-06 FormulaEditor > T-FORMULA-ENGINE-06 accessible labels: every control is named and axe reports no serious violations"
+    },
+    "T-INV-BARCODE-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_BARCODE_01_code128_golden_vectors[PJJ123C-values0]"
+    },
+    "T-INV-BARCODE-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_BARCODE_02_gs1_generation_refused_without_user_prefix"
+    },
+    "T-INV-BARCODE-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_BARCODE_03_lookup_resolves_item_presentation_location_lot_unknown_is_barcode_unknown"
+    },
+    "T-INV-ISSUE-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_ISSUE_01_each_seeded_concept_posts_exact_journal_and_moves_cost_from_layers"
+    },
+    "T-INV-ISSUE-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_ISSUE_02_required_dims_reason_and_approval_threshold_routes_to_workflow"
+    },
+    "T-INV-ISSUE-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_ISSUE_03_concurrent_issues_of_last_units_one_succeeds_one_stock_insufficient"
+    },
+    "T-INV-ISSUE-04": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_ISSUE_04_reversal_returns_stock_at_original_cost_bin_and_lot"
     },
     "T-PAY-FORMULA-01": {
       "status": "FAILED",
@@ -23,25 +51,21 @@
       "status": "FAILED",
       "evidence": "reports/junit/test-ids-frontend.xml#T-PORTAL-CORE-04 portal shell variant > T-PORTAL-CORE-04 tokens identical to the internal shell (dark)"
     },
-    "T-PORTAL-CUS-01": {
-      "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_CUS_01_customer_sees_only_own_documents_and_statement_equals_ar_subledger"
-    },
     "T-PORTAL-CUS-02": {
-      "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_CUS_02_simulated_payment_never_posts_and_leaves_rc_draft_for_treasury"
+      "status": "FAILED",
+      "evidence": "reports/junit/test-ids-frontend.xml#customer portal (F-PORTAL-CUS) > T-PORTAL-CUS-02 payment intent: amount > 0, ≤ open balance, exact decimals, one currency"
     },
     "T-PORTAL-CUS-03": {
-      "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_CUS_03_quote_request_to_internal_quote_to_acceptance_to_sales_order"
+      "status": "FAILED",
+      "evidence": "reports/junit/test-ids-frontend.xml#customer portal (F-PORTAL-CUS) > T-PORTAL-CUS-03 quote requests carry items and quantities only (never prices)"
     },
     "T-PORTAL-CUS-04": {
-      "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_CUS_04_no_other_customer_prices_cost_margin_or_formula_in_any_portal_response"
+      "status": "FAILED",
+      "evidence": "reports/junit/test-ids-frontend.xml#customer portal (F-PORTAL-CUS) > T-PORTAL-CUS-04 the UI never renders internal keys and only calls the customer portal API"
     },
     "T-PORTAL-CUS-05": {
-      "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_CUS_05_fiscal_pdf_and_xml_downloads_carry_the_synthetic_label"
+      "status": "FAILED",
+      "evidence": "reports/junit/test-ids-frontend.xml#customer portal (F-PORTAL-CUS) > T-PORTAL-CUS-05 fiscal downloads point to the synthetic PDF/XML endpoints"
     },
     "T-PT-OPEN-02": {
       "status": "FAILED",
@@ -67,49 +91,9 @@
       "status": "FAILED",
       "evidence": "reports/junit/test-ids-frontend.xml#sales view model > T-SAL-PRICING-05 explain shows the FX of the document date and the currency rounding"
     },
-    "T-TRE-CE-01": {
-      "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_TRE_CE_01_three_partial_bills_with_withholding_exact_journal"
-    },
-    "T-TRE-CE-02": {
-      "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_TRE_CE_02_direct_concept_disbursement_with_cost_center"
-    },
-    "T-TRE-CE-03": {
-      "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_TRE_CE_03_batch_execution_one_ce_per_payee_gap_free_fixture_file"
-    },
-    "T-TRE-CE-04": {
-      "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_TRE_CE_04_dual_approval_above_threshold_with_sod"
-    },
-    "T-TRE-CE-05": {
-      "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_TRE_CE_05_reversal_reopens_ap_items_and_keeps_the_original"
-    },
     "T-TRE-RC-01": {
-      "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_TRE_RC_01_two_partial_invoices_advance_and_withholding_exact_journal"
-    },
-    "T-TRE-RC-02": {
-      "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_TRE_RC_02_concept_receipt_without_ar_posts_to_concept_accounts_with_dims"
-    },
-    "T-TRE-RC-03": {
-      "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_TRE_RC_03_fifty_concurrent_posts_gap_free_numbers_no_double_application"
-    },
-    "T-TRE-RC-04": {
-      "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_TRE_RC_04_ledger_failure_rolls_back_number_open_items_and_entry"
-    },
-    "T-TRE-RC-05": {
-      "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_TRE_RC_05_reversal_reopens_items_mirrors_entry_and_keeps_original"
-    },
-    "T-TRE-RC-06": {
-      "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_TRE_RC_06_threshold_routes_to_p07_and_creator_cannot_approve"
+      "status": "FAILED",
+      "evidence": "reports/junit/test-ids-frontend.xml#treasury voucher model > T-TRE-RC-01 fund total = applications + advance − withholding (decimal)"
     }
   }
 }

@@ -4,7 +4,7 @@
   "repo_url": "https://github.com/remcaro-rgb/nexus-erp-colombia",
   "plan_sha256": "593796320d7b832515b6c33e344d08904c9a24185528abcd51c8e09fe8ba089f",
   "registry_sha256": "a62fa1d937c13533ddc08f22b87a65d9bce24d662e6df7e8996f3aa7ee939ab4",
-  "updated_at": "2026-11-11T04:34:37Z",
+  "updated_at": "2026-11-11T14:24:26Z",
   "tasks": {
     "P01": {
       "status": "ACCEPTED",
@@ -106,15 +106,19 @@
       "accepted_at": "2026-11-10T20:44:40Z"
     },
     "P09b": {
-      "status": "FAILED",
+      "status": "ACCEPTED",
       "attempt": 3,
       "notes": [
         "attempt 1 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 policy: last line: secret scan OK (1632 files) log=docs/run/evidence/W04/parity-gate/P09b-1.log",
         "attempt 2 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 policy: last line: secret scan OK (1812 files) log=docs/run/evidence/W05/parity-gate/P09b-1.log",
         "attempt 3 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 policy: last line: secret scan OK (1836 files) log=docs/run/evidence/W05/parity-gate/P09b-2.log",
         "operator reset: policy rejections were a shallow-clone gitleaks false positive (f6813f0); re-integrating attempt 3",
-        "attempt 3 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 make-ci: pytest: 1 backend/workflow(P07); 1 tests failed log=docs/run/evidence/W05/parity-gate/P09b-3.log"
-      ]
+        "attempt 3 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 make-ci: pytest: 1 backend/workflow(P07); 1 tests failed log=docs/run/evidence/W05/parity-gate/P09b-3.log",
+        "operator reset: rejections were environment/flaky (shallow-clone gitleaks; P07 formula CPU-timing test); re-integrating attempt 3"
+      ],
+      "accepted_sha": "be5e72156f40b06f088f6680086abfd020e8a9d0",
+      "branch": "claude/new-session-1uvgmw",
+      "accepted_at": "2026-11-11T14:24:26Z"
     },
     "P09c": {
       "status": "ACCEPTED",
@@ -209,7 +213,7 @@
       "accepted_at": "2026-11-11T04:34:37Z"
     },
     "P12": {
-      "status": "PENDING",
+      "status": "READY",
       "attempt": 1
     },
     "G2": {
@@ -532,6 +536,19 @@
       "sha": "007affadca94ce3bdd500485235e9fa55dd88220",
       "branch": "claude/new-session-fs2hdz",
       "at": "2026-11-11T04:34:37Z"
+    },
+    {
+      "type": "operator_reset",
+      "task": "P09b",
+      "attempt": 3,
+      "at": "2026-11-11T14:06:58Z"
+    },
+    {
+      "type": "accept",
+      "task": "P09b",
+      "sha": "be5e72156f40b06f088f6680086abfd020e8a9d0",
+      "branch": "claude/new-session-1uvgmw",
+      "at": "2026-11-11T14:24:26Z"
     }
   ]
 }
