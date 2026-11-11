@@ -76,19 +76,44 @@ class IssueConceptsTemplate(Template):
         Column("code", required=True, max_length=40, help="Código (se guarda en mayúsculas)", example="CONSUMO"),
         Column("name", required=True, max_length=200, help="Nombre", example="Consumo interno"),
         Column("kind", allowed=tuple(IssueConcept.Kind.values), help="Tipo de salida", example="CONSUMPTION"),
-        Column("account_role", required=True, max_length=60, help="Rol contable de la contrapartida (débito)", example="EXPENSE"),
+        Column(
+            "account_role",
+            required=True,
+            max_length=60,
+            help="Rol contable de la contrapartida (débito)",
+            example="EXPENSE",
+        ),
         Column("requires_dimension", type="boolean", help="Exige centro de costo", example="true"),
-        Column("required_dims", type="list", allowed=DIMS, unordered=True, help="Dimensiones adicionales exigidas, separadas por |", example="cost_center"),
+        Column(
+            "required_dims",
+            type="list",
+            allowed=DIMS,
+            unordered=True,
+            help="Dimensiones adicionales exigidas, separadas por |",
+            example="cost_center",
+        ),
         Column("requires_reason", type="boolean", help="Exige motivo", example="false"),
         Column("reason_codes", type="list", help="Códigos de motivo permitidos, separados por |"),
         Column("requires_approval", type="boolean", help="Requiere aprobación", example="false"),
         Column("approval_threshold_value", type="decimal", help="Valor desde el cual se aprueba (COP)"),
         Column("status", allowed=("ACTIVE", "ARCHIVED"), help="ACTIVE o ARCHIVED", example="ACTIVE"),
     )
-    examples = ({"code": "CONSUMO", "name": "Consumo interno", "kind": "CONSUMPTION", "account_role": "EXPENSE", "requires_dimension": "true", "required_dims": "cost_center", "status": "ACTIVE"},)
+    examples = (
+        {
+            "code": "CONSUMO",
+            "name": "Consumo interno",
+            "kind": "CONSUMPTION",
+            "account_role": "EXPENSE",
+            "requires_dimension": "true",
+            "required_dims": "cost_center",
+            "status": "ACTIVE",
+        },
+    )
 
     def find(self, ctx: TenantContext, company_id: uuid.UUID, rec: Record) -> Any:
-        return IssueConcept.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, code__iexact=rec.values["code"]).first()
+        return IssueConcept.objects.filter(
+            tenant_id=ctx.tenant_id, company_id=company_id, code__iexact=rec.values["code"]
+        ).first()
 
     def current(self, obj: IssueConcept) -> dict[str, Any]:
         return {
@@ -155,7 +180,9 @@ class PresentationsTemplate(Template):
     update_permission = "inventory.presentation.update"
     columns = (
         Column("item_code", required=True, max_length=40, help="Código del ítem (misma empresa)", example="ARROZ"),
-        Column("code", required=True, max_length=40, help="Código de la presentación (único por ítem)", example="BOLSA500"),
+        Column(
+            "code", required=True, max_length=40, help="Código de la presentación (único por ítem)", example="BOLSA500"
+        ),
         Column("name", required=True, max_length=120, help="Nombre", example="Bolsa 500 g"),
         Column("uom", required=True, max_length=20, help="Unidad de empaque (caja, bolsa…)", example="bolsa"),
         Column("factor", type="decimal", required=True, help="Unidades base por empaque (> 0, exacto)", example="0.5"),
@@ -165,7 +192,17 @@ class PresentationsTemplate(Template):
         Column("is_default_sale", type="boolean", help="Presentación de venta por defecto", example="false"),
         Column("status", allowed=("ACTIVE", "ARCHIVED"), help="ACTIVE o ARCHIVED", example="ACTIVE"),
     )
-    examples = ({"item_code": "ARROZ", "code": "BOLSA500", "name": "Bolsa 500 g", "uom": "bolsa", "factor": "0.5", "precision": "0", "status": "ACTIVE"},)
+    examples = (
+        {
+            "item_code": "ARROZ",
+            "code": "BOLSA500",
+            "name": "Bolsa 500 g",
+            "uom": "bolsa",
+            "factor": "0.5",
+            "precision": "0",
+            "status": "ACTIVE",
+        },
+    )
 
     def find(self, ctx: TenantContext, company_id: uuid.UUID, rec: Record) -> Any:
         item = item_by_code(ctx, company_id, rec.values["item_code"], "item_code")
@@ -216,7 +253,9 @@ class PresentationsTemplate(Template):
         return obj
 
     def queryset(self, ctx: TenantContext, company_id: uuid.UUID) -> QuerySet[Any]:
-        return Presentation.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id).order_by("item__code", "code")
+        return Presentation.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id).order_by(
+            "item__code", "code"
+        )
 
 
 # --------------------------------------------------------------------------- locations
@@ -234,16 +273,48 @@ class LocationsTemplate(Template):
     update_permission = "inventory.location.update"
     parent_column = "parent_code"
     columns = (
-        Column("warehouse_code", required=True, max_length=40, help="Código de la bodega (misma empresa)", example="PRINCIPAL"),
-        Column("code", required=True, max_length=40, help="Código de la ubicación (único por bodega, sin '/')", example="A-01"),
+        Column(
+            "warehouse_code",
+            required=True,
+            max_length=40,
+            help="Código de la bodega (misma empresa)",
+            example="PRINCIPAL",
+        ),
+        Column(
+            "code",
+            required=True,
+            max_length=40,
+            help="Código de la ubicación (único por bodega, sin '/')",
+            example="A-01",
+        ),
         Column("name", required=True, max_length=200, help="Nombre", example="Pasillo A, estante 1"),
-        Column("location_type", required=True, allowed=tuple(Location.LocationType.values), help="VIEW, INTERNAL, TRANSIT o SCRAP", example="INTERNAL"),
-        Column("parent_code", max_length=40, help="Código de la ubicación padre (vacío = raíz de la bodega); puede venir después", example="ALMACEN"),
+        Column(
+            "location_type",
+            required=True,
+            allowed=tuple(Location.LocationType.values),
+            help="VIEW, INTERNAL, TRANSIT o SCRAP",
+            example="INTERNAL",
+        ),
+        Column(
+            "parent_code",
+            max_length=40,
+            help="Código de la ubicación padre (vacío = raíz de la bodega); puede venir después",
+            example="ALMACEN",
+        ),
         Column("barcode", max_length=64, help="Código de barras de la ubicación"),
         Column("capacity", type="decimal", help="Capacidad (opcional)"),
         Column("allow_mixed_lots", type="boolean", help="Permite mezclar lotes", example="true"),
     )
-    examples = ({"warehouse_code": "PRINCIPAL", "code": "A-01", "name": "Pasillo A, estante 1", "location_type": "INTERNAL", "parent_code": "ALMACEN", "allow_mixed_lots": "true"},)
+    examples = (
+        {
+            "warehouse_code": "PRINCIPAL",
+            "code": "A-01",
+            "name": "Pasillo A, estante 1",
+            "location_type": "INTERNAL",
+            "parent_code": "ALMACEN",
+            "allow_mixed_lots": "true",
+        },
+    )
 
     def find(self, ctx: TenantContext, company_id: uuid.UUID, rec: Record) -> Any:
         wh = warehouse_by_code(ctx, company_id, rec.values["warehouse_code"], "warehouse_code")
@@ -301,7 +372,9 @@ class LocationsTemplate(Template):
         return locations.update_location(uow, obj, changes)
 
     def queryset(self, ctx: TenantContext, company_id: uuid.UUID) -> QuerySet[Any]:
-        return Location.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id).order_by("warehouse__code", "path")
+        return Location.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id).order_by(
+            "warehouse__code", "path"
+        )
 
 
 # --------------------------------------------------------------------------- GTIN (barcodes import)
@@ -319,8 +392,16 @@ class GtinsTemplate(Template):
     update_permission = "inventory.barcode.create"
     updatable = False
     columns = (
-        Column("value", required=True, max_length=14, help="GTIN-8/12/13/14 existente (dígito de control válido)", example="7701234567897"),
-        Column("owner_type", required=True, allowed=("item", "presentation"), help="item o presentation", example="item"),
+        Column(
+            "value",
+            required=True,
+            max_length=14,
+            help="GTIN-8/12/13/14 existente (dígito de control válido)",
+            example="7701234567897",
+        ),
+        Column(
+            "owner_type", required=True, allowed=("item", "presentation"), help="item o presentation", example="item"
+        ),
         Column("item_code", required=True, max_length=40, help="Código del ítem (misma empresa)", example="ARROZ"),
         Column("presentation_code", max_length=40, help="Código de la presentación (si owner_type = presentation)"),
     )
@@ -328,7 +409,9 @@ class GtinsTemplate(Template):
     notes = "D-004: los GTIN importados se validan pero nunca se declaran propios."
 
     def find(self, ctx: TenantContext, company_id: uuid.UUID, rec: Record) -> Any:
-        return Barcode.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, value=str(rec.values["value"]).strip()).first()
+        return Barcode.objects.filter(
+            tenant_id=ctx.tenant_id, company_id=company_id, value=str(rec.values["value"]).strip()
+        ).first()
 
     def current(self, obj: Barcode) -> dict[str, Any]:
         pres = None
@@ -346,14 +429,18 @@ class GtinsTemplate(Template):
         item = item_by_code(uow.ctx, company_id, v["item_code"], "item_code")
         owner_id = item.id
         if v["owner_type"] == "presentation":
-            p = Presentation.objects.filter(company_id=company_id, item=item, code__iexact=str(v.get("presentation_code") or "")).first()
+            p = Presentation.objects.filter(
+                company_id=company_id, item=item, code__iexact=str(v.get("presentation_code") or "")
+            ).first()
             if p is None:
                 raise RowError("not_found", "presentación no existe para el ítem en esta empresa", "presentation_code")
             owner_id = p.id
         return barcodes.register_imported(uow, company_id, v["owner_type"], owner_id, v["value"])
 
     def queryset(self, ctx: TenantContext, company_id: uuid.UUID) -> QuerySet[Any]:
-        return Barcode.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, source="IMPORTED").order_by("value")
+        return Barcode.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, source="IMPORTED").order_by(
+            "value"
+        )
 
 
 # --------------------------------------------------------------------------- BOMs
@@ -371,11 +458,15 @@ class BomsTemplate(Template):
     update_permission = "inventory.bom.update"
     document = True
     columns = (
-        Column("code", required=True, max_length=40, help="Código de la lista (una fila por componente)", example="PAN-01"),
+        Column(
+            "code", required=True, max_length=40, help="Código de la lista (una fila por componente)", example="PAN-01"
+        ),
         Column("name", required=True, max_length=200, help="Nombre", example="Pan tajado"),
         Column("item_code", required=True, max_length=40, help="Ítem producido", example="PAN"),
         Column("bom_type", allowed=("PRODUCTION", "KIT"), help="PRODUCTION o KIT", example="PRODUCTION"),
-        Column("output_qty", type="decimal", required=True, help="Cantidad producida por lote (unidad base)", example="10"),
+        Column(
+            "output_qty", type="decimal", required=True, help="Cantidad producida por lote (unidad base)", example="10"
+        ),
         Column("valid_from", type="date", required=True, help="Vigente desde", example="2026-01-01"),
         Column("valid_to", type="date", help="Vigente hasta"),
         Column("yield_percent", type="decimal", help="Rendimiento % (por defecto 100)", example="100"),
@@ -385,11 +476,39 @@ class BomsTemplate(Template):
         Column("scrap_percent", type="decimal", line=True, help="Desperdicio % del componente", example="0"),
         Column("is_byproduct", type="boolean", line=True, help="true si es subproducto", example="false"),
         Column("cost_share_percent", type="decimal", line=True, help="Participación en el costo (solo subproductos)"),
-        Column("status", allowed=("DRAFT", "ACTIVE", "OBSOLETE"), help="La importación crea o modifica solo en DRAFT (ACTIVE/OBSOLETE se exportan como información; activar es una acción del usuario)", example="DRAFT"),
+        Column(
+            "status",
+            allowed=("DRAFT", "ACTIVE", "OBSOLETE"),
+            help=(
+                "La importación crea o modifica solo en DRAFT (ACTIVE/OBSOLETE se exportan como información; "
+                "activar es una acción del usuario)"
+            ),
+            example="DRAFT",
+        ),
     )
     examples = (
-        {"code": "PAN-01", "name": "Pan tajado", "item_code": "PAN", "bom_type": "PRODUCTION", "output_qty": "10", "valid_from": "2026-01-01", "component_code": "HARINA", "quantity": "5", "status": "DRAFT"},
-        {"code": "PAN-01", "name": "Pan tajado", "item_code": "PAN", "bom_type": "PRODUCTION", "output_qty": "10", "valid_from": "2026-01-01", "component_code": "LEVADURA", "quantity": "0.1", "status": "DRAFT"},
+        {
+            "code": "PAN-01",
+            "name": "Pan tajado",
+            "item_code": "PAN",
+            "bom_type": "PRODUCTION",
+            "output_qty": "10",
+            "valid_from": "2026-01-01",
+            "component_code": "HARINA",
+            "quantity": "5",
+            "status": "DRAFT",
+        },
+        {
+            "code": "PAN-01",
+            "name": "Pan tajado",
+            "item_code": "PAN",
+            "bom_type": "PRODUCTION",
+            "output_qty": "10",
+            "valid_from": "2026-01-01",
+            "component_code": "LEVADURA",
+            "quantity": "0.1",
+            "status": "DRAFT",
+        },
     )
 
     def find(self, ctx: TenantContext, company_id: uuid.UUID, rec: Record) -> Any:
@@ -429,7 +548,11 @@ class BomsTemplate(Template):
         v = {**base, **{k: rec.values.get(k) for k in rec.present}}
         wanted = rec.values.get("status")
         if wanted not in (None, "DRAFT") and wanted != base.get("status"):
-            raise RowError("invalid_state_transition", "las listas se importan solo en DRAFT (activar es una acción del usuario)", "status")
+            raise RowError(
+                "invalid_state_transition",
+                "las listas se importan solo en DRAFT (activar es una acción del usuario)",
+                "status",
+            )
         lines = tuple(
             boms.LineInput(
                 item_id=item_by_code(ctx, company_id, ln.get("component_code"), "component_code").id,
@@ -466,7 +589,11 @@ class BomsTemplate(Template):
     def queryset(self, ctx: TenantContext, company_id: uuid.UUID) -> QuerySet[Any]:
         latest = []
         seen: set[str] = set()
-        for b in Bom.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id).order_by("code", "-version_no").only("id", "code"):
+        for b in (
+            Bom.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id)
+            .order_by("code", "-version_no")
+            .only("id", "code")
+        ):
             if b.code.lower() not in seen:
                 seen.add(b.code.lower())
                 latest.append(b.id)
@@ -490,20 +617,54 @@ class PortioningTemplatesTemplate(Template):
         Column("code", required=True, max_length=40, help="Código (una fila por producto de salida)", example="RES-01"),
         Column("name", required=True, max_length=200, help="Nombre", example="Despiece de res"),
         Column("input_item_code", required=True, max_length=40, help="Ítem de entrada", example="RES"),
-        Column("tolerance_percent", type="decimal", help="Tolerancia de rendimiento % (D-015, por defecto 2)", example="2"),
+        Column(
+            "tolerance_percent", type="decimal", help="Tolerancia de rendimiento % (D-015, por defecto 2)", example="2"
+        ),
         Column("waste_percent", type="decimal", help="Merma esperada %", example="5"),
         Column("output_code", required=True, max_length=40, line=True, help="Ítem de salida", example="LOMO"),
-        Column("expected_yield_percent", type="decimal", required=True, line=True, help="Rendimiento esperado %", example="20"),
-        Column("cost_share_percent", type="decimal", line=True, help="Participación en el costo % (todas o ninguna; suman 100)"),
+        Column(
+            "expected_yield_percent",
+            type="decimal",
+            required=True,
+            line=True,
+            help="Rendimiento esperado %",
+            example="20",
+        ),
+        Column(
+            "cost_share_percent",
+            type="decimal",
+            line=True,
+            help="Participación en el costo % (todas o ninguna; suman 100)",
+        ),
         Column("is_main", type="boolean", line=True, help="Salida principal (recibe el redondeo)", example="true"),
     )
     examples = (
-        {"code": "RES-01", "name": "Despiece de res", "input_item_code": "RES", "tolerance_percent": "2", "waste_percent": "5", "output_code": "LOMO", "expected_yield_percent": "20", "is_main": "true"},
-        {"code": "RES-01", "name": "Despiece de res", "input_item_code": "RES", "tolerance_percent": "2", "waste_percent": "5", "output_code": "MOLIDA", "expected_yield_percent": "75", "is_main": "false"},
+        {
+            "code": "RES-01",
+            "name": "Despiece de res",
+            "input_item_code": "RES",
+            "tolerance_percent": "2",
+            "waste_percent": "5",
+            "output_code": "LOMO",
+            "expected_yield_percent": "20",
+            "is_main": "true",
+        },
+        {
+            "code": "RES-01",
+            "name": "Despiece de res",
+            "input_item_code": "RES",
+            "tolerance_percent": "2",
+            "waste_percent": "5",
+            "output_code": "MOLIDA",
+            "expected_yield_percent": "75",
+            "is_main": "false",
+        },
     )
 
     def find(self, ctx: TenantContext, company_id: uuid.UUID, rec: Record) -> Any:
-        return PortioningTemplate.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, code__iexact=rec.values["code"]).first()
+        return PortioningTemplate.objects.filter(
+            tenant_id=ctx.tenant_id, company_id=company_id, code__iexact=rec.values["code"]
+        ).first()
 
     def current(self, obj: PortioningTemplate) -> dict[str, Any]:
         return {
@@ -525,7 +686,9 @@ class PortioningTemplatesTemplate(Template):
             for o in obj.outputs.order_by("line_no")
         ]
 
-    def _input(self, ctx: TenantContext, company_id: uuid.UUID, rec: Record, base: dict[str, Any]) -> portioning.TemplateInput:
+    def _input(
+        self, ctx: TenantContext, company_id: uuid.UUID, rec: Record, base: dict[str, Any]
+    ) -> portioning.TemplateInput:
         v = {**base, **{k: rec.values.get(k) for k in rec.present}}
         outputs = tuple(
             portioning.TemplateOutputInput(

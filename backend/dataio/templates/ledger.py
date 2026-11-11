@@ -34,18 +34,58 @@ class DimensionsTemplate(Template):
     update_permission = "ledger.dimension.update"
     parent_column = "parent_code"
     columns = (
-        Column("dimension", required=True, allowed=DIMENSIONS, help="cost_center, business_unit, aux_abierto o item_contable", example="cost_center", synonyms=("dimension_contable",)),
-        Column("code", required=True, max_length=40, help="Código único por empresa y dimensión (sin distinguir mayúsculas)", example="ADM"),
+        Column(
+            "dimension",
+            required=True,
+            allowed=DIMENSIONS,
+            help="cost_center, business_unit, aux_abierto o item_contable",
+            example="cost_center",
+            synonyms=("dimension_contable",),
+        ),
+        Column(
+            "code",
+            required=True,
+            max_length=40,
+            help="Código único por empresa y dimensión (sin distinguir mayúsculas)",
+            example="ADM",
+        ),
         Column("description", required=True, max_length=200, help="Descripción", example="Administración"),
-        Column("node_type", required=True, allowed=("AGRUPADOR", "DETALLE"), help="AGRUPADOR (no imputable) o DETALLE (imputable)", example="AGRUPADOR"),
-        Column("parent_code", max_length=40, help="Código del AGRUPADOR padre (misma empresa y dimensión); puede venir después en el archivo", example=""),
+        Column(
+            "node_type",
+            required=True,
+            allowed=("AGRUPADOR", "DETALLE"),
+            help="AGRUPADOR (no imputable) o DETALLE (imputable)",
+            example="AGRUPADOR",
+        ),
+        Column(
+            "parent_code",
+            max_length=40,
+            help="Código del AGRUPADOR padre (misma empresa y dimensión); puede venir después en el archivo",
+            example="",
+        ),
         Column("valid_from", type="date", help="Vigente desde (AAAA-MM-DD)", example="2026-01-01"),
         Column("valid_to", type="date", help="Vigente hasta (opcional)"),
         Column("status", allowed=("ACTIVE", "ARCHIVED"), help="ACTIVE o ARCHIVED", example="ACTIVE"),
     )
     examples = (
-        {"dimension": "cost_center", "code": "ADM", "description": "Administración", "node_type": "AGRUPADOR", "parent_code": "", "valid_from": "2026-01-01", "status": "ACTIVE"},
-        {"dimension": "cost_center", "code": "ADM-01", "description": "Gerencia", "node_type": "DETALLE", "parent_code": "ADM", "valid_from": "2026-01-01", "status": "ACTIVE"},
+        {
+            "dimension": "cost_center",
+            "code": "ADM",
+            "description": "Administración",
+            "node_type": "AGRUPADOR",
+            "parent_code": "",
+            "valid_from": "2026-01-01",
+            "status": "ACTIVE",
+        },
+        {
+            "dimension": "cost_center",
+            "code": "ADM-01",
+            "description": "Gerencia",
+            "node_type": "DETALLE",
+            "parent_code": "ADM",
+            "valid_from": "2026-01-01",
+            "status": "ACTIVE",
+        },
     )
 
     def _qs(self, ctx: TenantContext, company_id: uuid.UUID, dimension: str) -> QuerySet[DimensionNode]:
@@ -63,16 +103,27 @@ class DimensionsTemplate(Template):
         code = rec.values.get("parent_code")
         if not code:
             return None
-        parent = self._qs(ctx, company_id, rec.values["dimension"]).annotate(lc=Lower("code")).filter(lc=str(code).lower()).first()
+        parent = (
+            self._qs(ctx, company_id, rec.values["dimension"])
+            .annotate(lc=Lower("code"))
+            .filter(lc=str(code).lower())
+            .first()
+        )
         if parent is None:
             # Never looked up in another company: a code of another company is simply unknown here.
-            raise RowError("dimension_parent_unknown", f"padre {code!r} no existe en esta empresa y dimensión", "parent_code")
+            raise RowError(
+                "dimension_parent_unknown", f"padre {code!r} no existe en esta empresa y dimensión", "parent_code"
+            )
         return str(parent.id)
 
     def current(self, obj: DimensionNode) -> dict[str, Any]:
         parent = None
         if obj.parent_id:
-            parent = DimensionNode.objects.filter(company_id=obj.company_id, id=obj.parent_id).values_list("code", flat=True).first()
+            parent = (
+                DimensionNode.objects.filter(company_id=obj.company_id, id=obj.parent_id)
+                .values_list("code", flat=True)
+                .first()
+            )
         return {
             "dimension": obj.dimension,
             "code": obj.code,
@@ -116,11 +167,17 @@ class DimensionsTemplate(Template):
         if patch:
             obj = dims.update_node(uow, obj, patch, obj.etag)
         if "status" in changed:
-            obj = dims.archive_node(uow, obj, "importación") if v.get("status") == "ARCHIVED" else dims.unarchive_node(uow, obj, "importación")
+            obj = (
+                dims.archive_node(uow, obj, "importación")
+                if v.get("status") == "ARCHIVED"
+                else dims.unarchive_node(uow, obj, "importación")
+            )
         return obj
 
     def queryset(self, ctx: TenantContext, company_id: uuid.UUID) -> QuerySet[Any]:
-        return DimensionNode.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id).order_by("dimension", "path")
+        return DimensionNode.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id).order_by(
+            "dimension", "path"
+        )
 
 
 class DimensionRulesTemplate(Template):
@@ -135,21 +192,53 @@ class DimensionRulesTemplate(Template):
     update_permission = "ledger.dimension_rule.update"
     columns = (
         Column("dimension", required=True, allowed=DIMENSIONS, help="Dimensión", example="cost_center"),
-        Column("scope_type", required=True, allowed=tuple(DimensionRule.ScopeType.values), help="account, account_range, document_type, concept, journal o stock_document", example="account_range"),
-        Column("scope_ref", required=True, max_length=255, help="Cuenta, rango ('5105-5199' o '51*'), tipo de documento, concepto o diario", example="51*"),
-        Column("mode", required=True, allowed=ledger_rules.MODES, help="REQUIRED, ALLOWED o FORBIDDEN", example="REQUIRED"),
+        Column(
+            "scope_type",
+            required=True,
+            allowed=tuple(DimensionRule.ScopeType.values),
+            help="account, account_range, document_type, concept, journal o stock_document",
+            example="account_range",
+        ),
+        Column(
+            "scope_ref",
+            required=True,
+            max_length=255,
+            help="Cuenta, rango ('5105-5199' o '51*'), tipo de documento, concepto o diario",
+            example="51*",
+        ),
+        Column(
+            "mode", required=True, allowed=ledger_rules.MODES, help="REQUIRED, ALLOWED o FORBIDDEN", example="REQUIRED"
+        ),
         Column("priority", type="integer", help="Prioridad (mayor gana; empate → más restrictiva)", example="10"),
     )
-    examples = ({"dimension": "cost_center", "scope_type": "account_range", "scope_ref": "51*", "mode": "REQUIRED", "priority": "10"},)
+    examples = (
+        {
+            "dimension": "cost_center",
+            "scope_type": "account_range",
+            "scope_ref": "51*",
+            "mode": "REQUIRED",
+            "priority": "10",
+        },
+    )
 
     def find(self, ctx: TenantContext, company_id: uuid.UUID, rec: Record) -> Any:
         v = rec.values
         return DimensionRule.objects.filter(
-            tenant_id=ctx.tenant_id, company_id=company_id, dimension=v["dimension"], scope_type=v["scope_type"], scope_ref=v["scope_ref"]
+            tenant_id=ctx.tenant_id,
+            company_id=company_id,
+            dimension=v["dimension"],
+            scope_type=v["scope_type"],
+            scope_ref=v["scope_ref"],
         ).first()
 
     def current(self, obj: DimensionRule) -> dict[str, Any]:
-        return {"dimension": obj.dimension, "scope_type": obj.scope_type, "scope_ref": obj.scope_ref, "mode": obj.mode, "priority": obj.priority}
+        return {
+            "dimension": obj.dimension,
+            "scope_type": obj.scope_type,
+            "scope_ref": obj.scope_ref,
+            "mode": obj.mode,
+            "priority": obj.priority,
+        }
 
     def _replace(self, uow: UnitOfWork, company_id: uuid.UUID, rec: Record, keep_existing: bool) -> None:
         ctx = uow.ctx

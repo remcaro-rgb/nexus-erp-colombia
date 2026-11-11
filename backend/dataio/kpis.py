@@ -121,7 +121,9 @@ def datos_kpis(ctx: TenantContext, company_id: uuid.UUID, period: str | None, co
     if allowed(ctx, EXPORT_READ):
         value = _exports(ctx, company_id, start, end)
         prev_value = _exports(ctx, company_id, p_start, p_end) if compare else None
-        has = _scoped(ctx, EXPORT_READ, ExportJob.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id)).exists()
+        has = _scoped(
+            ctx, EXPORT_READ, ExportJob.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id)
+        ).exists()
         kpis.append(_kpi("exportaciones", value, prev_value, has))
     return {"as_of": end.isoformat(), "generated_at": clock.now().isoformat(), "period": f"{start:%Y-%m}", "kpis": kpis}
 

@@ -16,7 +16,15 @@ pytestmark = pytest.mark.django_db
 
 def _rows(n: int) -> bytes:
     return h.csv_bytes(
-        [{"dimension": "aux_abierto", "code": f"P-{i:03d}", "description": f"Proyecto {i} (SINTÉTICO)", "node_type": "DETALLE"} for i in range(n)]
+        [
+            {
+                "dimension": "aux_abierto",
+                "code": f"P-{i:03d}",
+                "description": f"Proyecto {i} (SINTÉTICO)",
+                "node_type": "DETALLE",
+            }
+            for i in range(n)
+        ]
     )
 
 
@@ -71,10 +79,12 @@ def test_changing_batch_is_not_applied_twice(w):
 
 def test_report_has_row_results_and_errors(w):
     ctx, alfa = w.ctx(), w.companies["ALFA"]
-    data = h.csv_bytes([
-        {"dimension": "aux_abierto", "code": "OK", "description": "ok", "node_type": "DETALLE"},
-        {"dimension": "aux_abierto", "code": "MAL", "description": "", "node_type": "DETALLE"},
-    ])
+    data = h.csv_bytes(
+        [
+            {"dimension": "aux_abierto", "code": "OK", "description": "ok", "node_type": "DETALLE"},
+            {"dimension": "aux_abierto", "code": "MAL", "description": "", "node_type": "DETALLE"},
+        ]
+    )
     job = h.validate(ctx, alfa, "dimensions", data)
     headers, rows = service.report_rows(job)
     assert headers[-2:] == ["_resultado", "_error"]

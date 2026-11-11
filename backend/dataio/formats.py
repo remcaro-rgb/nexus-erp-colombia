@@ -23,7 +23,7 @@ import re
 import zipfile
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
-from xml.etree import ElementTree as ET  # noqa: S405 - only DTD-free documents reach the parser (_safe_xml)
+from xml.etree import ElementTree as ET
 from xml.sax.saxutils import escape
 
 from dataio.errors import ImportFileRejected
@@ -63,9 +63,9 @@ def detect_format(filename: str, data: bytes) -> str:
     name = (filename or "").lower()
     if data[:2] == b"PK":
         return "zip" if name.endswith(".zip") else "xlsx"
-    if name.endswith(".jsonl") or name.endswith(".ndjson"):
+    if name.endswith((".jsonl", ".ndjson")):
         return "jsonl"
-    if name.endswith(".xlsx") or name.endswith(".zip"):
+    if name.endswith((".xlsx", ".zip")):
         raise ImportFileRejected("the file is not a valid ZIP/XLSX container", reason="type")
     if data.lstrip()[:1] == b"{":
         return "jsonl"
@@ -310,7 +310,8 @@ def write_xlsx(sheets: Sequence[tuple[str, Sequence[str], Iterable[Sequence[obje
         ct_entries = []
         for i, (name, headers, rows) in enumerate(sheets, start=1):
             xml_rows = []
-            for r_i, row in enumerate([list(headers), *[list(r) for r in rows]], start=1):
+            grid: list[list[object]] = [list(headers), *[list(r) for r in rows]]
+            for r_i, row in enumerate(grid, start=1):
                 cells = "".join(
                     f'<c r="{_col_letter(c_i)}{r_i}" t="inlineStr"><is><t xml:space="preserve">'
                     f"{escape(safe_cell(v))}</t></is></c>"
@@ -374,7 +375,9 @@ def write_xlsx(sheets: Sequence[tuple[str, Sequence[str], Iterable[Sequence[obje
     return buf.getvalue()
 
 
-def write(fmt: str, headers: Sequence[str], rows: Iterable[Sequence[object]], *, sheet: str = "datos", watermark: str = "") -> bytes:
+def write(
+    fmt: str, headers: Sequence[str], rows: Iterable[Sequence[object]], *, sheet: str = "datos", watermark: str = ""
+) -> bytes:
     """``headers`` + ``rows`` in ``fmt`` (csv/xlsx/jsonl); CSV/XLSX cells formula-neutralised."""
     if fmt == "csv":
         out = io.StringIO()

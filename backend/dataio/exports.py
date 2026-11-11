@@ -28,7 +28,8 @@ EVENT_COMPLETED = "dataio.export.completed.v1"
 
 
 def visible_columns(ctx: TenantContext, tpl: Template) -> tuple[list[str], list[str]]:
-    shown, omitted = [], []
+    shown: list[str] = []
+    omitted: list[str] = []
     for c in tpl.columns:
         (shown if not c.permission or allowed(ctx, c.permission) else omitted).append(c.name)
     return shown, omitted
@@ -91,7 +92,9 @@ def start_export(uow: UnitOfWork, job: ExportJob) -> ExportJob:
     tpl = registry.get(job.source)
     headers, rows, omitted = rows_for(ctx, job.company_id, tpl)
     stamp = clock.now()
-    job.content = formats.write(job.format, headers, rows, sheet=tpl.entity, watermark=f"Nexus ERP · {ctx.principal_id} · {stamp.isoformat()}")
+    job.content = formats.write(
+        job.format, headers, rows, sheet=tpl.entity, watermark=f"Nexus ERP · {ctx.principal_id} · {stamp.isoformat()}"
+    )
     job.content_type = formats.CONTENT_TYPES[job.format]
     job.filename = f"{tpl.entity}-{stamp:%Y%m%d%H%M%S}.{job.format}"
     job.row_count = len(rows)
@@ -138,4 +141,8 @@ def template_file(ctx: TenantContext, entity: str, fmt: str, with_examples: bool
         raise ValidationFailed("format must be csv, xlsx or jsonl", pointer="/format", reason="enum")
     headers = [c.name for c in tpl.columns]
     rows = [[e.get(h, "") for h in headers] for e in tpl.examples] if with_examples else []
-    return formats.write(fmt, headers, rows, sheet=tpl.entity), formats.CONTENT_TYPES[fmt], f"plantilla-{tpl.entity}.{fmt}"
+    return (
+        formats.write(fmt, headers, rows, sheet=tpl.entity),
+        formats.CONTENT_TYPES[fmt],
+        f"plantilla-{tpl.entity}.{fmt}",
+    )

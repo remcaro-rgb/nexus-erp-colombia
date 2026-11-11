@@ -116,7 +116,9 @@ def parse_cell(col: Column, raw: str, *, decimal_comma: bool = False) -> Any:
             if col.allowed:
                 up = value.upper() if all(a.upper() == a for a in col.allowed) else value
                 if up not in col.allowed:
-                    raise RowError("enum", f"{col.name}: valor {value!r} no permitido ({', '.join(col.allowed)})", col.name)
+                    raise RowError(
+                        "enum", f"{col.name}: valor {value!r} no permitido ({', '.join(col.allowed)})", col.name
+                    )
                 value = up
         elif col.type == "date":
             value = _parse_date(text)
@@ -159,7 +161,7 @@ def _parse_date(text: str) -> dt.date:
         return dt.date(1899, 12, 30) + dt.timedelta(days=int(text.split(".")[0]))
     for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%Y/%m/%d", "%Y-%m-%dT%H:%M:%S"):
         try:
-            return dt.datetime.strptime(text[:19] if "T" in text else text, fmt).date()
+            return dt.datetime.strptime(text[:19] if "T" in text else text, fmt).replace(tzinfo=dt.UTC).date()
         except ValueError:
             continue
     raise ValueError("date")
@@ -190,7 +192,7 @@ def format_value(value: Any) -> str:
 
 def same(a: Any, b: Any) -> bool:
     """Equality in template terms (``None`` ≡ ``""`` ≡ empty list; Decimals by value; JSON canonical)."""
-    empty = (None, "", (), [], {})
+    empty: tuple[Any, ...] = (None, "", (), [], {})
     if a in empty and b in empty:
         return True
     if isinstance(a, (list, tuple)) and isinstance(b, (list, tuple)):
@@ -254,7 +256,11 @@ class Template:
             "feature": cls.feature,
             "natural_key": list(cls.natural_key),
             "permission": cls.create_permission,
-            "permissions": {"read": cls.read_permission, "create": cls.create_permission, "update": cls.update_permission},
+            "permissions": {
+                "read": cls.read_permission,
+                "create": cls.create_permission,
+                "update": cls.update_permission,
+            },
             "document": cls.document,
             "hierarchy": cls.parent_column is not None,
             "updatable": cls.updatable,

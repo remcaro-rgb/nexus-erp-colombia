@@ -35,16 +35,35 @@ class BranchesTemplate(Template):
     columns = (
         Column("code", required=True, max_length=40, help="Código de la sucursal (único por empresa)", example="BOG"),
         Column("name", required=True, max_length=200, help="Nombre", example="Bogotá principal"),
-        Column("is_head_office", type="boolean", help="true para la sede principal (una activa por empresa)", example="true", synonyms=("sede_principal",)),
+        Column(
+            "is_head_office",
+            type="boolean",
+            help="true para la sede principal (una activa por empresa)",
+            example="true",
+            synonyms=("sede_principal",),
+        ),
         Column("address", max_length=255, help="Dirección", example="Calle 1 # 2-3"),
         Column("municipality_code", max_length=5, help="Código DANE del municipio (5 dígitos)", example="11001"),
         Column("phone", max_length=25, help="Teléfono", example="+57 601 0000000"),
-        Column("default_business_unit_code", max_length=40, help="Código de la unidad de negocio por defecto (misma empresa)"),
+        Column(
+            "default_business_unit_code",
+            max_length=40,
+            help="Código de la unidad de negocio por defecto (misma empresa)",
+        ),
         Column("valid_from", type="date", help="Vigente desde", example="2026-01-01"),
         Column("valid_to", type="date", help="Vigente hasta"),
         Column("status", allowed=("ACTIVE", "ARCHIVED"), help="ACTIVE o ARCHIVED", example="ACTIVE"),
     )
-    examples = ({"code": "BOG", "name": "Bogotá principal", "is_head_office": "true", "municipality_code": "11001", "valid_from": "2026-01-01", "status": "ACTIVE"},)
+    examples = (
+        {
+            "code": "BOG",
+            "name": "Bogotá principal",
+            "is_head_office": "true",
+            "municipality_code": "11001",
+            "valid_from": "2026-01-01",
+            "status": "ACTIVE",
+        },
+    )
 
     def find(self, ctx: TenantContext, company_id: uuid.UUID, rec: Record) -> Any:
         return (
@@ -57,7 +76,11 @@ class BranchesTemplate(Template):
     def current(self, obj: Branch) -> dict[str, Any]:
         bu = None
         if obj.default_business_unit_id:
-            bu = DimensionNode.objects.filter(company_id=obj.company_id, id=obj.default_business_unit_id).values_list("code", flat=True).first()
+            bu = (
+                DimensionNode.objects.filter(company_id=obj.company_id, id=obj.default_business_unit_id)
+                .values_list("code", flat=True)
+                .first()
+            )
         return {
             "code": obj.code,
             "name": obj.name,
@@ -91,14 +114,20 @@ class BranchesTemplate(Template):
             bu = None
             if code:
                 bu = (
-                    DimensionNode.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, dimension="business_unit")
+                    DimensionNode.objects.filter(
+                        tenant_id=ctx.tenant_id, company_id=company_id, dimension="business_unit"
+                    )
                     .annotate(lc=Lower("code"))
                     .filter(lc=str(code).lower())
                     .values_list("id", flat=True)
                     .first()
                 )
                 if bu is None:
-                    raise RowError("not_found", f"unidad de negocio {code!r} no existe en esta empresa", "default_business_unit_code")
+                    raise RowError(
+                        "not_found",
+                        f"unidad de negocio {code!r} no existe en esta empresa",
+                        "default_business_unit_code",
+                    )
             out["default_business_unit_id"] = str(bu) if bu else None
         return out
 
@@ -113,7 +142,11 @@ class BranchesTemplate(Template):
         if data:
             obj = branches.update_branch(uow, obj, data)
         if "status" in changed:
-            obj = branches.archive_branch(uow, obj) if rec.values.get("status") == "ARCHIVED" else branches.unarchive_branch(uow, obj)
+            obj = (
+                branches.archive_branch(uow, obj)
+                if rec.values.get("status") == "ARCHIVED"
+                else branches.unarchive_branch(uow, obj)
+            )
         return obj
 
     def queryset(self, ctx: TenantContext, company_id: uuid.UUID) -> QuerySet[Any]:
@@ -132,9 +165,26 @@ class ExternalInvitationsTemplate(Template):
     update_permission = "iam.external_account.update"
     updatable = False
     columns = (
-        Column("email", required=True, max_length=254, help="Correo de la persona invitada (sintético en dev)", example="proveedor@example.invalid"),
-        Column("portal_kind", required=True, allowed=("supplier", "customer", "employee"), help="supplier, customer o employee", example="supplier"),
-        Column("party_code", max_length=40, help="Código del tercero (portal proveedor/cliente) en esta empresa", example="PRV-001"),
+        Column(
+            "email",
+            required=True,
+            max_length=254,
+            help="Correo de la persona invitada (sintético en dev)",
+            example="proveedor@example.invalid",
+        ),
+        Column(
+            "portal_kind",
+            required=True,
+            allowed=("supplier", "customer", "employee"),
+            help="supplier, customer o employee",
+            example="supplier",
+        ),
+        Column(
+            "party_code",
+            max_length=40,
+            help="Código del tercero (portal proveedor/cliente) en esta empresa",
+            example="PRV-001",
+        ),
         Column("employee_code", max_length=40, help="Código del empleado (portal empleado) en esta empresa"),
     )
     examples = ({"email": "proveedor@example.invalid", "portal_kind": "supplier", "party_code": "PRV-001"},)
@@ -142,7 +192,9 @@ class ExternalInvitationsTemplate(Template):
 
     def find(self, ctx: TenantContext, company_id: uuid.UUID, rec: Record) -> Any:
         return (
-            ExternalAccount.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, email=str(rec.values["email"]).lower())
+            ExternalAccount.objects.filter(
+                tenant_id=ctx.tenant_id, company_id=company_id, email=str(rec.values["email"]).lower()
+            )
             .exclude(external_status="REVOKED")
             .first()
         )
@@ -151,9 +203,15 @@ class ExternalInvitationsTemplate(Template):
         from hr.models import Employee
         from sales.models import Party
 
-        party = Party.objects.filter(company_id=obj.company_id, id=obj.party_id).values_list("code", flat=True).first() if obj.party_id else None
+        party = (
+            Party.objects.filter(company_id=obj.company_id, id=obj.party_id).values_list("code", flat=True).first()
+            if obj.party_id
+            else None
+        )
         emp = (
-            Employee.objects.filter(company_id=obj.company_id, id=obj.employee_id).values_list("code", flat=True).first()
+            Employee.objects.filter(company_id=obj.company_id, id=obj.employee_id)
+            .values_list("code", flat=True)
+            .first()
             if obj.employee_id
             else None
         )
@@ -185,7 +243,11 @@ class ExternalInvitationsTemplate(Template):
         return external.invite(uow, company_id, {"email": v["email"], "portal_kind": kind, "party": party})
 
     def queryset(self, ctx: TenantContext, company_id: uuid.UUID) -> QuerySet[Any]:
-        return ExternalAccount.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id).exclude(external_status="REVOKED").order_by("email")
+        return (
+            ExternalAccount.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id)
+            .exclude(external_status="REVOKED")
+            .order_by("email")
+        )
 
 
 TEMPLATES = (BranchesTemplate, ExternalInvitationsTemplate)

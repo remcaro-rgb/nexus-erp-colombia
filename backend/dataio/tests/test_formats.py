@@ -15,7 +15,7 @@ from dataio.templates.base import Column, format_value, parse_cell
 
 
 def test_formula_injection_neutralised_in_csv_and_xlsx():
-    evil = ["=HYPERLINK(\"http://x\")", "+1+1", "-2", "@SUM(A1)", "\tTAB", "normal"]
+    evil = ['=HYPERLINK("http://x")', "+1+1", "-2", "@SUM(A1)", "\tTAB", "normal"]
     back = formats.parse("x.csv", formats.write("csv", ["a"], [[v] for v in evil]))[0]
     assert [r[0] for r in back.rows] == ["'" + v for v in evil[:-1]] + ["normal"]
     t = formats.parse("x.xlsx", formats.write("xlsx", ["a"], [[v] for v in evil]))[0]
@@ -74,4 +74,4 @@ def test_csv_semicolon_decimal_comma_jsonl_and_xlsx_roundtrip():
     x = formats.parse("x.xlsx", formats.write("xlsx", ["code", "name"], [["A", "Árbol & <raíz>"]], watermark="u1"))[0]
     assert x.rows == [["A", "Árbol & <raíz>"]]
     assert format_value(Decimal("12.500000")) == "12.5" and format_value(Decimal("10.0000")) == "10"
-    assert parse_cell(Column("d", type="date"), "46000") .isoformat() == "2025-12-09"
+    assert parse_cell(Column("d", type="date"), "46000").isoformat() == "2025-12-09"

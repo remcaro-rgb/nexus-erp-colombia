@@ -41,6 +41,7 @@ from dataio.templates import registry
 from dataio.templates.base import Record, Template, format_value, parse_cell, same, topo_order
 from kernel import clock, services
 from kernel.errors import DomainError, NotFound, ValidationFailed
+from kernel.idempotency import StoredResponse
 from kernel.interfaces.audit import AuditEntry, AuditService
 from kernel.interfaces.policy import PolicyService
 from kernel.tenancy import TenantContext
@@ -49,6 +50,14 @@ from kernel.uow import UnitOfWork, run_in_unit_of_work
 RESERVED_COLUMNS = frozenset({"id", "tenant_id", "company_id", "empresa", "company", "tenant"})
 EVENT_COMMITTED = "dataio.import.committed.v1"
 MAX_PREVIEW = 1000
+
+
+def run[T](fn: Callable[[UnitOfWork], T], ctx: TenantContext) -> T:
+    """``run_in_unit_of_work`` without an Idempotency-Key (never a stored replay)."""
+    result = run_in_unit_of_work(fn, ctx)
+    if isinstance(result, StoredResponse):  # pragma: no cover - only with an idempotency key
+        raise InvalidStateTransition("unexpected idempotent replay")
+    return result
 
 
 # --------------------------------------------------------------------------- policy
@@ -136,9 +145,7 @@ def _expect(job: ImportJob, *states: str) -> None:
         raise InvalidStateTransition(f"import is {job.import_status}; expected {' or '.join(states)}")
 
 
-def upload(
-    uow: UnitOfWork, job: ImportJob, filename: str, data: bytes, *, profile_id: Any = None
-) -> ImportJob:
+def upload(uow: UnitOfWork, job: ImportJob, filename: str, data: bytes, *, profile_id: Any = None) -> ImportJob:
     """Parse the file (size/bomb/zip-slip checks in :mod:`dataio.formats`) and auto-map its columns."""
     ctx = uow.ctx
     require(ctx, "dataio.import.create")
@@ -293,9 +300,7 @@ def build_records(tpl: Template, job: ImportJob) -> Built:
         if not row_ok:
             continue
         canonical.append([f"{k}={format_value(values[k])}" for k in sorted(values)])
-        key = tuple(
-            (values.get(k).lower() if isinstance(values.get(k), str) else values.get(k)) for k in tpl.natural_key
-        )
+        key = tuple(_key_part(values.get(k)) for k in tpl.natural_key)
         head = {k: v for k, v in values.items() if k not in line_cols}
         line = {k: v for k, v in values.items() if k in line_cols}
         if line_cols:
@@ -312,7 +317,9 @@ def build_records(tpl: Template, job: ImportJob) -> Built:
                 rec.lines.append(line)
             continue
         if key in by_key:
-            errors.append(_err(n, "duplicate_in_file", f"clave natural repetida en el archivo (fila {by_key[key].rows[0]})"))
+            errors.append(
+                _err(n, "duplicate_in_file", f"clave natural repetida en el archivo (fila {by_key[key].rows[0]})")
+            )
             continue
         rec = Record(key, head, frozenset(present), [n])
         by_key[key] = rec
@@ -321,10 +328,19 @@ def build_records(tpl: Template, job: ImportJob) -> Built:
         ordered, cyclic = topo_order(order, tpl.node_key, tpl.parent_key)
         for rec in cyclic:
             errors.append(
-                _err(rec.rows[0], "hierarchy_cycle", "ciclo de padres en el archivo (o descendiente de un ciclo)", tpl.parent_column)
+                _err(
+                    rec.rows[0],
+                    "hierarchy_cycle",
+                    "ciclo de padres en el archivo (o descendiente de un ciclo)",
+                    tpl.parent_column,
+                )
             )
         order = ordered
     return Built(order, errors, canonical)
+
+
+def _key_part(value: Any) -> Any:
+    return value.lower() if isinstance(value, str) else value
 
 
 def batch_hash(job: ImportJob, built: Built) -> str:
@@ -369,7 +385,9 @@ def apply_record(uow: UnitOfWork, tpl: Template, company_id: uuid.UUID, mode: st
     if not changed:
         return "unchanged"
     if not tpl.updatable:
-        raise RowError("not_updatable", f"{tpl.entity} no admite actualización por importación: {', '.join(sorted(changed))}")
+        raise RowError(
+            "not_updatable", f"{tpl.entity} no admite actualización por importación: {', '.join(sorted(changed))}"
+        )
     if not allowed(ctx, tpl.update_permission):
         raise RowError("policy_denied", f"sin permiso {tpl.update_permission}")
     tpl.update(uow, existing, rec, changed)
@@ -417,7 +435,7 @@ class _Rollback(Exception):
 def dry_run(ctx: TenantContext, company_id: uuid.UUID, job_id: Any) -> ImportJob:
     """Validate: types + the real service calls in a rolled-back transaction. Stores preview/errors."""
     require(ctx, "dataio.import.update")
-    job = run_in_unit_of_work(lambda u: get_job(u.ctx, company_id, job_id), ctx)
+    job = run(lambda u: get_job(u.ctx, company_id, job_id), ctx)
     _expect(job, ImportStatus.UPLOADED, ImportStatus.MAPPED, ImportStatus.VALIDATED)
     if not job.headers:
         raise InvalidStateTransition("upload a file first")
@@ -430,7 +448,7 @@ def dry_run(ctx: TenantContext, company_id: uuid.UUID, job_id: Any) -> ImportJob
             raise _Rollback(_apply_all(uow, tpl, job, built.records, collect=True))
 
         try:
-            run_in_unit_of_work(simulate, ctx)
+            run(simulate, ctx)
         except _Rollback as rb:
             result = rb.result
     preview, apply_errors, counts = result
@@ -456,14 +474,14 @@ def dry_run(ctx: TenantContext, company_id: uuid.UUID, job_id: Any) -> ImportJob
         _audit(uow, "validate", j, {"errors": len(errors), "counts": counts})
         return j
 
-    stored: ImportJob = run_in_unit_of_work(store, ctx)
+    stored: ImportJob = run(store, ctx)
     return stored
 
 
 def commit(ctx: TenantContext, company_id: uuid.UUID, job_id: Any) -> ImportJob:
     """Validate (if needed) and apply in batches; resumable. Raises ``import_validation_failed`` on row errors."""
     require(ctx, "dataio.import.post")
-    job = run_in_unit_of_work(lambda u: get_job(u.ctx, company_id, job_id), ctx)
+    job = run(lambda u: get_job(u.ctx, company_id, job_id), ctx)
     if job.import_status == ImportStatus.COMMITTED:
         return job
     if job.import_status in (ImportStatus.UPLOADED, ImportStatus.MAPPED):
@@ -471,18 +489,20 @@ def commit(ctx: TenantContext, company_id: uuid.UUID, job_id: Any) -> ImportJob:
     if job.import_status == ImportStatus.FAILED:
         raise ImportValidationFailed(f"{job.error_count} error(es) por fila; no se aplicó ninguna fila", job.errors)
     _expect(job, ImportStatus.VALIDATED)
-    duplicate = run_in_unit_of_work(
-        lambda u: ImportJob.objects.filter(
-            tenant_id=ctx.tenant_id,
-            company_id=company_id,
-            entity=job.entity,
-            batch_hash=job.batch_hash,
-            import_status=ImportStatus.COMMITTED,
-            effective=True,
-        )
-        .exclude(id=job.id)
-        .values_list("id", flat=True)
-        .first(),
+    duplicate = run(
+        lambda u: (
+            ImportJob.objects.filter(
+                tenant_id=ctx.tenant_id,
+                company_id=company_id,
+                entity=job.entity,
+                batch_hash=job.batch_hash,
+                import_status=ImportStatus.COMMITTED,
+                effective=True,
+            )
+            .exclude(id=job.id)
+            .values_list("id", flat=True)
+            .first()
+        ),
         ctx,
     )
     would_change = int(job.counts.get("created", 0)) + int(job.counts.get("updated", 0)) > 0
@@ -496,7 +516,7 @@ def commit(ctx: TenantContext, company_id: uuid.UUID, job_id: Any) -> ImportJob:
         if batch_no <= job.batches_done:
             continue
         _commit_batch(ctx, company_id, job.id, tpl, batch_no, len(batches), records)
-        job = run_in_unit_of_work(lambda u: get_job(u.ctx, company_id, job_id), ctx)
+        job = run(lambda u: get_job(u.ctx, company_id, job_id), ctx)
         if job.import_status == ImportStatus.FAILED:
             raise ImportValidationFailed(f"batch {batch_no} failed; earlier batches stay applied", job.errors)
     return job
@@ -517,7 +537,10 @@ def _commit_batch(
 ) -> None:
     def fn(uow: UnitOfWork) -> None:
         job = get_job(uow.ctx, company_id, job_id, lock=True)
-        if job.import_status != ImportStatus.VALIDATED or ImportBatch.objects.filter(job=job, batch_no=batch_no).exists():
+        if (
+            job.import_status != ImportStatus.VALIDATED
+            or ImportBatch.objects.filter(job=job, batch_no=batch_no).exists()
+        ):
             return
         preview, errors, counts = _apply_all(uow, tpl, job, records, collect=False)
         if errors:
@@ -533,7 +556,9 @@ def _commit_batch(
         )
         if after_batch_hook is not None:
             after_batch_hook(batch_no)
-        merged = {k: int(job.counts.get(k, 0)) if batch_no > 1 else 0 for k in ("created", "updated", "unchanged", "failed")}
+        merged = {
+            k: int(job.counts.get(k, 0)) if batch_no > 1 else 0 for k in ("created", "updated", "unchanged", "failed")
+        }
         for k, v in counts.items():
             merged[k] = merged.get(k, 0) + v
         job.counts = merged
@@ -549,14 +574,19 @@ def _commit_batch(
             fields += ["import_status", "committed_at", "effective"]
             uow.emit(
                 EVENT_COMMITTED,
-                {"import_id": str(job.id), "entity": job.entity, "rows": job.applied_rows, "batch_hash": job.batch_hash},
+                {
+                    "import_id": str(job.id),
+                    "entity": job.entity,
+                    "rows": job.applied_rows,
+                    "batch_hash": job.batch_hash,
+                },
                 company_id=job.company_id,
             )
         _save(job, uow.ctx, fields)
         _audit(uow, "commit_batch", job, {"batch_no": batch_no, "counts": counts})
 
     try:
-        run_in_unit_of_work(fn, ctx)
+        run(fn, ctx)
     except _Rollback as rb:
         _, errors, _ = rb.result
 
@@ -569,7 +599,7 @@ def _commit_batch(
             _save(job, uow.ctx, ["errors", "error_count", "import_status", "failed_at"])
             _audit(uow, "commit_failed", job, {"batch_no": batch_no, "errors": len(errors)})
 
-        run_in_unit_of_work(fail, ctx)
+        run(fail, ctx)
 
 
 def cancel(uow: UnitOfWork, job: ImportJob) -> ImportJob:

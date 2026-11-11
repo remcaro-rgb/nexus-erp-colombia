@@ -35,17 +35,34 @@ class ExogenaPacksTemplate(Template):
     columns = (
         Column("pack_code", required=True, max_length=40, help="Código del paquete", example="SYN-EXO-1001"),
         Column("year", type="integer", required=True, help="Año gravable", example="2026"),
-        Column("version", required=True, max_length=40, help="Versión del paquete (un cambio exige versión nueva)", example="1"),
-        Column("pack", type="json", required=True, help="Documento JSON completo del paquete (validado contra el esquema)"),
+        Column(
+            "version",
+            required=True,
+            max_length=40,
+            help="Versión del paquete (un cambio exige versión nueva)",
+            example="1",
+        ),
+        Column(
+            "pack", type="json", required=True, help="Documento JSON completo del paquete (validado contra el esquema)"
+        ),
     )
-    notes = "Los paquetes oficiales de la DIAN son un insumo externo (B-14); en dev solo el paquete SINTÉTICO 'no válido ante la DIAN'."
+    notes = (
+        "Los paquetes oficiales de la DIAN son un insumo externo (B-14); "
+        "en dev solo el paquete SINTÉTICO 'no válido ante la DIAN'."
+    )
 
     def _qs(self, ctx: TenantContext, company_id: uuid.UUID) -> QuerySet[ExogenaFormatPack]:
-        return ExogenaFormatPack.objects.filter(tenant_id=ctx.tenant_id).filter(Q(company_id=company_id) | Q(company_id__isnull=True))
+        return ExogenaFormatPack.objects.filter(tenant_id=ctx.tenant_id).filter(
+            Q(company_id=company_id) | Q(company_id__isnull=True)
+        )
 
     def find(self, ctx: TenantContext, company_id: uuid.UUID, rec: Record) -> Any:
         v = rec.values
-        return self._qs(ctx, company_id).filter(code=v["pack_code"], year=v["year"], pack_version=str(v["version"])).first()
+        return (
+            self._qs(ctx, company_id)
+            .filter(code=v["pack_code"], year=v["year"], pack_version=str(v["version"]))
+            .first()
+        )
 
     def current(self, obj: ExogenaFormatPack) -> dict[str, Any]:
         return {"pack_code": obj.code, "year": obj.year, "version": obj.pack_version, "pack": obj.pack}
@@ -55,8 +72,14 @@ class ExogenaPacksTemplate(Template):
         pack = v["pack"]
         if not isinstance(pack, dict):
             raise RowError("type", "pack debe ser un objeto JSON", "pack")
-        if pack.get("pack_code") != v["pack_code"] or str(pack.get("year")) != str(v["year"]) or str(pack.get("version")) != str(v["version"]):
-            raise RowError("pack_mismatch", "pack_code/year/version deben coincidir con el contenido del paquete", "pack")
+        if (
+            pack.get("pack_code") != v["pack_code"]
+            or str(pack.get("year")) != str(v["year"])
+            or str(pack.get("version")) != str(v["version"])
+        ):
+            raise RowError(
+                "pack_mismatch", "pack_code/year/version deben coincidir con el contenido del paquete", "pack"
+            )
         taken = ExogenaFormatPack.objects.filter(
             tenant_id=uow.ctx.tenant_id, code=v["pack_code"], year=v["year"], pack_version=str(v["version"])
         ).exists()

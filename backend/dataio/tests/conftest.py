@@ -10,7 +10,6 @@ import pytest
 # P11b's requisition migrations join the purchasing app when the part package is imported (CCR P11b-1);
 # import it at collection so the test database has its tables whatever subset of tests runs.
 import purchasing.requisitions  # noqa: F401
-
 from dataio.testing.world import DataWorld, dataio_services, make_data_world
 
 

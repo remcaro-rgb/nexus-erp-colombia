@@ -16,10 +16,42 @@ pytestmark = pytest.mark.django_db
 def _rows(dimension: str) -> list[dict[str, str]]:
     # Children first: ADM-01-A (grandchild), ADM-01 (child), ADM (root).
     return [
-        {"dimension": dimension, "code": "ADM-01-A", "description": "Nómina (SINTÉTICO)", "node_type": "DETALLE", "parent_code": "ADM-01", "valid_from": "2026-01-01", "status": "ACTIVE"},
-        {"dimension": dimension, "code": "ADM-01", "description": "Gerencia (SINTÉTICO)", "node_type": "AGRUPADOR", "parent_code": "ADM", "valid_from": "2026-01-01", "status": "ACTIVE"},
-        {"dimension": dimension, "code": "ADM", "description": "Administración (SINTÉTICO)", "node_type": "AGRUPADOR", "parent_code": "", "valid_from": "2026-01-01", "status": "ACTIVE"},
-        {"dimension": dimension, "code": "VEN", "description": "Ventas (SINTÉTICO)", "node_type": "DETALLE", "parent_code": "", "valid_from": "2026-01-01", "status": "ARCHIVED"},
+        {
+            "dimension": dimension,
+            "code": "ADM-01-A",
+            "description": "Nómina (SINTÉTICO)",
+            "node_type": "DETALLE",
+            "parent_code": "ADM-01",
+            "valid_from": "2026-01-01",
+            "status": "ACTIVE",
+        },
+        {
+            "dimension": dimension,
+            "code": "ADM-01",
+            "description": "Gerencia (SINTÉTICO)",
+            "node_type": "AGRUPADOR",
+            "parent_code": "ADM",
+            "valid_from": "2026-01-01",
+            "status": "ACTIVE",
+        },
+        {
+            "dimension": dimension,
+            "code": "ADM",
+            "description": "Administración (SINTÉTICO)",
+            "node_type": "AGRUPADOR",
+            "parent_code": "",
+            "valid_from": "2026-01-01",
+            "status": "ACTIVE",
+        },
+        {
+            "dimension": dimension,
+            "code": "VEN",
+            "description": "Ventas (SINTÉTICO)",
+            "node_type": "DETALLE",
+            "parent_code": "",
+            "valid_from": "2026-01-01",
+            "status": "ARCHIVED",
+        },
     ]
 
 
@@ -50,11 +82,23 @@ def test_T_ACC_DIM_11_children_before_parents_cycle_rejected_roundtrip_noop(w, d
 
     # Cycle file (X → Y → Z → X) plus valid rows: rejected atomically, zero rows applied.
     cycle = [
-        {"dimension": dimension, "code": "NEW-OK", "description": "Válido", "node_type": "AGRUPADOR", "parent_code": ""},
+        {
+            "dimension": dimension,
+            "code": "NEW-OK",
+            "description": "Válido",
+            "node_type": "AGRUPADOR",
+            "parent_code": "",
+        },
         {"dimension": dimension, "code": "X", "description": "X", "node_type": "AGRUPADOR", "parent_code": "Z"},
         {"dimension": dimension, "code": "Y", "description": "Y", "node_type": "AGRUPADOR", "parent_code": "X"},
         {"dimension": dimension, "code": "Z", "description": "Z", "node_type": "AGRUPADOR", "parent_code": "Y"},
-        {"dimension": dimension, "code": "Z-HIJO", "description": "hijo del ciclo", "node_type": "DETALLE", "parent_code": "Z"},
+        {
+            "dimension": dimension,
+            "code": "Z-HIJO",
+            "description": "hijo del ciclo",
+            "node_type": "DETALLE",
+            "parent_code": "Z",
+        },
     ]
     before = _nodes(w, alfa)
     bad = h.start(ctx, alfa, "dimensions", h.csv_bytes(cycle))
@@ -69,11 +113,22 @@ def test_T_ACC_DIM_11_children_before_parents_cycle_rejected_roundtrip_noop(w, d
         assert bad.__class__.objects.get(id=bad.id).import_status == ImportStatus.FAILED
 
     # A DETALLE used as parent and a parent of another company reject the batch too.
-    h.commit(ctx, w.companies["BETA"], "dimensions", h.csv_bytes([{"dimension": dimension, "code": "SOLO-BETA", "description": "B", "node_type": "AGRUPADOR"}]))
+    h.commit(
+        ctx,
+        w.companies["BETA"],
+        "dimensions",
+        h.csv_bytes([{"dimension": dimension, "code": "SOLO-BETA", "description": "B", "node_type": "AGRUPADOR"}]),
+    )
     for parent, code in (("ADM-01-A", "validation_failed"), ("SOLO-BETA", "dimension_parent_unknown")):
         rows = [
             {"dimension": dimension, "code": "OK-2", "description": "ok", "node_type": "DETALLE", "parent_code": "ADM"},
-            {"dimension": dimension, "code": "MAL", "description": "mal", "node_type": "DETALLE", "parent_code": parent},
+            {
+                "dimension": dimension,
+                "code": "MAL",
+                "description": "mal",
+                "node_type": "DETALLE",
+                "parent_code": parent,
+            },
         ]
         job = h.validate(ctx, alfa, "dimensions", h.csv_bytes(rows))
         assert job.import_status == ImportStatus.FAILED

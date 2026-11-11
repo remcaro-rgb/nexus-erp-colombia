@@ -10,8 +10,8 @@ from typing import Any
 
 from dataio import exports, formats, service
 from dataio.models import ImportJob
+from dataio.service import run as run_in_unit_of_work
 from kernel.tenancy import TenantContext
-from kernel.uow import run_in_unit_of_work
 
 
 def csv_bytes(rows: Iterable[Mapping[str, Any]], headers: list[str] | None = None, delimiter: str = ",") -> bytes:
@@ -25,7 +25,9 @@ def csv_bytes(rows: Iterable[Mapping[str, Any]], headers: list[str] | None = Non
     return out.getvalue().encode("utf-8")
 
 
-def start(ctx: TenantContext, company: uuid.UUID, entity: str, data: bytes, filename: str = "datos.csv", **kw: Any) -> ImportJob:
+def start(
+    ctx: TenantContext, company: uuid.UUID, entity: str, data: bytes, filename: str = "datos.csv", **kw: Any
+) -> ImportJob:
     def fn(u: Any) -> ImportJob:
         job = service.create_job(u, company, entity, **kw)
         return service.upload(u, job, filename, data)
@@ -39,7 +41,9 @@ def validate(ctx: TenantContext, company: uuid.UUID, entity: str, data: bytes, *
     return service.dry_run(ctx, company, job.id)
 
 
-def commit(ctx: TenantContext, company: uuid.UUID, entity: str, data: bytes, filename: str = "datos.csv", **kw: Any) -> ImportJob:
+def commit(
+    ctx: TenantContext, company: uuid.UUID, entity: str, data: bytes, filename: str = "datos.csv", **kw: Any
+) -> ImportJob:
     job = start(ctx, company, entity, data, filename, **kw)
     return service.commit(ctx, company, job.id)
 

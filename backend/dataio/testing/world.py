@@ -17,6 +17,7 @@ from fnmatch import fnmatchcase
 from typing import Any
 
 from kernel import clock, ids, services, tenancy
+from kernel.errors import PermissionDenied
 from kernel.interfaces.audit import AuditService
 from kernel.interfaces.dimensions import Dimensions
 from kernel.interfaces.documents import DocumentRenderer
@@ -26,7 +27,6 @@ from kernel.interfaces.policy import Decision, FieldMask, PolicyService
 from kernel.interfaces.posting import PostingService
 from kernel.interfaces.stock import Inventory, StockService
 from kernel.interfaces.workflow import WorkflowService
-from kernel.errors import PermissionDenied
 from kernel.tenancy import TenantContext
 from kernel.testing.fakes import FakeAuditService, FakeDocumentRenderer, FakeNotificationService, FakeWorkflowService
 from kernel.uow import run_in_unit_of_work
@@ -110,29 +110,31 @@ class DataWorld:
 
 @contextlib.contextmanager
 def dataio_services() -> Iterator[dict[str, Any]]:
+    from django.core.cache import cache
+
     from inventory import registry as inv_registry
     from inventory.barcodes import registry as bc_registry
     from inventory.issues import registry as is_registry
     from inventory.stock.service import SERVICE
     from inventory.transformations import registry as tr_registry
-    from django.core.cache import cache
     from ledger.registry import implementations as ledger_impls
 
     cache.clear()
     impls = ledger_impls()
     audit = FakeAuditService()
     policy = GrantPolicy()
+    ov: Any = services.override
     stack = [
-        services.override(PostingService, impls[PostingService]),
-        services.override(PeriodService, impls[PeriodService]),
-        services.override(Dimensions, impls[Dimensions]),
-        services.override(AuditService, audit),
-        services.override(PolicyService, policy),
-        services.override(Inventory, SERVICE),
-        services.override(StockService, SERVICE),
-        services.override(NotificationService, FakeNotificationService()),
-        services.override(WorkflowService, FakeWorkflowService()),
-        services.override(DocumentRenderer, FakeDocumentRenderer()),
+        ov(PostingService, impls[PostingService]),
+        ov(PeriodService, impls[PeriodService]),
+        ov(Dimensions, impls[Dimensions]),
+        ov(AuditService, audit),
+        ov(PolicyService, policy),
+        ov(Inventory, SERVICE),
+        ov(StockService, SERVICE),
+        ov(NotificationService, FakeNotificationService()),
+        ov(WorkflowService, FakeWorkflowService()),
+        ov(DocumentRenderer, FakeDocumentRenderer()),
     ]
     for cm in stack:
         cm.__enter__()
@@ -185,16 +187,40 @@ def seed_company(w: DataWorld, name: str) -> None:
         setup.setup_company(u, cid)
         periods.ensure_year(u, cid, 2026)
         for code, label, typ, nature, role in ACCOUNTS:
-            acc = Account.objects.create(tenant_id=w.tenant_id, company_id=cid, code=code, name=label, type=typ, nature=nature)
+            acc = Account.objects.create(
+                tenant_id=w.tenant_id, company_id=cid, code=code, name=label, type=typ, nature=nature
+            )
             AccountDetermination.objects.create(tenant_id=w.tenant_id, company_id=cid, role_code=role, account=acc)
-        branch = Branch.objects.create(tenant_id=w.tenant_id, company_id=cid, code="BOG", name="Bogotá", is_head_office=True, valid_from=dt.date(2026, 1, 1))
+        branch = Branch.objects.create(
+            tenant_id=w.tenant_id,
+            company_id=cid,
+            code="BOG",
+            name="Bogotá",
+            is_head_office=True,
+            valid_from=dt.date(2026, 1, 1),
+        )
         masters.create_uom(u, cid, {"code": "UND", "name": "Unidad", "precision": 0})
         masters.create_uom(u, cid, {"code": "KG", "name": "Kilogramo", "precision": 3})
         masters.create_warehouse(u, cid, {"code": "PRINCIPAL", "name": "Bodega principal", "branch_id": str(branch.id)})
-        for code, uom in (("ARROZ", "UND"), ("HARINA", "KG"), ("LEVADURA", "KG"), ("PAN", "UND"), ("RES", "KG"), ("LOMO", "KG"), ("MOLIDA", "KG")):
+        for code, uom in (
+            ("ARROZ", "UND"),
+            ("HARINA", "KG"),
+            ("LEVADURA", "KG"),
+            ("PAN", "UND"),
+            ("RES", "KG"),
+            ("LOMO", "KG"),
+            ("MOLIDA", "KG"),
+        ):
             masters.create_item(u, cid, {"code": code, "name": f"{code} (SINTÉTICO)", "base_uom": uom})
         Party.objects.create(
-            tenant_id=w.tenant_id, company_id=cid, code="PRV-001", legal_name="Proveedor sintético S.A.S.", nit="900123456", dv="8", person_type="JURIDICA", roles=["vendor"]
+            tenant_id=w.tenant_id,
+            company_id=cid,
+            code="PRV-001",
+            legal_name="Proveedor sintético S.A.S.",
+            nit="900123456",
+            dv="8",
+            person_type="JURIDICA",
+            roles=["vendor"],
         )
         for domain, code in (("pricing", "PRECIO_MAYOR"), ("payroll", "BONO_FORM")):
             Formula.objects.create(

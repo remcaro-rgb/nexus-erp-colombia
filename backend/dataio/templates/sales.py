@@ -34,7 +34,13 @@ class PriceFormulasTemplate(Template):
     columns = (
         Column("code", required=True, max_length=60, help="Código del vínculo (no cambia)", example="MAYORISTA"),
         Column("name", max_length=200, help="Nombre", example="Precio mayorista"),
-        Column("formula_code", required=True, max_length=80, help="Código de la fórmula de precios aprobada (Flujos › Fórmulas)", example="PRECIO_MAYOR"),
+        Column(
+            "formula_code",
+            required=True,
+            max_length=80,
+            help="Código de la fórmula de precios aprobada (Flujos › Fórmulas)",
+            example="PRECIO_MAYOR",
+        ),
         Column("priority", type="integer", help="Prioridad (mayor gana; −10000…10000)", example="100"),
         Column("valid_from", type="date", help="Vigente desde", example="2026-01-01"),
         Column("valid_to", type="date", help="Vigente hasta"),
@@ -45,17 +51,34 @@ class PriceFormulasTemplate(Template):
         Column("scope_currency", max_length=3, help="Alcance: moneda ISO 4217", example="COP"),
         Column("status", allowed=("ACTIVE", "INACTIVE"), help="ACTIVE o INACTIVE", example="ACTIVE"),
     )
-    examples = ({"code": "MAYORISTA", "name": "Precio mayorista", "formula_code": "PRECIO_MAYOR", "priority": "100", "valid_from": "2026-01-01", "scope_customer_group": "MAYORISTAS", "scope_currency": "COP", "status": "ACTIVE"},)
+    examples = (
+        {
+            "code": "MAYORISTA",
+            "name": "Precio mayorista",
+            "formula_code": "PRECIO_MAYOR",
+            "priority": "100",
+            "valid_from": "2026-01-01",
+            "scope_customer_group": "MAYORISTAS",
+            "scope_currency": "COP",
+            "status": "ACTIVE",
+        },
+    )
 
     def find(self, ctx: TenantContext, company_id: uuid.UUID, rec: Record) -> Any:
-        return PriceFormula.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, code__iexact=rec.values["code"]).first()
+        return PriceFormula.objects.filter(
+            tenant_id=ctx.tenant_id, company_id=company_id, code__iexact=rec.values["code"]
+        ).first()
 
     def current(self, obj: PriceFormula) -> dict[str, Any]:
         from inventory.models import Item
 
         scope = obj.scope or {}
         item = scope.get("item_id")
-        item_code = Item.objects.filter(company_id=obj.company_id, id=item).values_list("code", flat=True).first() if isinstance(item, str) else None
+        item_code = (
+            Item.objects.filter(company_id=obj.company_id, id=item).values_list("code", flat=True).first()
+            if isinstance(item, str)
+            else None
+        )
         return {
             "code": obj.code,
             "name": obj.name or None,
@@ -75,7 +98,11 @@ class PriceFormulasTemplate(Template):
         scope: dict[str, Any] = {k: v.get(f"scope_{k}") for k in SCOPE_TEXT if v.get(f"scope_{k}")}
         code = v.get("scope_item_code")
         if code:
-            item = Item.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, code__iexact=code).values_list("id", flat=True).first()
+            item = (
+                Item.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, code__iexact=code)
+                .values_list("id", flat=True)
+                .first()
+            )
             if item is None:
                 raise RowError("not_found", f"ítem {code!r} no existe en esta empresa", "scope_item_code")
             scope["item_id"] = str(item)
@@ -83,7 +110,11 @@ class PriceFormulasTemplate(Template):
 
     def create(self, uow: UnitOfWork, company_id: uuid.UUID, rec: Record) -> Any:
         v = rec.values
-        data: dict[str, Any] = {"code": v["code"], "formula_code": v["formula_code"], "scope": self._scope(uow.ctx, company_id, rec, {})}
+        data: dict[str, Any] = {
+            "code": v["code"],
+            "formula_code": v["formula_code"],
+            "scope": self._scope(uow.ctx, company_id, rec, {}),
+        }
         for n in ("name", "priority", "valid_from", "valid_to"):
             if v.get(n) is not None:
                 data[n] = v[n].isoformat() if n.startswith("valid") else v[n]

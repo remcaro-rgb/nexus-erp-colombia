@@ -33,15 +33,38 @@ class TreasuryConceptsTemplate(Template):
     columns = (
         Column("code", required=True, max_length=40, help="Código del concepto", example="PRESTAMO"),
         Column("name", required=True, max_length=200, help="Nombre", example="Préstamo recibido"),
-        Column("direction", required=True, allowed=("IN", "OUT", "BOTH"), help="IN (recibo), OUT (egreso) o BOTH", example="IN"),
-        Column("account_role", required=True, max_length=120, help="Rol de determinación contable o 'account:<código PUC>'", example="account:210505"),
+        Column(
+            "direction",
+            required=True,
+            allowed=("IN", "OUT", "BOTH"),
+            help="IN (recibo), OUT (egreso) o BOTH",
+            example="IN",
+        ),
+        Column(
+            "account_role",
+            required=True,
+            max_length=120,
+            help="Rol de determinación contable o 'account:<código PUC>'",
+            example="account:210505",
+        ),
         Column("requires_dimension", type="boolean", help="Exige dimensión en la línea", example="false"),
         Column("requires_party", type="boolean", help="Exige tercero (solo al crear)", example="true"),
     )
-    examples = ({"code": "PRESTAMO", "name": "Préstamo recibido", "direction": "IN", "account_role": "account:210505", "requires_dimension": "false", "requires_party": "true"},)
+    examples = (
+        {
+            "code": "PRESTAMO",
+            "name": "Préstamo recibido",
+            "direction": "IN",
+            "account_role": "account:210505",
+            "requires_dimension": "false",
+            "requires_party": "true",
+        },
+    )
 
     def find(self, ctx: TenantContext, company_id: uuid.UUID, rec: Record) -> Any:
-        return TreasuryConcept.objects.filter(tenant_id=ctx.tenant_id, company_id=company_id, code__iexact=rec.values["code"]).first()
+        return TreasuryConcept.objects.filter(
+            tenant_id=ctx.tenant_id, company_id=company_id, code__iexact=rec.values["code"]
+        ).first()
 
     def current(self, obj: TreasuryConcept) -> dict[str, Any]:
         return {
@@ -60,7 +83,9 @@ class TreasuryConceptsTemplate(Template):
     def update(self, uow: UnitOfWork, obj: TreasuryConcept, rec: Record, changed: set[str]) -> Any:
         fixed = changed - set(UPDATABLE)
         if fixed:
-            raise RowError("not_updatable", f"{', '.join(sorted(fixed))} solo se define al crear el concepto", sorted(fixed)[0])
+            raise RowError(
+                "not_updatable", f"{', '.join(sorted(fixed))} solo se define al crear el concepto", sorted(fixed)[0]
+            )
         return masters.update_concept(uow, obj, {k: rec.values.get(k) for k in changed})
 
     def queryset(self, ctx: TenantContext, company_id: uuid.UUID) -> QuerySet[Any]:

@@ -85,7 +85,9 @@ def _body(request: Request, allowed: tuple[str, ...]) -> dict[str, Any]:
         raise ValidationFailed("a JSON object is required", pointer="/", reason="type")
     unknown = sorted(set(data) - set(allowed))
     if unknown:
-        raise ValidationFailed(f"unknown field(s): {', '.join(unknown)}", pointer=f"/{unknown[0]}", reason="additional_property")
+        raise ValidationFailed(
+            f"unknown field(s): {', '.join(unknown)}", pointer=f"/{unknown[0]}", reason="additional_property"
+        )
     return dict(data)
 
 
@@ -104,7 +106,12 @@ def _page(request: Request, items: list[dict[str, Any]]) -> Response:
             raise FilterInvalid("invalid cursor") from None
     chunk = items[offset : offset + limit]
     more = len(items) > offset + limit
-    return respond({"items": chunk, "next_cursor": base64.urlsafe_b64encode(str(offset + limit).encode()).decode() if more else None})
+    return respond(
+        {
+            "items": chunk,
+            "next_cursor": base64.urlsafe_b64encode(str(offset + limit).encode()).decode() if more else None,
+        }
+    )
 
 
 def import_json(job: ImportJob, *, full: bool = False) -> dict[str, Any]:
@@ -126,10 +133,23 @@ def import_json(job: ImportJob, *, full: bool = False) -> dict[str, Any]:
         "batches_done": job.batches_done,
         "batches_total": job.batches_total,
         "version": job.version,
-        "audit": {"created_at": job.created_at, "created_by": job.created_by, "updated_at": job.updated_at, "updated_by": job.updated_by},
+        "audit": {
+            "created_at": job.created_at,
+            "created_by": job.created_by,
+            "updated_at": job.updated_at,
+            "updated_by": job.updated_by,
+        },
     }
     if full:
-        body.update({"headers": job.headers, "mapping": job.mapping, "errors": job.errors[:1000], "preview": job.preview, "results": job.results})
+        body.update(
+            {
+                "headers": job.headers,
+                "mapping": job.mapping,
+                "errors": job.errors[:1000],
+                "preview": job.preview,
+                "results": job.results,
+            }
+        )
     return body
 
 
@@ -146,7 +166,12 @@ def export_json(job: ExportJob) -> dict[str, Any]:
         "filename": job.filename,
         "omitted_columns": job.omitted_columns,
         "version": job.version,
-        "audit": {"created_at": job.created_at, "created_by": job.created_by, "updated_at": job.updated_at, "updated_by": job.updated_by},
+        "audit": {
+            "created_at": job.created_at,
+            "created_by": job.created_by,
+            "updated_at": job.updated_at,
+            "updated_by": job.updated_by,
+        },
     }
 
 
@@ -215,7 +240,7 @@ class TemplateItem(DataioView):
 class TemplateDownload(DataioView):
     def get(self, request: Request, entity: str) -> HttpResponse:
         ctx, _company = self.company(request)
-        fmt = request.query_params.get("format", "csv")
+        fmt = request.query_params.get("file_format", "csv")
         examples = request.query_params.get("examples", "1") != "0"
         return _file_response(*exports.template_file(ctx, entity, fmt, examples))
 
@@ -287,7 +312,7 @@ class ImportUpload(DataioView):
                 return job  # same file re-sent (retry): idempotent
             return service.upload(uow, job, upload.name or "", data, profile_id=profile)
 
-        job = run_in_unit_of_work(fn, ctx)
+        job = service.run(fn, ctx)
         return respond(import_json(job, full=True), 200, etag=job.etag)
 
 
@@ -365,10 +390,12 @@ class ImportReport(DataioView):
         ctx, company = self.company(request)
         service.require(ctx, "dataio.import.read")
         job = service.get_job(ctx, company, pk)
-        fmt = request.query_params.get("format", "json")
+        fmt = request.query_params.get("file_format", "json")
         headers, rows = service.report_rows(job)
         if fmt == "json":
-            return respond({"import": import_json(job), "errors": job.errors, "results": job.results, "counts": job.counts})
+            return respond(
+                {"import": import_json(job), "errors": job.errors, "results": job.results, "counts": job.counts}
+            )
         if fmt not in formats.FORMATS:
             raise FilterInvalid("format must be json, csv, xlsx or jsonl")
         content = formats.write(fmt, headers, rows, sheet="resultado")
@@ -450,7 +477,9 @@ def _profile_values(data: dict[str, Any], partial: bool) -> dict[str, Any]:
         out["entity"] = registry.get(str(data.get("entity") or "")).entity
     if "mapping" in data or not partial:
         mapping = data.get("mapping")
-        if not isinstance(mapping, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in mapping.items()):
+        if not isinstance(mapping, dict) or not all(
+            isinstance(k, str) and isinstance(v, str) for k, v in mapping.items()
+        ):
             raise ValidationFailed("mapping must be an object of header → column", pointer="/mapping", reason="type")
         out["mapping"] = mapping
     if "active" in data:
@@ -482,10 +511,16 @@ class ProfileCollection(DataioView):
         def fn(uow: UnitOfWork) -> tuple[Any, int]:
             service.require(uow.ctx, "dataio.mapping_profile.create")
             values = _profile_values(data, partial=False)
-            if MappingProfile.objects.filter(tenant_id=ctx.tenant_id, company_id=company, entity=values["entity"], name=values["name"]).exists():
+            if MappingProfile.objects.filter(
+                tenant_id=ctx.tenant_id, company_id=company, entity=values["entity"], name=values["name"]
+            ).exists():
                 raise ValidationFailed("a profile with this name exists", pointer="/name", reason="duplicate")
             p = MappingProfile.objects.create(
-                tenant_id=ctx.tenant_id, company_id=company, created_by=ctx.principal_id, updated_by=ctx.principal_id, **values
+                tenant_id=ctx.tenant_id,
+                company_id=company,
+                created_by=ctx.principal_id,
+                updated_by=ctx.principal_id,
+                **values,
             )
             return profile_json(p), 201
 
