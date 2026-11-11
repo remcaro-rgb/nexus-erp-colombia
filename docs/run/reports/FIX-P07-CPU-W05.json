@@ -1,0 +1,84 @@
+{
+  "task": "FIX-P07-CPU-W05",
+  "fix_version": 1,
+  "status": "DONE",
+  "reason": "",
+  "branch": "claude/beautiful-ptolemy-yx764c",
+  "base_sha": "9c45f8f976c4af8b4e82eb79b7e41d78596d466e",
+  "tested_sha": "62aa233386362d43a18a04b62cbe9d77c6d8addf",
+  "changed_paths": [
+    "backend/workflow/formula/limits.py",
+    "backend/workflow/tests/test_formula_budget.py",
+    "backend/workflow/tests/test_formula_budget_fix_p07_cpu.py",
+    "backend/workflow/tests/test_formula_graph.py",
+    "docs/handoffs/FIX-P07-CPU-W05.md",
+    "docs/run/progress/FIX-P07-CPU-W05.md"
+  ],
+  "checks": {
+    "make_ci": "PASSED",
+    "parity_gate": "PASSED",
+    "workflow_tests": "PASSED",
+    "formula_consumers": "PASSED",
+    "backend_tests": "PASSED",
+    "fix_tests": "PASSED",
+    "fault_injection_after": "PASSED",
+    "stress_loop": "PASSED",
+    "cpu_stress": "PASSED"
+  },
+  "causes": [
+    {
+      "id": "CB-1",
+      "status": "FIXED",
+      "root_cause": "cyclic-GC pauses charged to the formula's thread-CPU budget",
+      "fix": "default budget clock _cpu_clock = time.thread_time() minus the cyclic-GC pauses recorded in this thread during the evaluation: one idempotent module-level gc.callbacks hook; Budget.start() installs a fresh per-evaluation GcPauseAccount in a contextvars.ContextVar (threading import is banned in formula/ by the T-FORMULA-ENGINE-02 scan); _raw_clock test seam; additive Budget.gc_ms. D-008 limits unchanged.",
+      "files": [
+        "backend/workflow/formula/limits.py"
+      ],
+      "evidence": "unchanged main + fault injection: 16 failed, 499 passed, 1 deselected (all FormulaBudgetExceeded: more than 50 ms of CPU; full command hangs in the starvation test); after fix 3/3 runs 516 passed; FIX_P07_CPU tests 5 passed"
+    },
+    {
+      "id": "CB-2",
+      "status": "FIXED",
+      "root_cause": "topology/perf tests sampled the real CPU clock",
+      "fix": "long_chain_with_back_edge and graph_size_budget evaluate with clock=lambda: 0.0; worst_case_admitted_formula_is_cheap measures with the engine Budget (GC excluded), min of 5 runs; starvation test stops attackers in finally (thresholds unchanged); 5 new deterministic FIX_P07_CPU tests",
+      "files": [
+        "backend/workflow/tests/test_formula_graph.py",
+        "backend/workflow/tests/test_formula_budget.py",
+        "backend/workflow/tests/test_formula_budget_fix_p07_cpu.py"
+      ],
+      "evidence": "STRESS-LOOP 30/30 passed, CPU-STRESS 10/10 passed, backend 1474 passed x2"
+    }
+  ],
+  "observed": {
+    "repro_before": "16 failed, 499 passed, 1 deselected in 12.31s (all: FormulaBudgetExceeded: more than 50 ms of CPU); the full command without deselect hangs in test_T_FORMULA_ENGINE_03_no_cpu_starvation_of_other_requests (main-thread eval raises before stop.set())",
+    "inject_after": [
+      "516 passed in 16.83s",
+      "516 passed in 16.60s",
+      "516 passed in 16.90s"
+    ],
+    "stress_loop": "STRESS-LOOP 30/30 passed",
+    "cpu_stress": "CPU-STRESS 10/10 passed",
+    "backend_full": [
+      "1474 passed in 173.67s (0:02:53)",
+      "1474 passed in 182.29s (0:03:02)"
+    ],
+    "parity": "PARITY-GATE OK 4/4 (HEAD 07910d9) tree=4646fb59026a63b34930",
+    "mypy": "Success: no issues found in 611 source files",
+    "workflow": "600 passed in 13.13s",
+    "consumers": "310 passed, 11 deselected in 14.19s"
+  },
+  "ignores_added": [],
+  "github_actions": {
+    "observed": true,
+    "sha": "07910d92113d42c54e04df30f4e58af84ffa5809",
+    "jobs": {
+      "policy": "success",
+      "p03-tests": "success",
+      "make-ci": "success",
+      "compose-startup": "success"
+    },
+    "how": "GitHub MCP actions_list run 43043731722",
+    "note": "later commits only change docs/ (same code tree)"
+  },
+  "created_at": "2026-11-11T15:44:18Z"
+}
