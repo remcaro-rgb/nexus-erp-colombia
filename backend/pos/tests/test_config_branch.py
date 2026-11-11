@@ -28,7 +28,10 @@ def test_T_ACC_BRANCH_04_pos_config_requires_same_company_branch(pos_env: PosEnv
     assert r.status_code == 422 and r.json()["code"] == "branch_cross_company", r.content
 
     # same-company branch but the warehouse belongs to another branch → refused
-    r = api.post("configs", {"name": "Bodega ajena", "warehouse_id": str(env.other_warehouse.id), "branch_id": str(env.branch.id)})
+    r = api.post(
+        "configs",
+        {"name": "Bodega ajena", "warehouse_id": str(env.other_warehouse.id), "branch_id": str(env.branch.id)},
+    )
     assert r.status_code == 422 and r.json()["code"] == "validation_failed", r.content
 
     # same-company branch → created, branch stamped

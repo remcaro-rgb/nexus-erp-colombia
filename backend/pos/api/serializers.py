@@ -15,6 +15,7 @@ from kernel.errors import DomainError
 from kernel.interfaces.common import DocumentRef
 from kernel.interfaces.fiscal import FiscalDocuments
 from kernel.interfaces.policy import PolicyService
+from kernel.money import q_amount
 from kernel.tenancy import TenantContext
 from pos.models import CashMovement, CashSession, PosConfig, PosReturn, Terminal, Ticket
 from pos.registry import FIELDS
@@ -25,7 +26,7 @@ HIDDEN = ("confidential", "restricted-pii", "sensitive-pii", "secret")
 def money(value: Any) -> dict[str, str] | None:
     if value is None:
         return None
-    return {"amount": f"{Decimal(value):f}", "currency": "COP"}
+    return {"amount": f"{q_amount(Decimal(value)):f}", "currency": "COP"}
 
 
 def _readable(ctx: TenantContext, resource: str) -> frozenset[str]:

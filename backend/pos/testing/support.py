@@ -15,7 +15,7 @@ from collections.abc import Iterator
 from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 
 from kernel import ids, services
 from kernel.interfaces.common import DocumentRef
@@ -45,7 +45,9 @@ CASHIER = (
 )
 SUPERVISOR = ("pos.*", "sales.party.read", "inventory.item.read")
 
-ACCOUNTS = (  # synthetic PUC-like codes (SINTÉTICO, not a legal chart of accounts)
+ACCOUNTS: tuple[
+    tuple[str, str, str, str, bool, list[str], str], ...
+] = (  # synthetic PUC-like codes (SINTÉTICO, not a legal chart of accounts)
     ("130505", "Clientes nacionales (SINTÉTICO)", "asset", "debit", True, ["sales."], "AR"),
     ("413595", "Ingresos por ventas (SINTÉTICO)", "income", "credit", False, [], "REVENUE"),
     ("240805", "IVA generado (SINTÉTICO)", "liability", "credit", False, [], "VAT_PAYABLE"),
@@ -84,12 +86,12 @@ def pos_services(*, failing_stock: bool = False) -> Iterator[Fakes]:
     from ledger.registry import implementations
 
     impls = implementations()
-    stock: Any = FailingStock(SERVICE) if failing_stock else SERVICE
+    stock: Any = _failing_stock() if failing_stock else SERVICE
     with ExitStack() as stack:
         fakes = stack.enter_context(fake_services(real_posting=impls[PostingService], real_stock=stock))
         policy = PosPolicy()
         fakes.policy = policy
-        stack.enter_context(services.override(PolicyService, policy))
+        stack.enter_context(services.override(PolicyService, cast(PolicyService, policy)))
         stack.enter_context(services.override(PeriodService, impls[PeriodService]))
         stack.enter_context(services.override(Dimensions, impls[Dimensions]))
         inv_registry.register_branch_reference()
@@ -100,21 +102,28 @@ def pos_services(*, failing_stock: bool = False) -> Iterator[Fakes]:
         yield fakes
 
 
-class FailingStock:
-    """Stock service whose ``issue`` raises AFTER the real moves were written (failure injection, T-P12-02)."""
+def _failing_stock() -> Any:
+    from inventory.stock.service import InventoryStockService
 
-    def __init__(self, real: Any) -> None:
-        self.real = real
-        self.armed = False
+    class FailingStock(InventoryStockService):
+        """REAL P09 stock service whose ``issue`` raises AFTER the moves were written (failure injection, T-P12-02)."""
 
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self.real, name)
+        armed = False
 
-    def issue(self, uow: UnitOfWork, company_id: uuid.UUID, source: DocumentRef, lines: list[StockLine], move_date: dt.date) -> Any:
-        result = self.real.issue(uow, company_id, source, lines, move_date)
-        if self.armed:
-            raise RuntimeError("injected failure after the stock step")
-        return result
+        def issue(
+            self,
+            uow: UnitOfWork,
+            company_id: uuid.UUID,
+            source: DocumentRef,
+            lines: list[StockLine],
+            move_date: dt.date,
+        ) -> Any:
+            result = super().issue(uow, company_id, source, lines, move_date)
+            if self.armed:
+                raise RuntimeError("injected failure after the stock step")
+            return result
+
+    return FailingStock()
 
 
 @dataclass
@@ -185,19 +194,42 @@ def build(fakes: Fakes) -> PosEnv:
             resolution_number="SINTETICA-POS-0001",
         )
         branch = Branch.objects.create(
-            id=ids.new_id(), tenant_id=world.tenant_id, company_id=world.company, code="BOG", name="Sucursal BOG (SINTÉTICA)", is_head_office=True
+            id=ids.new_id(),
+            tenant_id=world.tenant_id,
+            company_id=world.company,
+            code="BOG",
+            name="Sucursal BOG (SINTÉTICA)",
+            is_head_office=True,
         )
         other = Branch.objects.create(
-            id=ids.new_id(), tenant_id=world.tenant_id, company_id=world.company, code="MED", name="Sucursal MED (SINTÉTICA)"
+            id=ids.new_id(),
+            tenant_id=world.tenant_id,
+            company_id=world.company,
+            code="MED",
+            name="Sucursal MED (SINTÉTICA)",
         )
         masters.create_uom(u, world.company, {"code": "UND", "name": "Unidad", "precision": 0})
-        wh = masters.create_warehouse(u, world.company, {"code": "PDV", "name": "Bodega punto de venta", "branch_id": str(branch.id)})
-        wh2 = masters.create_warehouse(u, world.company, {"code": "MED1", "name": "Bodega MED", "branch_id": str(other.id)})
+        wh = masters.create_warehouse(
+            u, world.company, {"code": "PDV", "name": "Bodega punto de venta", "branch_id": str(branch.id)}
+        )
+        wh2 = masters.create_warehouse(
+            u, world.company, {"code": "MED1", "name": "Bodega MED", "branch_id": str(other.id)}
+        )
         soda = masters.create_item(
-            u, world.company, {"code": "GAS-350", "name": "Gaseosa 350 ml (SINTÉTICO)", "base_uom": "UND", "sales_tax_code": "IVA19", "gtin": "7701234567897"}
+            u,
+            world.company,
+            {
+                "code": "GAS-350",
+                "name": "Gaseosa 350 ml (SINTÉTICO)",
+                "base_uom": "UND",
+                "sales_tax_code": "IVA19",
+                "gtin": "7701234567897",
+            },
         )
         snack = masters.create_item(
-            u, world.company, {"code": "PAQ-01", "name": "Paquete pasabocas (SINTÉTICO)", "base_uom": "UND", "sales_tax_code": "IVA19"}
+            u,
+            world.company,
+            {"code": "PAQ-01", "name": "Paquete pasabocas (SINTÉTICO)", "base_uom": "UND", "sales_tax_code": "IVA19"},
         )
         box = masters.create_presentation(
             u, soda, {"code": "CJ12", "name": "Caja x12", "uom": "CAJA", "factor": "12", "barcode": "2001234567893"}
@@ -211,15 +243,27 @@ def build(fakes: Fakes) -> PosEnv:
             world.company,
             receipt,
             [
-                StockLine("1", soda.id, wh.id, Decimal(24), presentation_id=box.id, unit_cost=Decimal("1000")),  # 2 boxes
+                StockLine(
+                    "1", soda.id, wh.id, Decimal(24), presentation_id=box.id, unit_cost=Decimal("1000")
+                ),  # 2 boxes
                 StockLine("2", soda.id, wh.id, Decimal(6), unit_cost=Decimal("1000")),  # 6 loose
                 StockLine("3", snack.id, wh.id, Decimal(50), unit_cost=Decimal("2000")),
             ],
             dt.date(2026, 11, 2),
         )
-        return {"branch": branch, "other": other, "wh": wh, "wh2": wh2, "soda": soda, "snack": snack, "box": box, "six": six, "range": pos_range}
+        return {
+            "branch": branch,
+            "other": other,
+            "wh": wh,
+            "wh2": wh2,
+            "soda": soda,
+            "snack": snack,
+            "box": box,
+            "six": six,
+            "range": pos_range,
+        }
 
-    env = run_in_unit_of_work(boot, admin)
+    env = cast(dict[str, Any], run_in_unit_of_work(boot, admin))
     foreign = _foreign_branch(world)
     world.base_price(env["soda"].id, "2500")
     world.base_price(env["snack"].id, "100000")
@@ -246,7 +290,12 @@ def _foreign_branch(world: World) -> Any:
     ctx = make_context(tenant_id=world.tenant_id, company_ids=[world.other_company])
     with unit_of_work(ctx):
         return Branch.objects.create(
-            id=ids.new_id(), tenant_id=world.tenant_id, company_id=world.other_company, code="BOG", name="Sucursal BOG empresa 2", is_head_office=True
+            id=ids.new_id(),
+            tenant_id=world.tenant_id,
+            company_id=world.other_company,
+            code="BOG",
+            name="Sucursal BOG empresa 2",
+            is_head_office=True,
         )
 
 
@@ -259,9 +308,19 @@ def open_counter(env: PosEnv, *, opening: str = "200000", cashier: str = "cashie
         lambda u: setup.create_config(
             u,
             env.company,
-            {"name": "Caja 1 BOG", "branch_id": str(env.branch.id), "warehouse_id": str(env.warehouse.id), "numbering_range_id": str(env.pos_range.id)},
+            {
+                "name": "Caja 1 BOG",
+                "branch_id": str(env.branch.id),
+                "warehouse_id": str(env.warehouse.id),
+                "numbering_range_id": str(env.pos_range.id),
+            },
         ),
     )
-    term = env.run("pos_admin", lambda u: setup.create_terminal(u, env.company, {"code": "T1", "name": "Terminal 1", "config_id": str(cfg.id)}))
+    term = env.run(
+        "pos_admin",
+        lambda u: setup.create_terminal(u, env.company, {"code": "T1", "name": "Terminal 1", "config_id": str(cfg.id)}),
+    )
     env.config, env.terminal = cfg, term
-    return env.run(cashier, lambda u: sessions.open_session(u, env.company, {"terminal_id": str(term.id), "opening_cash": opening}))
+    return env.run(
+        cashier, lambda u: sessions.open_session(u, env.company, {"terminal_id": str(term.id), "opening_cash": opening})
+    )

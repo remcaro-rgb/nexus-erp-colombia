@@ -33,7 +33,7 @@ def counts(env: PosEnv) -> dict[str, int]:
     with bound(env.world.ctx("admin")):
         seq = Sequence.objects.get(id=env.pos_range.id)
         return {
-            "entries": JournalEntry.objects.filter(company_id=env.company).count(),
+            "entries": JournalEntry.objects.filter(company_id=env.company, book__code="NIIF").count(),
             "moves": StockMove.objects.filter(company_id=env.company).count(),
             "next_number": int(seq.next_number),
             "outbox": OutboxMessage.objects.filter(tenant_id=env.world.tenant_id).count(),
@@ -46,7 +46,9 @@ def stock(env: PosEnv, item: Any, presentation: Any = None) -> tuple[Decimal, De
     from inventory.models import PackagedQuant, StockQuant
 
     with bound(env.world.ctx("admin")):
-        on_hand = StockQuant.objects.filter(company_id=env.company, item=item, warehouse=env.warehouse).aggregate(s=Sum("on_hand"))["s"]
+        on_hand = StockQuant.objects.filter(company_id=env.company, item=item, warehouse=env.warehouse).aggregate(
+            s=Sum("on_hand")
+        )["s"]
         packages = Decimal(0)
         if presentation is not None:
             packages = PackagedQuant.objects.filter(
@@ -55,5 +57,13 @@ def stock(env: PosEnv, item: Any, presentation: Any = None) -> tuple[Decimal, De
         return Decimal(on_hand or 0), Decimal(packages)
 
 
-def checkout_params(session: Any, lines: list[dict[str, Any]], payments: list[dict[str, Any]], **extra: Any) -> dict[str, Any]:
-    return {"client_uuid": str(uuid.uuid4()), "session_id": str(session.id), "lines": lines, "payments": payments, **extra}
+def checkout_params(
+    session: Any, lines: list[dict[str, Any]], payments: list[dict[str, Any]], **extra: Any
+) -> dict[str, Any]:
+    return {
+        "client_uuid": str(uuid.uuid4()),
+        "session_id": str(session.id),
+        "lines": lines,
+        "payments": payments,
+        **extra,
+    }

@@ -83,7 +83,9 @@ def test_T_INV_PRES_04_scan_sells_the_package_and_decrements_packaged_and_canoni
     assert sum(books.values()) == 0
 
     # selling more boxes than are packaged fails as a whole (whole packages only; nothing posted)
-    many = checkout_params(session, [{"barcode": "2001234567893", "quantity": "2"}], [{"type": "CASH", "amount": "71400"}])
+    many = checkout_params(
+        session, [{"barcode": "2001234567893", "quantity": "2"}], [{"type": "CASH", "amount": "71400"}]
+    )
     with pytest.raises(Exception) as exc:
         env.run("cashier", lambda u: checkout.checkout(u, env.company, many))
     assert getattr(exc.value, "code", "") in ("stock_insufficient", "insufficient_stock")
