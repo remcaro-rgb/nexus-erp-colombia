@@ -22,7 +22,7 @@ import io
 from collections.abc import Iterable, Sequence
 from decimal import Decimal
 from typing import Any
-from xml.etree import ElementTree as ET
+from xml.sax.saxutils import escape, quoteattr
 
 from kernel import services
 from kernel.interfaces.common import DocumentRef
@@ -259,57 +259,64 @@ def document_pdf(data: dict[str, Any]) -> bytes:
 
 
 def document_xml(data: dict[str, Any]) -> bytes:
+    """Serialized by hand (no ``ElementTree.register_namespace``: that registry is process-global and would change
+    the prefixes of every other XML the process writes, e.g. P15's golden documents)."""
     is_note = data["doc_type"] == "sales.credit_note"
-    ET.register_namespace("", UBL_CN if is_note else UBL)
-    ET.register_namespace("cbc", CBC)
-    ET.register_namespace("cac", CAC)
-    root = ET.Element(f"{{{UBL_CN if is_note else UBL}}}{'CreditNote' if is_note else 'Invoice'}")
+    root_tag = "CreditNote" if is_note else "Invoice"
+    cur = data["currency"]
+    out: list[str] = []
 
-    def cbc(parent: ET.Element, name: str, text: str, **attrs: str) -> ET.Element:
-        el = ET.SubElement(parent, f"{{{CBC}}}{name}", attrs)
-        el.text = text
-        return el
+    def cbc(name: str, text: str, indent: int = 1, **attrs: str) -> None:
+        extra = "".join(f" {k}={quoteattr(v)}" for k, v in attrs.items())
+        out.append(f"{'  ' * indent}<cbc:{name}{extra}>{escape(text)}</cbc:{name}>")
 
-    cbc(root, "UBLVersionID", "UBL 2.1")
-    cbc(root, "ProfileID", "SINTETICO-NEXUS-DEV")
-    cbc(root, "ID", data["number"])
-    cbc(root, "UUID", data["cufe"], schemeName="CUFE-SINTETICO")
-    cbc(root, "IssueDate", data["issue_date"])
+    out.append(f'<{root_tag} xmlns="{UBL_CN if is_note else UBL}" xmlns:cac="{CAC}" xmlns:cbc="{CBC}">')
+    cbc("UBLVersionID", "UBL 2.1")
+    cbc("ProfileID", "SINTETICO-NEXUS-DEV")
+    cbc("ID", data["number"])
+    cbc("UUID", data["cufe"], schemeName="CUFE-SINTETICO")
+    cbc("IssueDate", data["issue_date"])
     if data["due_date"]:
-        cbc(root, "DueDate", data["due_date"])
-    cbc(root, "Note", FISCAL_LABEL)
-    cbc(root, "Note", NOT_VERIFIED)
-    cbc(root, "DocumentCurrencyCode", data["currency"])
+        cbc("DueDate", data["due_date"])
+    cbc("Note", FISCAL_LABEL)
+    cbc("Note", NOT_VERIFIED)
+    cbc("DocumentCurrencyCode", cur)
     if data["reference"]:
-        ref = ET.SubElement(root, f"{{{CAC}}}BillingReference")
-        inv_ref = ET.SubElement(ref, f"{{{CAC}}}InvoiceDocumentReference")
-        cbc(inv_ref, "ID", data["reference"])
+        out.append("  <cac:BillingReference><cac:InvoiceDocumentReference>")
+        cbc("ID", data["reference"], 2)
+        out.append("  </cac:InvoiceDocumentReference></cac:BillingReference>")
     for tag, name, nit in (
         ("AccountingSupplierParty", data["seller"], data["seller_nit"]),
         ("AccountingCustomerParty", data["customer"], data["customer_nit"]),
     ):
-        p = ET.SubElement(ET.SubElement(root, f"{{{CAC}}}{tag}"), f"{{{CAC}}}Party")
-        scheme = ET.SubElement(p, f"{{{CAC}}}PartyTaxScheme")
-        cbc(scheme, "RegistrationName", name)
-        cbc(scheme, "CompanyID", nit, schemeName="NIT")
-    tax = ET.SubElement(root, f"{{{CAC}}}TaxTotal")
-    cbc(tax, "TaxAmount", data["tax_total"], currencyID=data["currency"])
-    total = ET.SubElement(root, f"{{{CAC}}}LegalMonetaryTotal")
-    cbc(total, "LineExtensionAmount", data["subtotal"], currencyID=data["currency"])
-    cbc(total, "PayableAmount", data["total"], currencyID=data["currency"])
+        out.append(f"  <cac:{tag}><cac:Party><cac:PartyTaxScheme>")
+        cbc("RegistrationName", name, 2)
+        cbc("CompanyID", nit, 2, schemeName="NIT")
+        out.append(f"  </cac:PartyTaxScheme></cac:Party></cac:{tag}>")
+    out.append("  <cac:TaxTotal>")
+    cbc("TaxAmount", data["tax_total"], 2, currencyID=cur)
+    out.append("  </cac:TaxTotal>")
+    out.append("  <cac:LegalMonetaryTotal>")
+    cbc("LineExtensionAmount", data["subtotal"], 2, currencyID=cur)
+    cbc("PayableAmount", data["total"], 2, currencyID=cur)
+    out.append("  </cac:LegalMonetaryTotal>")
+    line_tag = "CreditNoteLine" if is_note else "InvoiceLine"
     for ln in data["lines"]:
-        line = ET.SubElement(root, f"{{{CAC}}}{'CreditNoteLine' if is_note else 'InvoiceLine'}")
-        cbc(line, "ID", str(ln["line_no"]))
-        cbc(line, "CreditedQuantity" if is_note else "InvoicedQuantity", ln["quantity"] or "0")
-        cbc(line, "LineExtensionAmount", ln["amount"], currencyID=data["currency"])
-        item = ET.SubElement(line, f"{{{CAC}}}Item")
-        cbc(item, "Description", ln["description"])
+        out.append(f"  <cac:{line_tag}>")
+        cbc("ID", str(ln["line_no"]), 2)
+        cbc("CreditedQuantity" if is_note else "InvoicedQuantity", ln["quantity"] or "0", 2)
+        cbc("LineExtensionAmount", ln["amount"], 2, currencyID=cur)
+        out.append("    <cac:Item>")
+        cbc("Description", ln["description"], 3)
+        out.append("    </cac:Item>")
         if ln["unit_price"]:
-            price = ET.SubElement(line, f"{{{CAC}}}Price")
-            cbc(price, "PriceAmount", ln["unit_price"], currencyID=data["currency"])
-    body = ET.tostring(root, encoding="unicode")
+            out.append("    <cac:Price>")
+            cbc("PriceAmount", ln["unit_price"], 3, currencyID=cur)
+            out.append("    </cac:Price>")
+        out.append(f"  </cac:{line_tag}>")
+    out.append(f"</{root_tag}>")
     head = f'<?xml version="1.0" encoding="UTF-8"?>\n<!-- {FISCAL_LABEL} · {NOT_VERIFIED} -->\n'
-    return (head + body + "\n").encode("utf-8")
+    return (head + "\n".join(out) + "\n").encode("utf-8")
 
 
 # --------------------------------------------------------------------------- statement exports

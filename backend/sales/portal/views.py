@@ -22,7 +22,7 @@ from rest_framework.negotiation import DefaultContentNegotiation
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from iam.api.base import to_json
+from iam.api.base import PrincipalThrottle, TenantThrottle, to_json
 from iam.external.portal import PortalView, own_account_id
 from kernel import clock, tenancy
 from kernel.errors import ValidationFailed
@@ -66,8 +66,15 @@ def _file(content: bytes, media_type: str, filename: str) -> HttpResponse:
     return response
 
 
+class CustomerPortalThrottle(PrincipalThrottle):
+    """Per-account rate limit of the customer portal (own bucket: F-PORTAL-CUS "rate limits per account")."""
+
+    scope_name = "portal_customer"
+
+
 class CustomerPortalView(PortalView):
     portal_kind = "customer"
+    throttle_classes: ClassVar[list[Any]] = [CustomerPortalThrottle, TenantThrottle]
     permissions: ClassVar[dict[str, str]] = {}
     portal_fields: ClassVar[tuple[str, ...]] = DOC_FIELDS
 
