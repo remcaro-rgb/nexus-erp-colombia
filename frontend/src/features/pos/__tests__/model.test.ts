@@ -31,7 +31,7 @@ const catalog: CatalogItem[] = [
 ];
 
 describe("POS scan input (P12)", () => {
-  it("T_INV_BARCODE_05 scan input adds the right presentation line", () => {
+  it("T-INV-BARCODE-05 scan input adds the right presentation line", () => {
     let cart = newDraft("c-1", "s-1", "2026-11-09T15:00:00Z");
     cart = addScan(cart, resolveScan(catalog, "2001234567893\r\n")!);
     cart = addScan(cart, resolveScan(catalog, " 2009876543213")!);
@@ -54,7 +54,7 @@ describe("POS scan input (P12)", () => {
 });
 
 describe("ADR-015 online finalization (P12)", () => {
-  it("T_P12_04 disconnected: checkout, tenders, returns, cash movements, close and print are disabled", () => {
+  it("T-P12-04 disconnected: checkout, tenders, returns, cash movements, close and print are disabled", () => {
     const off = posActions("offline", { sessionOpen: true, committedReceipt: true });
     expect(off).toEqual({
       checkout: false,
@@ -73,7 +73,7 @@ describe("ADR-015 online finalization (P12)", () => {
     expect(DRAFT_WATERMARK).toBe("BORRADOR – sin valor fiscal");
   });
 
-  it("T_P12_11 the receipt exists only for the committed server ticket", () => {
+  it("T-P12-11 the receipt exists only for the committed server ticket", () => {
     expect(receiptFor(null)).toBeNull();
     expect(receiptFor({ id: "t", number: "", status: "DRAFT", total: null, lines: [] })).toBeNull();
     const r = receiptFor({
@@ -91,7 +91,7 @@ describe("ADR-015 online finalization (P12)", () => {
     expect(receiptFor({ id: "t", number: "SETP1", status: "POSTED", total: null, lines: [] }, { copy: true })?.copy).toBe(true);
   });
 
-  it("T_P12_05 a server price change is surfaced for confirmation", () => {
+  it("T-P12-05 a server price change is surfaced for confirmation", () => {
     const pc = priceChangeFromProblem({
       code: "pos_price_changed",
       errors: { server: { total: "6188.00", diff: [{ line_no: 1, item_id: "i", draft_unit_price: "2500", server_unit_price: "2600.00" }] } },
