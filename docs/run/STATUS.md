@@ -1,6 +1,6 @@
 # STATUS — Nexus ERP (edition 3.0.0-claude-cloud)
 
-Updated: 2026-11-11T17:00:19Z (UTC). Repository: https://github.com/remcaro-rgb/nexus-erp-colombia.
+Updated: 2026-11-11T17:17:58Z (UTC). Repository: https://github.com/remcaro-rgb/nexus-erp-colombia.
 
 Written only by the integrator (`python3 tools/cloudctl.py status`). A task counts as working only when it is ACCEPTED with
 integrator-run test evidence under `docs/run/evidence/`.
@@ -8,7 +8,11 @@ integrator-run test evidence under `docs/run/evidence/`.
 ## What to paste next
 
 ```
-NEXT: no worker prompt is due; paste prompts/INTEGRATOR-after-W05.md into 1 NEW session.
+NEXT: wave 06 — open 3 NEW Claude Code cloud session(s) on remcaro-rgb/nexus-erp-colombia (at most 5 at the same time; start the next one when one finishes) and paste exactly one file into each:
+  prompts/W06-S1-P18-bulk-import-export.md
+  prompts/W06-S2-P22c-qa-leak-tests.md
+  prompts/W06-S3-P17a-reporting-semantic-documents.md
+THEN: when every one of those sessions has ended (DONE or BLOCKED), paste prompts/INTEGRATOR-after-W06.md into 1 NEW session.
 ```
 
 ## Tasks
@@ -41,10 +45,10 @@ NEXT: no worker prompt is due; paste prompts/INTEGRATOR-after-W05.md into 1 NEW 
 | 05 | P12 | worker | ACCEPTED | 1 | 2026-11-11T17:00:19Z |  |
 | 05 | P10b | worker | ACCEPTED | 1 | 2026-11-11T04:34:37Z | operator reset: policy rejections were a shallow-clone gitleaks false positive (f6813f0);  |
 | 05 | P16b | worker | ACCEPTED | 1 | 2026-11-11T04:34:37Z | operator reset: policy rejections were a shallow-clone gitleaks false positive (f6813f0);  |
-| 05 | G2 | gate | READY | 1 |  |  |
-| 06 | P18 | worker | PENDING | 1 |  |  |
-| 06 | P22c | worker | PENDING | 1 |  |  |
-| 06 | P17a | worker | PENDING | 1 |  |  |
+| 05 | G2 | gate | ACCEPTED | 1 | 2026-11-11T17:17:58Z |  |
+| 06 | P18 | worker | READY | 1 |  |  |
+| 06 | P22c | worker | READY | 1 |  |  |
+| 06 | P17a | worker | READY | 1 |  |  |
 | 07 | P19 | worker | PENDING | 1 |  |  |
 | 07 | P17b | worker | PENDING | 1 |  |  |
 | 07 | P17c | worker | PENDING | 1 |  |  |

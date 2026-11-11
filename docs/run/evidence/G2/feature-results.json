@@ -1,0 +1,423 @@
+{
+  "schema": "erp-features/results/v1",
+  "registry_sha256": "a62fa1d937c13533ddc08f22b87a65d9bce24d662e6df7e8996f3aa7ee939ab4",
+  "commit": "c0c8b5ae27fb13ac7c8c5dc7dd187739c3c38675",
+  "tests": {
+    "T-ACC-BRANCH-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_BRANCH_01_crud_code_unique_per_company_and_one_head_office"
+    },
+    "T-ACC-BRANCH-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_BRANCH_02_cross_company_links_rejected_and_archive_blocked_while_referenced"
+    },
+    "T-ACC-BRANCH-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_BRANCH_03_warehouse_requires_same_company_branch"
+    },
+    "T-ACC-BRANCH-04": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_BRANCH_04_pos_config_requires_same_company_branch"
+    },
+    "T-ACC-DIM-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_DIM_01_create_group_and_leaf_unique_code_per_company[cost_center]"
+    },
+    "T-ACC-DIM-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_DIM_02_agrupador_not_postable_rolls_back_document"
+    },
+    "T-ACC-DIM-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_DIM_03_hierarchy_rules_on_create"
+    },
+    "T-ACC-DIM-04": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_DIM_04_cross_company_reference_rejected_by_api"
+    },
+    "T-ACC-DIM-05": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_DIM_05_used_node_delete_and_type_change_rejected"
+    },
+    "T-ACC-DIM-06": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_DIM_06_rule_matrix_enforced_in_posting_and_simulate"
+    },
+    "T-ACC-DIM-07": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_DIM_07_dimension_assignment_never_changes_amounts"
+    },
+    "T-ACC-DIM-08": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_DIM_08_dimensions_ui_playwright"
+    },
+    "T-ACC-DIM-09": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_DIM_09_subtree_grant_limits_list_tree_search_and_export"
+    },
+    "T-ACC-DIM-12": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-frontend.xml#T-ACC-DIM-12 TreeTable > T-ACC-DIM-12 renders 10,000 nodes virtualized in both views"
+    },
+    "T-ACC-EXO-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_EXO_01_stored_synthetic_pack_is_not_dian_valid"
+    },
+    "T-FORMULA-ENGINE-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_FORMULA_ENGINE_01_suite_has_at_least_200_cases"
+    },
+    "T-FORMULA-ENGINE-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_FORMULA_ENGINE_02_corpus_is_large_and_codes_are_stable"
+    },
+    "T-FORMULA-ENGINE-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_FORMULA_ENGINE_03_d008_defaults"
+    },
+    "T-FORMULA-ENGINE-04": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_FORMULA_ENGINE_04_topological_order_diamond_is_deterministic"
+    },
+    "T-FORMULA-ENGINE-05": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_FORMULA_ENGINE_05_db_tables_of_other_companies_are_invisible"
+    },
+    "T-FORMULA-ENGINE-06": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-frontend.xml#T-FORMULA-ENGINE-06 FormulaEditor > T-FORMULA-ENGINE-06 shows positioned errors (line/column) and moves the caret to them"
+    },
+    "T-INV-BARCODE-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_BARCODE_01_code128_golden_vectors[PJJ123C-values0]"
+    },
+    "T-INV-BARCODE-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_BARCODE_02_gs1_generation_refused_without_user_prefix"
+    },
+    "T-INV-BARCODE-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_BARCODE_03_lookup_resolves_item_presentation_location_lot_unknown_is_barcode_unknown"
+    },
+    "T-INV-BARCODE-05": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_BARCODE_05_scan_input_adds_the_right_presentation_line"
+    },
+    "T-INV-BOM-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_BOM_01_cycles_across_multi_level_boms_and_overlapping_versions_rejected"
+    },
+    "T-INV-BOM-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_BOM_02_explosion_with_yields_and_scrap_is_exact_and_costed_explosion_matches_valuation"
+    },
+    "T-INV-BOM-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_BOM_03_kit_sale_consumes_components_at_cost"
+    },
+    "T-INV-ISSUE-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_ISSUE_01_each_seeded_concept_posts_exact_journal_and_moves_cost_from_layers"
+    },
+    "T-INV-ISSUE-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_ISSUE_02_required_dims_reason_and_approval_threshold_routes_to_workflow"
+    },
+    "T-INV-ISSUE-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_ISSUE_03_concurrent_issues_of_last_units_one_succeeds_one_stock_insufficient"
+    },
+    "T-INV-ISSUE-04": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_ISSUE_04_reversal_returns_stock_at_original_cost_bin_and_lot"
+    },
+    "T-INV-LOC-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_LOC_01_tree_no_cycles_parent_same_warehouse_posting_only_to_leaf_bins"
+    },
+    "T-INV-LOC-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_LOC_02_availability_and_reservations_per_bin_and_lot"
+    },
+    "T-INV-LOC-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_LOC_03_putaway_rule_else_recepcion_and_bin_to_bin_keeps_valuation"
+    },
+    "T-INV-LOC-04": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_LOC_04_concurrent_moves_out_of_one_bin_never_go_negative"
+    },
+    "T-INV-PRES-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_PRES_01_factor_and_precision_validation"
+    },
+    "T-INV-PRES-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_PRES_02_packaged_never_exceeds_canonical_and_stock_never_double_counted"
+    },
+    "T-INV-PRES-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_PRES_03_availability_by_presentation_lot_bin_and_box_reservation"
+    },
+    "T-INV-PRES-04": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_PRES_04_scan_sells_the_package_and_decrements_packaged_and_canonical_stock"
+    },
+    "T-INV-REQ-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_REQ_01_approval_with_sod_reserves_stock_and_leaves_the_rest_to_procure"
+    },
+    "T-INV-REQ-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_REQ_02_consolidation_keeps_lineage_and_split_fulfilment_closes_each_line"
+    },
+    "T-INV-REQ-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_REQ_03_auto_po_only_within_limit_and_with_valid_price"
+    },
+    "T-INV-REQ-04": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_REQ_04_transfer_ship_receive_in_transit_counted_once_cross_company_rejected"
+    },
+    "T-INV-REQ-05": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_REQ_05_two_requisitions_for_the_last_units_never_double_allocate"
+    },
+    "T-INV-REQ-06": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_REQ_06_s_req_request_partial_transfer_and_po_receipt_fulfilled"
+    },
+    "T-INV-XFORM-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_XFORM_01_repack_unpack_and_pack_canonical_stock_unchanged_no_entry"
+    },
+    "T-INV-XFORM-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_XFORM_02_portioning_direct_actual_weights_waste_values_balance_rounding_to_main"
+    },
+    "T-INV-XFORM-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_XFORM_03_portioning_template_outside_tolerance_requires_approval_inside_posts"
+    },
+    "T-INV-XFORM-04": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_XFORM_04_manual_multi_input_output_balances_value_and_quantities_outputs_without_inputs_rejected"
+    },
+    "T-INV-XFORM-05": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_XFORM_05_production_from_bom_v2_consumes_components_with_scrap_byproduct_by_cost_share"
+    },
+    "T-INV-XFORM-06": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_XFORM_06_concurrent_transformation_and_pos_sale_on_same_lot_one_fails_cleanly"
+    },
+    "T-INV-XFORM-07": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_XFORM_07_ledger_failure_during_post_rolls_back_all_stock_moves"
+    },
+    "T-INV-XFORM-08": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_XFORM_08_random_transformations_value_invariant_and_no_negative_stock"
+    },
+    "T-PAY-FORMULA-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PAY_FORMULA_01_user_concepts_evaluated_in_topological_order"
+    },
+    "T-PAY-FORMULA-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PAY_FORMULA_02_parameter_snapshot_stored_and_posted_payroll_unchanged"
+    },
+    "T-PAY-FORMULA-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PAY_FORMULA_03_unknown_parameter_on_the_date_fails_closed"
+    },
+    "T-PAY-FORMULA-04": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PAY_FORMULA_04_adversarial_formulas_rejected_by_the_concepts_api"
+    },
+    "T-PORTAL-CORE-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_CORE_01_invite_accept_login_me_and_revoked_denied"
+    },
+    "T-PORTAL-CORE-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_CORE_02_idor_suite_party_a_cannot_read_party_b"
+    },
+    "T-PORTAL-CORE-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_CORE_03_external_users_get_no_internal_roles_and_internal_api_rejects_portal_tokens"
+    },
+    "T-PORTAL-CORE-04": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-frontend.xml#T-PORTAL-CORE-04 portal shell variant > T-PORTAL-CORE-04 supplier portal renders only its own menus"
+    },
+    "T-PORTAL-CUS-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_CUS_01_customer_sees_only_own_documents_and_statement_equals_ar_subledger"
+    },
+    "T-PORTAL-CUS-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_CUS_02_simulated_payment_never_posts_and_leaves_rc_draft_for_treasury"
+    },
+    "T-PORTAL-CUS-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_CUS_03_quote_request_to_internal_quote_to_acceptance_to_sales_order"
+    },
+    "T-PORTAL-CUS-04": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_CUS_04_no_other_customer_prices_cost_margin_or_formula_in_any_portal_response"
+    },
+    "T-PORTAL-CUS-05": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_CUS_05_fiscal_pdf_and_xml_downloads_carry_the_synthetic_label"
+    },
+    "T-PORTAL-EMP-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_EMP_01_employee_sees_only_own_payslips"
+    },
+    "T-PORTAL-EMP-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_EMP_02_vacation_request_approval_updates_balance_kpi"
+    },
+    "T-PORTAL-EMP-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_EMP_03_employee_a_cannot_read_employee_b_documents"
+    },
+    "T-PORTAL-SUP-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_SUP_01_quote_via_portal_before_deadline_is_compared_and_private"
+    },
+    "T-PORTAL-SUP-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_SUP_02_acknowledgement_and_shipment_notice_reach_receiving"
+    },
+    "T-PORTAL-SUP-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_SUP_03_bank_change_needs_two_different_internal_approvers"
+    },
+    "T-PORTAL-SUP-04": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_SUP_04_portal_never_leaks_other_vendors_prices_costs_or_internal_notes"
+    },
+    "T-PORTAL-SUP-05": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_SUP_05_dashboard_kpis_match_direct_queries"
+    },
+    "T-PT-OPEN-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PT_OPEN_01_contract_suite_passes_for_simulator_and_a_second_dummy_adapter"
+    },
+    "T-PT-OPEN-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PT_OPEN_02_provider_export_neutralises_formulas"
+    },
+    "T-PUR-CYCLE-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PUR_CYCLE_01_late_quote_excluded_unless_reopened"
+    },
+    "T-PUR-CYCLE-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PUR_CYCLE_02_normalization_golden_comparison_table"
+    },
+    "T-PUR-CYCLE-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PUR_CYCLE_03_golden_explanation_and_earlier_receipt_tie_rule"
+    },
+    "T-PUR-CYCLE-04": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PUR_CYCLE_04_award_reason_and_approval_before_purchase_orders"
+    },
+    "T-PUR-CYCLE-05": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PUR_CYCLE_05_partial_then_full_receipt_with_tolerance"
+    },
+    "T-PUR-CYCLE-06": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PUR_CYCLE_06_attachments_stored_scanned_and_buyers_only"
+    },
+    "T-PUR-CYCLE-07": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PUR_CYCLE_07_s_pur_requisition_rfq_award_po_two_receipts_invoice_ce"
+    },
+    "T-SAL-PRICING-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_SAL_PRICING_01_precedence_breaks_and_group_scopes"
+    },
+    "T-SAL-PRICING-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_SAL_PRICING_02_snapshot_stored_and_draft_reprice_diff"
+    },
+    "T-SAL-PRICING-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_SAL_PRICING_03_override_beyond_limit_routes_to_approval"
+    },
+    "T-SAL-PRICING-04": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_SAL_PRICING_04_portal_quote_never_exposes_cost_or_formula"
+    },
+    "T-SAL-PRICING-05": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_SAL_PRICING_05_multicurrency_formula_uses_document_date_fx_and_rounds"
+    },
+    "T-TRE-CE-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_TRE_CE_01_three_partial_bills_with_withholding_exact_journal"
+    },
+    "T-TRE-CE-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_TRE_CE_02_direct_concept_disbursement_with_cost_center"
+    },
+    "T-TRE-CE-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_TRE_CE_03_batch_execution_one_ce_per_payee_gap_free_fixture_file"
+    },
+    "T-TRE-CE-04": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_TRE_CE_04_dual_approval_above_threshold_with_sod"
+    },
+    "T-TRE-CE-05": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_TRE_CE_05_reversal_reopens_ap_items_and_keeps_the_original"
+    },
+    "T-TRE-RC-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_TRE_RC_01_two_partial_invoices_advance_and_withholding_exact_journal"
+    },
+    "T-TRE-RC-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_TRE_RC_02_concept_receipt_without_ar_posts_to_concept_accounts_with_dims"
+    },
+    "T-TRE-RC-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_TRE_RC_03_fifty_concurrent_posts_gap_free_numbers_no_double_application"
+    },
+    "T-TRE-RC-04": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_TRE_RC_04_ledger_failure_rolls_back_number_open_items_and_entry"
+    },
+    "T-TRE-RC-05": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_TRE_RC_05_reversal_reopens_items_mirrors_entry_and_keeps_original"
+    },
+    "T-TRE-RC-06": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_TRE_RC_06_threshold_routes_to_p07_and_creator_cannot_approve"
+    },
+    "T-X-QA-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_X_QA_01_s_tre_invoice_rc_partial_withholding_bank_match_and_vendor_ce"
+    },
+    "T-X-QA-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_X_QA_02_s_inv_presentation_receipt_portioning_issue_kardex_equals_gl"
+    },
+    "T-X-QA-06": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_X_QA_06_frozen_openapi_contains_every_registry_endpoint_event_and_error"
+    },
+    "T-X-QA-07": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_X_QA_07_support_every_interface_is_a_typed_protocol_with_a_double"
+    }
+  }
+}

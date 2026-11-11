@@ -4,7 +4,7 @@
   "repo_url": "https://github.com/remcaro-rgb/nexus-erp-colombia",
   "plan_sha256": "593796320d7b832515b6c33e344d08904c9a24185528abcd51c8e09fe8ba089f",
   "registry_sha256": "a62fa1d937c13533ddc08f22b87a65d9bce24d662e6df7e8996f3aa7ee939ab4",
-  "updated_at": "2026-11-11T17:00:19Z",
+  "updated_at": "2026-11-11T17:17:58Z",
   "tasks": {
     "P01": {
       "status": "ACCEPTED",
@@ -220,15 +220,18 @@
       "accepted_at": "2026-11-11T17:00:19Z"
     },
     "G2": {
+      "status": "ACCEPTED",
+      "attempt": 1,
+      "accepted_sha": "c0c8b5ae27fb13ac7c8c5dc7dd187739c3c38675",
+      "digest": "f40f37aa404d2b004c6cd296c6ab7c856ba1912d173311222d5ac633049cb586",
+      "accepted_at": "2026-11-11T17:17:58Z"
+    },
+    "P22c": {
       "status": "READY",
       "attempt": 1
     },
-    "P22c": {
-      "status": "PENDING",
-      "attempt": 1
-    },
     "P17a": {
-      "status": "PENDING",
+      "status": "READY",
       "attempt": 1
     },
     "P17b": {
@@ -240,7 +243,7 @@
       "attempt": 1
     },
     "P18": {
-      "status": "PENDING",
+      "status": "READY",
       "attempt": 1
     },
     "P19": {
@@ -559,6 +562,13 @@
       "sha": "eeb29eac1298f17cd405f6d852946069d2f4890e",
       "branch": "claude/new-session-jgo3cw",
       "at": "2026-11-11T17:00:19Z"
+    },
+    {
+      "type": "gate_pass",
+      "task": "G2",
+      "sha": "c0c8b5ae27fb13ac7c8c5dc7dd187739c3c38675",
+      "digest": "f40f37aa404d2b004c6cd296c6ab7c856ba1912d173311222d5ac633049cb586",
+      "at": "2026-11-11T17:17:58Z"
     }
   ]
 }

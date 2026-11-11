@@ -56,3 +56,11 @@ $ (make dev-up && make dev-seed) > /tmp/nexus-devup.log 2>&1; make test-ids IDS=
 $ python3 tools/parity_gate.py  [after P12] -> exit 0 in 794s
 $ (make dev-up && make dev-seed) > /tmp/nexus-devup.log 2>&1; make test-ids IDS="$NEXUS_IDS"  [feature tests (3 ids)] -> exit 0 in 33s
 ```
+
+## close-gates — 2026-11-11T17:17:58Z
+
+* G2: GATE PASSED at c0c8b5ae27fb
+
+```
+$ (make dev-up && make dev-seed) > /tmp/nexus-devup.log 2>&1; make test-ids IDS="$NEXUS_IDS"  [feature tests (104 ids)] -> exit 0 in 143s
+```
