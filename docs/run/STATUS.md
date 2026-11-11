@@ -1,6 +1,6 @@
 # STATUS — Nexus ERP (edition 3.0.0-claude-cloud)
 
-Updated: 2026-11-11T00:16:35Z (UTC). Repository: https://github.com/remcaro-rgb/nexus-erp-colombia.
+Updated: 2026-11-11T01:26:24Z (UTC). Repository: https://github.com/remcaro-rgb/nexus-erp-colombia.
 
 Written only by the integrator (`python3 tools/cloudctl.py status`). A task counts as working only when it is ACCEPTED with
 integrator-run test evidence under `docs/run/evidence/`.
@@ -9,10 +9,10 @@ integrator-run test evidence under `docs/run/evidence/`.
 
 ```
 NEXT: wave 04 — open 4 NEW Claude Code cloud session(s) on remcaro-rgb/nexus-erp-colombia (at most 5 at the same time; start the next one when one finishes) and paste exactly one file into each:
-  prompts/W05-S1-P16a-treasury-vouchers.md
-  prompts/W05-S3-P10b-customer-portal.md
-  prompts/W05-S4-P16b-intercompany-consolidation.md
-  prompts/RETRY-P09b.md   (attempt 2: attempt 1 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 policy: last line: secret scan OK (1632 fil)
+  prompts/RETRY-P09b.md   (attempt 3: attempt 2 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 policy: last line: secret scan OK (1812 fil)
+  prompts/RETRY-P10b.md   (attempt 1: attempt 1: no report found on any branch (session ended before reporting?))
+  prompts/RETRY-P16a.md   (attempt 1: attempt 1: no report found on any branch (session ended before reporting?))
+  prompts/RETRY-P16b.md   (attempt 1: attempt 1: no report found on any branch (session ended before reporting?))
 THEN: when every one of those sessions has ended (DONE or BLOCKED), paste prompts/INTEGRATOR-after-W05.md into 1 NEW session.
 ```
 
@@ -41,11 +41,11 @@ THEN: when every one of those sessions has ended (DONE or BLOCKED), paste prompt
 | 04 | P10a | worker | ACCEPTED | 1 | 2026-11-11T00:16:35Z |  |
 | 04 | P11b | worker | ACCEPTED | 1 | 2026-11-11T00:16:35Z |  |
 | 04 | P09c | worker | ACCEPTED | 1 | 2026-11-11T00:16:35Z |  |
-| 04 | P09b | worker | REWORK | 2 |  | attempt 1 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE  |
-| 05 | P16a | worker | READY | 1 |  |  |
+| 04 | P09b | worker | REWORK | 3 |  | attempt 2 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE  |
+| 05 | P16a | worker | READY | 1 |  | attempt 1: no report found on any branch (session ended before reporting?) |
 | 05 | P12 | worker | PENDING | 1 |  |  |
-| 05 | P10b | worker | READY | 1 |  |  |
-| 05 | P16b | worker | READY | 1 |  |  |
+| 05 | P10b | worker | READY | 1 |  | attempt 1: no report found on any branch (session ended before reporting?) |
+| 05 | P16b | worker | READY | 1 |  | attempt 1: no report found on any branch (session ended before reporting?) |
 | 05 | G2 | gate | PENDING | 1 |  |  |
 | 06 | P18 | worker | PENDING | 1 |  |  |
 | 06 | P22c | worker | PENDING | 1 |  |  |

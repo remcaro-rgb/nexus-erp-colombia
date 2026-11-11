@@ -4,7 +4,7 @@
   "repo_url": "https://github.com/remcaro-rgb/nexus-erp-colombia",
   "plan_sha256": "593796320d7b832515b6c33e344d08904c9a24185528abcd51c8e09fe8ba089f",
   "registry_sha256": "a62fa1d937c13533ddc08f22b87a65d9bce24d662e6df7e8996f3aa7ee939ab4",
-  "updated_at": "2026-11-11T00:16:35Z",
+  "updated_at": "2026-11-11T01:26:24Z",
   "tasks": {
     "P01": {
       "status": "ACCEPTED",
@@ -107,9 +107,10 @@
     },
     "P09b": {
       "status": "REWORK",
-      "attempt": 2,
+      "attempt": 3,
       "notes": [
-        "attempt 1 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 policy: last line: secret scan OK (1632 files) log=docs/run/evidence/W04/parity-gate/P09b-1.log"
+        "attempt 1 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 policy: last line: secret scan OK (1632 files) log=docs/run/evidence/W04/parity-gate/P09b-1.log",
+        "attempt 2 rejected: CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 policy: last line: secret scan OK (1812 files) log=docs/run/evidence/W05/parity-gate/P09b-1.log"
       ]
     },
     "P09c": {
@@ -163,7 +164,10 @@
     },
     "P10b": {
       "status": "READY",
-      "attempt": 1
+      "attempt": 1,
+      "notes": [
+        "attempt 1: no report found on any branch (session ended before reporting?)"
+      ]
     },
     "P14": {
       "status": "ACCEPTED",
@@ -174,11 +178,17 @@
     },
     "P16a": {
       "status": "READY",
-      "attempt": 1
+      "attempt": 1,
+      "notes": [
+        "attempt 1: no report found on any branch (session ended before reporting?)"
+      ]
     },
     "P16b": {
       "status": "READY",
-      "attempt": 1
+      "attempt": 1,
+      "notes": [
+        "attempt 1: no report found on any branch (session ended before reporting?)"
+      ]
     },
     "P12": {
       "status": "PENDING",
@@ -423,6 +433,12 @@
       "sha": "5f84a0595b3a33b808c8597a429ca99f8f7d3803",
       "branch": "claude/project-thread-el0k4w",
       "at": "2026-11-11T00:16:35Z"
+    },
+    {
+      "type": "reject",
+      "task": "P09b",
+      "reason": "CI parity (tools/parity_gate.py) failed after merging it: PARITY-GATE FAILED (merge of P09b) 1/4 policy: last line: secret scan OK (1812 files) log=docs/run/evidence/W05/parity-gate/P09b-1.log",
+      "at": "2026-11-11T01:26:24Z"
     }
   ]
 }
