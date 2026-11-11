@@ -49,6 +49,8 @@ class ImportJob(CompanyModel, AuditedModel):
     applied_rows = models.PositiveIntegerField(default=0)
     batches_total = models.PositiveIntegerField(default=0)
     batches_done = models.PositiveIntegerField(default=0)
+    #: the commit created or updated rows (an all-unchanged re-import is a no-op, not a duplicate)
+    effective = models.BooleanField(default=False)
     committed_at = models.DateTimeField(null=True, blank=True)
     failed_at = models.DateTimeField(null=True, blank=True)
 
@@ -58,7 +60,7 @@ class ImportJob(CompanyModel, AuditedModel):
         constraints = [
             models.UniqueConstraint(
                 fields=["tenant_id", "company_id", "entity", "batch_hash"],
-                condition=models.Q(import_status="COMMITTED"),
+                condition=models.Q(import_status="COMMITTED", effective=True),
                 name="dataio_job_batch_hash_uq",
             )
         ]

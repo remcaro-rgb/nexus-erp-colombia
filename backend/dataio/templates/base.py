@@ -49,6 +49,8 @@ class Column:
     permission: str | None = None
     #: line-level column of a line template
     line: bool = False
+    #: list column whose order carries no meaning (compared and stored sorted)
+    unordered: bool = False
 
     def describe(self) -> dict[str, Any]:
         out: dict[str, Any] = {"name": self.name, "type": self.type, "required": self.required, "help": self.help}
@@ -135,6 +137,8 @@ def parse_cell(col: Column, raw: str, *, decimal_comma: bool = False) -> Any:
                 raise ValueError("boolean")
         elif col.type == "list":
             value = tuple(p.strip() for p in text.split("|") if p.strip())
+            if col.unordered:
+                value = tuple(sorted(set(value)))
             for p in value:
                 if col.allowed and p not in col.allowed:
                     raise RowError("enum", f"{col.name}: valor {p!r} no permitido", col.name)

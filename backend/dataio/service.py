@@ -46,7 +46,7 @@ from kernel.interfaces.policy import PolicyService
 from kernel.tenancy import TenantContext
 from kernel.uow import UnitOfWork, run_in_unit_of_work
 
-RESERVED_COLUMNS = frozenset({"id", "tenant_id", "company_id", "empresa", "company", "tenant", "version"})
+RESERVED_COLUMNS = frozenset({"id", "tenant_id", "company_id", "empresa", "company", "tenant"})
 EVENT_COMMITTED = "dataio.import.committed.v1"
 MAX_PREVIEW = 1000
 
@@ -478,13 +478,15 @@ def commit(ctx: TenantContext, company_id: uuid.UUID, job_id: Any) -> ImportJob:
             entity=job.entity,
             batch_hash=job.batch_hash,
             import_status=ImportStatus.COMMITTED,
+            effective=True,
         )
         .exclude(id=job.id)
         .values_list("id", flat=True)
         .first(),
         ctx,
     )
-    if duplicate is not None:
+    would_change = int(job.counts.get("created", 0)) + int(job.counts.get("updated", 0)) > 0
+    if duplicate is not None and would_change:
         raise ImportDuplicateBatch(f"this batch was already imported (import {duplicate})", import_id=str(duplicate))
     tpl = registry.get(job.entity)
     built = build_records(tpl, job)
@@ -543,7 +545,8 @@ def _commit_batch(
         if batch_no == total:
             job.import_status = ImportStatus.COMMITTED
             job.committed_at = clock.now()
-            fields += ["import_status", "committed_at"]
+            job.effective = merged.get("created", 0) + merged.get("updated", 0) > 0
+            fields += ["import_status", "committed_at", "effective"]
             uow.emit(
                 EVENT_COMMITTED,
                 {"import_id": str(job.id), "entity": job.entity, "rows": job.applied_rows, "batch_hash": job.batch_hash},
@@ -588,13 +591,20 @@ def report_rows(job: ImportJob) -> tuple[list[str], list[list[str]]]:
     for e in job.errors:
         by_row.setdefault(int(e["row"]), []).append(f"[{e['code']}] {e.get('column') or ''} {e['message']}".strip())
     action: dict[int, str] = {}
-    for p in [*job.results, *job.preview] if job.import_status != ImportStatus.COMMITTED else job.results:
+    if job.import_status == ImportStatus.COMMITTED:
+        source, label = job.results, "{}"
+    elif job.import_status == ImportStatus.FAILED:
+        source, label = [], "{}"  # nothing applied: every non-error row is "omitido"
+    else:
+        source, label = job.preview, "previsto:{}"
+    for p in source:
         for r in p["rows"]:
-            action.setdefault(int(r), p["action"])
+            action.setdefault(int(r), label.format(p["action"]))
     headers = [*job.headers, "_resultado", "_error"]
     rows = []
     for n, raw in enumerate(job.rows, start=2):
-        status = "error" if n in by_row else action.get(n, "pendiente" if job.import_status != ImportStatus.FAILED else "omitido")
+        default = "omitido" if job.import_status in (ImportStatus.FAILED, ImportStatus.CANCELLED) else "pendiente"
+        status = "error" if n in by_row else action.get(n, default)
         rows.append([*raw, status, " | ".join(by_row.get(n, []))])
     header_errors = by_row.get(1)
     if header_errors:
