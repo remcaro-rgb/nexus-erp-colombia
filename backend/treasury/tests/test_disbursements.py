@@ -112,7 +112,7 @@ def test_T_TRE_CE_01_three_partial_bills_with_withholding_exact_journal(world: W
         cop = {i.id: i.balance_cop for i in ApOpenItem.objects.filter(id__in=[b.id for b in bills])}
     assert cop == {bills[0].id: D("500000.0000"), bills[1].id: D("800000.0000"), bills[2].id: D("0.0000")}
     # a payable of another vendor, and paying past the balance, are refused
-    other, other_bills = three_bills(world, "P-OTRO")
+    _other, other_bills = three_bills(world, "P-OTRO")
     wrong = api.post(
         "disbursements",
         ce_body(
@@ -200,6 +200,15 @@ def test_T_TRE_CE_02_overdraft_fund_posts_with_warning(world: World, api: ApiCli
 # --------------------------------------------------------------------------- T-TRE-CE-03 payment batches
 
 
+def batch_line(n: int, supplier: Any, bill: Any, amount: str) -> dict[str, Any]:
+    return {
+        "line_no": n,
+        "party": {"id": str(supplier.party_id)},
+        "open_item_id": str(bill.id),
+        "applied_amount": money(amount),
+    }
+
+
 def test_T_TRE_CE_03_batch_execution_one_ce_per_payee_gap_free_fixture_file(world: World, api: ApiClient) -> None:
     world.configure(ce_approval_threshold="0")
     world.approval_policies(["approver", "approver2"])
@@ -212,12 +221,11 @@ def test_T_TRE_CE_03_batch_execution_one_ce_per_payee_gap_free_fixture_file(worl
         "fund_id": str(world.env["fund"].id),
         "currency": "COP",
         "lines": [
-            {"line_no": 1, "party": {"id": str(v1.party_id)}, "open_item_id": str(bills1[0].id), "applied_amount": money("1000000")},
-            {"line_no": 2, "party": {"id": str(v2.party_id)}, "open_item_id": str(bills2[1].id), "applied_amount": money("2000000"),
-             "tax_code": "RTE25"},
-            {"line_no": 3, "party": {"id": str(v1.party_id)}, "open_item_id": str(bills1[2].id), "applied_amount": money("1500000")},
+            batch_line(1, v1, bills1[0], "1000000"),
+            {**batch_line(2, v2, bills2[1], "2000000"), "tax_code": "RTE25"},
+            batch_line(3, v1, bills1[2], "1500000"),
         ],
-    }  # fmt: skip
+    }
     created = api.post("payment-batches", body)
     assert created.status_code == 201, created.content
     batch = created.json()
