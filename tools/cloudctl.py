@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""cloudctl — wave/runbook control for Nexus ERP on Claude Code cloud sessions (edition 3.0.3-claude-cloud).
+"""cloudctl — wave/runbook control for Nexus ERP on Claude Code cloud sessions (edition 3.0.4-claude-cloud).
 
 Python 3.11+ standard library only. Run from the repository root (the git top level is used).
 
@@ -19,7 +19,7 @@ Python 3.11+ standard library only. Run from the repository root (the git top le
   status                                 re-render docs/run/STATUS.md from STATE.json
   wave-tests    --wave N                 test IDs owned by the tasks of wave N
 """
-import argparse, datetime as dt, fnmatch, glob as globmod, hashlib, json, os, re, subprocess, sys, time
+import argparse, datetime as dt, fnmatch, glob as globmod, hashlib, json, os, re, shutil, subprocess, sys, time
 
 PLAN_REL = "docs/run/plan-cloud.json"
 STATE_REL = "docs/run/STATE.json"
@@ -124,13 +124,22 @@ def push_retry(*refspec):
     return False, last
 
 
+def is_shallow():
+    return git("rev-parse", "--is-shallow-repository", check=False).stdout.strip() == "true"
+
+
 def fetch_retry():
+    """git fetch with retries. 3.0.4: a shallow clone (cloud VMs may clone with limited depth) is unshallowed first: audit-main walks the
+    whole first-parent history back to the pinned seed, and gitleaks treats the shallow boundary commit as all-new (false leaks)."""
     last = ""
     for wait in (0, 2, 4, 8, 16):
         if wait:
             time.sleep(wait)
-        p = git("fetch", "origin", "--prune", check=False)
+        args = ["fetch", "origin", "--prune"] + (["--unshallow"] if is_shallow() else [])
+        p = git(*args, check=False)
         if p.returncode == 0:
+            if is_shallow():
+                die("BLOCKED-PLATFORM: the clone is still shallow after `git fetch --unshallow origin`; audit-main needs the full history", 4)
             return
         last = (p.stdout + p.stderr).strip()
     die(f"BLOCKED-GIT: git fetch failed after retries: {last[-400:]}", 4)
@@ -709,6 +718,28 @@ PIN_303_FILES = {
 }
 PIN_303_CLOUDCTL_SHA256 = '8ae5e552fcc70a4e8613922d7c9a54d2e4b26c5b294d87d8a31351a69ddd8768'
 # <<< PIN-3.0.3
+# The 3.0.4 maintenance commit (collect_results on Playwright's artifacts dir, unshallow + shallow refusal, parity-gate env and output order,
+# dev_login field parsing, integrator Step 1 unshallow/warm-up/DATABASE_URL) is pinned the same way: exactly one first-parent commit after
+# the accepted 3.0.3 commit with the exact trailer line, whose changed paths are all listed below (plus tools/cloudctl.py) and whose tree
+# holds exactly these blobs; tools/cloudctl.py by the sha256 of its text without the PIN-3.0.4 block. PIN-3.0.2/3.0.3 stay byte-identical.
+UPDATE_304_TRAILER = "Nexus-Seed: 3.0.4-claude-cloud"
+# >>> PIN-3.0.4
+PIN_304_FILES = {
+    'docs/cloud-prompts/INTEGRATOR-after-W03.md': '993c5c0baf927919ca446004e4d9b04494a26aba',
+    'docs/cloud-prompts/INTEGRATOR-after-W04.md': 'b5580719aafa4aa6b436307e406d9008da9285fd',
+    'docs/cloud-prompts/INTEGRATOR-after-W05.md': 'f1909b2f5e065861193ba6f5a84b8bd3040a4dc3',
+    'docs/cloud-prompts/INTEGRATOR-after-W06.md': '8c873c3437f1a2f7d2cf3d1140d3a3e95e3e970d',
+    'docs/cloud-prompts/INTEGRATOR-after-W07.md': 'a842d122a51815a1aa951cfedae17dccf7643206',
+    'docs/cloud-prompts/INTEGRATOR-after-W08.md': 'd64442431f778d2547f5c94d0c3c1e5558b7fb76',
+    'docs/cloud-prompts/INTEGRATOR-after-W09.md': '451776128ca7e6b02a52635fc02dbf03bef0ad4f',
+    'docs/cloud-prompts/INTEGRATOR-after-W10.md': 'a8147c43faac0360d0c9e61ca83c214c0ae1107a',
+    'tools/README.md': '88de29ad2ab7caa08fbf58dc4746033205d1a933',
+    'tools/dev_login.py': '0b0f0e56d36cb0c57f486884178d7579f8534c11',
+    'tools/parity_gate.py': '6f125d6da4943ff4c71df21b699376642a093950',
+    'tools/test_cloudctl.py': 'ee0e868e345eaae3fb6815cc9aa018f0e8dcee67',
+}
+PIN_304_CLOUDCTL_SHA256 = '939f5a7a56e652e1d7e902f56fff3bcb4da708a8013adce9057bc6883d308623'
+# <<< PIN-3.0.4
 TOOLING_PATHS = ["tools/**", "CLAUDE.md", ".claude/**", "docs/spec/**", "docs/prompt-pack/**", "docs/cloud-prompts/**", "scripts/cloud/**", ".gitignore"]
 
 
@@ -787,6 +818,27 @@ def is_303_commit(h, body):
     return True, ""
 
 
+def tree_matches_304(h):
+    if not PIN_304_FILES or not PIN_304_CLOUDCTL_SHA256:
+        return False
+    if any(blob_at(h, p) != b for p, b in PIN_304_FILES.items()):
+        return False
+    c = git("show", f"{h}:tools/cloudctl.py", check=False)
+    return c.returncode == 0 and normalized_cloudctl_sha256(c.stdout, "3.0.4") == PIN_304_CLOUDCTL_SHA256
+
+
+def is_304_commit(h, body):
+    if not re.search(rf"(?m)^{re.escape(UPDATE_304_TRAILER)}\s*$", body):
+        return False, "trailer"
+    allowed = set(PIN_304_FILES) | {"tools/cloudctl.py"}
+    extra = [p for p in changed_vs_first_parent(h) if p not in allowed]
+    if extra:
+        return False, f"3.0.4 commit touches unpinned paths {extra[:5]}"
+    if not tree_matches_304(h):
+        return False, "3.0.4 commit content differs from the pinned 3.0.4 files"
+    return True, ""
+
+
 def is_tooling(p):
     return any(match(p, g) for g in TOOLING_PATHS)
 
@@ -821,10 +873,13 @@ def audit_main(ref, full=False, explain=None):
     """First-parent history of `ref` after the pinned seed may contain only:
        * integrator commits (trailer Nexus-Integrator:) that do not modify tooling paths (tools/**, CLAUDE.md, .claude/**, docs/spec/**,
          docs/prompt-pack/**, docs/cloud-prompts/**, scripts/cloud/**, .gitignore) — except an audit-repair commit that restores them exactly;
-       * the pinned owner maintenance commits (PINNED_SEED_COMMITS, and at most one content-pinned 3.0.2 commit after update301);
+       * the pinned owner maintenance commits (PINNED_SEED_COMMITS, and at most one content-pinned 3.0.2 commit after update301, then one
+         3.0.3 commit after it and one 3.0.4 commit after that);
        * commits acknowledged (reverted) by a later audit-repair commit (trailer Nexus-Audit-Ack:).
     Anything else — including any other Nexus-Seed-trailered commit — is reported."""
     why = explain if explain is not None else {}
+    if is_shallow():  # 3.0.4: a shallow history cannot be audited (the seed and pinned commits are cut off); never guess
+        return ["the clone is shallow: run `git fetch --unshallow origin` (audit-main needs the full first-parent history)"]
     commits = []
     for chunk in git("log", "--first-parent", "--format=%H%x1f%B%x1e", ref).split("\x1e"):
         chunk = chunk.strip()
@@ -847,6 +902,9 @@ def audit_main(ref, full=False, explain=None):
     anchor303 = base if fresh else accepted302  # 3.0.3 is accepted only after 3.0.2 (applied commit or 3.0.2 seed)
     valid303 = [] if anchor303 is None else [i for i, (h, b) in enumerate(commits[:anchor303]) if INTEG_TRAILER not in b and SEED_TRAILER in b and is_303_commit(h, b)[0]]
     accepted303 = max(valid303) if valid303 else None
+    anchor304 = accepted303  # 3.0.4 is accepted only after the accepted 3.0.3 commit
+    valid304 = [] if anchor304 is None else [i for i, (h, b) in enumerate(commits[:anchor304]) if INTEG_TRAILER not in b and SEED_TRAILER in b and is_304_commit(h, b)[0]]
+    accepted304 = max(valid304) if valid304 else None
     bad, acks = [], {}
     def flag(h, reason):
         bad.append(h if full else h[:12]); why[h] = reason
@@ -864,12 +922,16 @@ def audit_main(ref, full=False, explain=None):
         if SEED_TRAILER in body:
             if not fresh and h == pins["update301"]:
                 continue
-            if i == accepted302 or i == accepted303:
+            if i in (accepted302, accepted303, accepted304):
                 continue
             if i in valid302:
                 flag(h, "a second 3.0.2 maintenance commit (only one is ever allowed)"); continue
             if i in valid303:
                 flag(h, "a second 3.0.3 maintenance commit (only one is ever allowed)"); continue
+            if i in valid304:
+                flag(h, "a second 3.0.4 maintenance commit (only one is ever allowed)"); continue
+            if re.search(rf"(?m)^{re.escape(UPDATE_304_TRAILER)}\s*$", body):
+                flag(h, f"unpinned Nexus-Seed commit ({is_304_commit(h, body)[1] if anchor304 is not None else '3.0.4 needs the 3.0.3 update first'})"); continue
             if re.search(rf"(?m)^{re.escape(UPDATE_303_TRAILER)}\s*$", body):
                 flag(h, f"unpinned Nexus-Seed commit ({is_303_commit(h, body)[1] if anchor303 is not None else '3.0.3 needs the 3.0.2 update first'})"); continue
             if not fresh and upd301 is not None and i < upd301:
@@ -969,10 +1031,19 @@ def run_cmd(cmd, label, log):
     return p.returncode, (p.stdout + p.stderr)[-1500:]
 
 
+def clear_report_dir(d):
+    """Empty reports/junit or reports/playwright before a run. Playwright's outputDir (reports/playwright/artifacts: traces, videos) is a
+    DIRECTORY, so entries are removed recursively (3.0.4: os.remove on it raised IsADirectoryError in the second integrate round)."""
+    for f in globmod.glob(os.path.join(ROOT, d, "*")) + globmod.glob(os.path.join(ROOT, d, ".*")):
+        if os.path.isdir(f) and not os.path.islink(f):
+            shutil.rmtree(f)
+        else:
+            os.remove(f)
+
+
 def collect_results(ids, commit, out_rel, log, ids_cmd):
     for d in ("reports/junit", "reports/playwright"):
-        for f in globmod.glob(os.path.join(ROOT, d, "*")):
-            os.remove(f)
+        clear_report_dir(d)
     os.environ["NEXUS_IDS"] = " ".join(sorted(ids))
     run_cmd(ids_cmd, f"feature tests ({len(ids)} ids)", log)
     reps = sorted(globmod.glob(os.path.join(ROOT, "reports/junit/*.xml")) + globmod.glob(os.path.join(ROOT, "reports/playwright/*.json")))

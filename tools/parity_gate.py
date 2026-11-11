@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""parity_gate — the integrator's CI-parity gate (edition 3.0.3-claude-cloud). Integrator-only; workers never edit it (they may run it).
+"""parity_gate — the integrator's CI-parity gate (edition 3.0.4-claude-cloud). Integrator-only; workers never edit it (they may run it).
 
   python3 tools/parity_gate.py [--final]
 
@@ -41,8 +41,9 @@ def scrub(text):
 
 
 def sh(cmd, log=None, env=None):
-    p = subprocess.run(cmd, shell=True, cwd=ROOT, capture_output=True, text=True, executable="/bin/bash", env=env)
-    out = p.stdout + p.stderr
+    # 3.0.4: stderr is merged into stdout in the order it was written, so log tails and the last line show the real context
+    p = subprocess.run(cmd, shell=True, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, executable="/bin/bash", env=env)
+    out = p.stdout
     if log is not None:
         log.write(out)
         log.flush()
@@ -172,6 +173,35 @@ def evidence_path(task):
     return os.path.join(d, f"{task or 'HEAD'}-{k}.log")
 
 
+def is_socket_db_url(url):
+    """libpq/Django unix-socket URLs: `postgres:///db`, `postgresql:///db`, or any URL with `host=/…` (the Makefile's peer-auth default)."""
+    u = (url or "").strip()
+    return bool(u) and (re.match(r"(?i)postgres(?:ql)?:///", u) is not None or re.search(r"(?:^|[?&\s])host=/", u) is not None)
+
+
+def child_env():
+    """Environment for the gate's child processes. 3.0.4: a unix-socket DATABASE_URL (e.g. the Makefile default exported by a session)
+    is dropped, so ci-parity's make-ci job starts its own TCP PostgreSQL as in GitHub Actions instead of failing with
+    `make-ci parity needs a TCP DATABASE_URL`. A TCP DATABASE_URL is kept (ci-parity honours it)."""
+    env = dict(os.environ, PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="1")
+    note = None
+    if is_socket_db_url(env.get("DATABASE_URL", "")):
+        env.pop("DATABASE_URL")
+        note = "[parity-gate] unix-socket DATABASE_URL dropped from the gate's environment (ci-parity starts its own TCP PostgreSQL)"
+    return env, note
+
+
+def ensure_full_history():
+    """3.0.4: gitleaks (policy job) scans the git history; in a shallow clone the boundary commit looks all-new and its seed fixtures are
+    reported as leaks. Unshallow first; returns an error string when the clone stays shallow."""
+    if git("rev-parse", "--is-shallow-repository") != "true":
+        return None
+    p = subprocess.run(["git", "fetch", "--unshallow", "origin"], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    if git("rev-parse", "--is-shallow-repository") == "true":
+        return "shallow clone and `git fetch --unshallow origin` failed: " + ((p.stdout or "").strip().splitlines() or ["?"])[-1][:120]
+    return None
+
+
 def parity_cmd():
     override = os.environ.get("NEXUS_PARITY_CMD")
     if override:
@@ -201,8 +231,15 @@ def main():
     label = f"merge of {task}" if task else f"HEAD {head}"
     stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     logp = os.path.join(STATE_DIR, f"{stamp}-{task or 'HEAD'}.log")
-    env = dict(os.environ, PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="1")
+    env, env_note = child_env()
+    shallow = ensure_full_history()
+    if shallow:
+        print(scrub(f"PARITY-GATE FAILED ({label}) platform: {shallow}")[:MAX_LAST])
+        return 1
     with open(logp, "w", encoding="utf-8") as log:
+        if env_note:
+            log.write(env_note + "\n")
+            print(env_note)
         dep_fail = []
         if os.path.isfile(os.path.join(ROOT, "uv.lock")):
             rc, out = sh("uv sync --frozen", log, env)

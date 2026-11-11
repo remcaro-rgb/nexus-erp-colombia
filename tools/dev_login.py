@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""dev_login — throwaway DEV login for the integrator's UI preview (edition 3.0.3-claude-cloud). Integrator tooling; DEV stack only.
+"""dev_login — throwaway DEV login for the integrator's UI preview (edition 3.0.4-claude-cloud). Integrator tooling; DEV stack only.
 
   python3 tools/dev_login.py ensure      -> one line `DEV-LOGIN OK user=ui-preview file=deploy/dev/secrets/ui-preview.env origin=…`
                                              or `DEV-LOGIN FAILED: <reason>` (exit 1); never prints the password
@@ -96,6 +96,21 @@ def write_secret_file(path, password):
     return tmp
 
 
+def parse_principal(line):
+    """`DEV-UI-PRINCIPAL OK tenant=<uuid> company=<id> user=<id> permissions=<n> …` -> {key: value} with EVERY field, complete.
+    3.0.4: the line used to be cut at 160 characters before use, losing or splitting trailing fields; only the log rendering
+    (principal_summary) is shortened now. Values may be quoted ("…" or '…') to carry spaces."""
+    body = line.split("DEV-UI-PRINCIPAL OK", 1)[-1]
+    return {m.group(1): (m.group(3) if m.group(3) is not None else m.group(4) if m.group(4) is not None else m.group(2))
+            for m in re.finditer(r"([A-Za-z_][A-Za-z0-9_]*)=(\"([^\"]*)\"|'([^']*)'|\S*)", body)}
+
+
+def principal_summary(fields, limit=160):
+    """One log-friendly line of the parsed principal; shortened for display only, never for use."""
+    text = " ".join(f"{k}={v}" for k, v in fields.items())
+    return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
 def erp_principal(subject):
     """Bind the Keycloak subject to an ERP internal user of the synthetic tenant (manage.py dev_ui_principal, DEV-only)."""
     override = os.environ.get("NEXUS_DEV_LOGIN_ERP_CMD")
@@ -107,7 +122,7 @@ def erp_principal(subject):
     out = p.stdout + p.stderr
     ok = re.search(r"(?m)^DEV-UI-PRINCIPAL OK\b[^\n]*", out)
     if p.returncode == 0 and ok:
-        return ok.group(0)[:160]
+        return parse_principal(ok.group(0))
     if re.search(r"Unknown command: '?dev_ui_principal", out):
         raise LoginError("backend command dev_ui_principal missing (FIX-CI-W02 not merged)")
     last = [l for l in out.strip().splitlines() if l.strip()][-1:] or ["no output"]
@@ -115,7 +130,8 @@ def erp_principal(subject):
 
 
 def ensure():
-    """Returns {'user', 'password', 'origin', 'file', 'principal'}; raises LoginError with a printable reason."""
+    """Returns {'user', 'password', 'origin', 'file', 'principal'} ('principal': every field of the DEV-UI-PRINCIPAL OK line, unshortened);
+    raises LoginError with a printable reason."""
     if os.environ.get("ERP_ENVIRONMENT", "dev") != "dev":
         raise LoginError("ERP_ENVIRONMENT is not dev")
     origin = public_origin()
@@ -188,7 +204,7 @@ def main():
     except LoginError as e:
         print(f"DEV-LOGIN FAILED: {e}")
         return 1
-    print(f"DEV-LOGIN OK user={r['user']} file={r['file']} origin={r['origin']} ({r['principal']})")
+    print(f"DEV-LOGIN OK user={r['user']} file={r['file']} origin={r['origin']} ({principal_summary(r['principal'])})")
     return 0
 
 
