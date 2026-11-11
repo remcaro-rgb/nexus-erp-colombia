@@ -243,7 +243,7 @@ class TemplateItem(DataioView):
 
 
 class TemplateDownload(DataioView):
-    def get(self, request: Request, entity: str) -> HttpResponse:
+    def get(self, request: Request, entity: str) -> Any:
         ctx, _company = self.company(request)
         fmt = request.query_params.get("file_format", "csv")
         examples = request.query_params.get("examples", "1") != "0"
@@ -474,7 +474,7 @@ class ExportStart(DataioView):
 
 
 class ExportFile(DataioView):
-    def get(self, request: Request, pk: uuid.UUID) -> HttpResponse:
+    def get(self, request: Request, pk: uuid.UUID) -> Any:
         ctx, company = self.company(request)
         job = exports.get_export(ctx, company, pk)
         return _file_response(*exports.file_of(ctx, job), request)
