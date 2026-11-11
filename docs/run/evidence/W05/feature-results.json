@@ -1,8 +1,12 @@
 {
   "schema": "erp-features/results/v1",
   "registry_sha256": "a62fa1d937c13533ddc08f22b87a65d9bce24d662e6df7e8996f3aa7ee939ab4",
-  "commit": "be5e72156f40b06f088f6680086abfd020e8a9d0",
+  "commit": "eeb29eac1298f17cd405f6d852946069d2f4890e",
   "tests": {
+    "T-ACC-BRANCH-04": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_ACC_BRANCH_04_pos_config_requires_same_company_branch"
+    },
     "T-ACC-DIM-12": {
       "status": "FAILED",
       "evidence": "reports/junit/test-ids-frontend.xml#T-ACC-DIM-12 TreeTable > T-ACC-DIM-12 sorts and lazily loads children"
@@ -12,32 +16,24 @@
       "evidence": "reports/junit/test-ids-frontend.xml#T-FORMULA-ENGINE-06 FormulaEditor > T-FORMULA-ENGINE-06 accessible labels: every control is named and axe reports no serious violations"
     },
     "T-INV-BARCODE-01": {
-      "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_BARCODE_01_code128_golden_vectors[PJJ123C-values0]"
+      "status": "FAILED",
+      "evidence": "reports/junit/test-ids-frontend.xml#barcode model (client mirror of the server encoders) > T-INV-BARCODE-01 computes GS1 mod-10 check digits and validates GTINs"
     },
-    "T-INV-BARCODE-02": {
+    "T-INV-BARCODE-05": {
       "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_BARCODE_02_gs1_generation_refused_without_user_prefix"
-    },
-    "T-INV-BARCODE-03": {
-      "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_BARCODE_03_lookup_resolves_item_presentation_location_lot_unknown_is_barcode_unknown"
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_BARCODE_05_scan_input_adds_the_right_presentation_line"
     },
     "T-INV-ISSUE-01": {
-      "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_ISSUE_01_each_seeded_concept_posts_exact_journal_and_moves_cost_from_layers"
+      "status": "FAILED",
+      "evidence": "reports/junit/test-ids-frontend.xml#issue model > T-INV-ISSUE-01 pre-validates required dimensions like the server"
     },
     "T-INV-ISSUE-02": {
-      "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_ISSUE_02_required_dims_reason_and_approval_threshold_routes_to_workflow"
+      "status": "FAILED",
+      "evidence": "reports/junit/test-ids-frontend.xml#issue model > T-INV-ISSUE-02 requires a coded reason for scraps"
     },
-    "T-INV-ISSUE-03": {
+    "T-INV-PRES-04": {
       "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_ISSUE_03_concurrent_issues_of_last_units_one_succeeds_one_stock_insufficient"
-    },
-    "T-INV-ISSUE-04": {
-      "status": "PASSED",
-      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_ISSUE_04_reversal_returns_stock_at_original_cost_bin_and_lot"
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_PRES_04_scan_sells_the_package_and_decrements_packaged_and_canonical_stock"
     },
     "T-PAY-FORMULA-01": {
       "status": "FAILED",

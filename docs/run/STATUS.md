@@ -1,6 +1,6 @@
 # STATUS — Nexus ERP (edition 3.0.0-claude-cloud)
 
-Updated: 2026-11-11T14:24:26Z (UTC). Repository: https://github.com/remcaro-rgb/nexus-erp-colombia.
+Updated: 2026-11-11T17:00:19Z (UTC). Repository: https://github.com/remcaro-rgb/nexus-erp-colombia.
 
 Written only by the integrator (`python3 tools/cloudctl.py status`). A task counts as working only when it is ACCEPTED with
 integrator-run test evidence under `docs/run/evidence/`.
@@ -8,9 +8,7 @@ integrator-run test evidence under `docs/run/evidence/`.
 ## What to paste next
 
 ```
-NEXT: wave 05 — open 1 NEW Claude Code cloud session(s) on remcaro-rgb/nexus-erp-colombia (at most 5 at the same time; start the next one when one finishes) and paste exactly one file into each:
-  prompts/W05-S2-P12-pos.md
-THEN: when every one of those sessions has ended (DONE or BLOCKED), paste prompts/INTEGRATOR-after-W05.md into 1 NEW session.
+NEXT: no worker prompt is due; paste prompts/INTEGRATOR-after-W05.md into 1 NEW session.
 ```
 
 ## Tasks
@@ -40,10 +38,10 @@ THEN: when every one of those sessions has ended (DONE or BLOCKED), paste prompt
 | 04 | P09c | worker | ACCEPTED | 1 | 2026-11-11T00:16:35Z |  |
 | 04 | P09b | worker | ACCEPTED | 3 | 2026-11-11T14:24:26Z | operator reset: rejections were environment/flaky (shallow-clone gitleaks; P07 formula CPU |
 | 05 | P16a | worker | ACCEPTED | 1 | 2026-11-11T04:34:37Z | operator reset: policy rejections were a shallow-clone gitleaks false positive (f6813f0);  |
-| 05 | P12 | worker | READY | 1 |  |  |
+| 05 | P12 | worker | ACCEPTED | 1 | 2026-11-11T17:00:19Z |  |
 | 05 | P10b | worker | ACCEPTED | 1 | 2026-11-11T04:34:37Z | operator reset: policy rejections were a shallow-clone gitleaks false positive (f6813f0);  |
 | 05 | P16b | worker | ACCEPTED | 1 | 2026-11-11T04:34:37Z | operator reset: policy rejections were a shallow-clone gitleaks false positive (f6813f0);  |
-| 05 | G2 | gate | PENDING | 1 |  |  |
+| 05 | G2 | gate | READY | 1 |  |  |
 | 06 | P18 | worker | PENDING | 1 |  |  |
 | 06 | P22c | worker | PENDING | 1 |  |  |
 | 06 | P17a | worker | PENDING | 1 |  |  |
