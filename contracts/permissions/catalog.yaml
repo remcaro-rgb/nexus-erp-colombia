@@ -3935,6 +3935,12 @@ codes:
   - event_pos_session_closed_v1
   - event_pos_ticket_checked_out_v1
   source: P02
+- code: pos.kpi.read
+  module: pos
+  owner: P12
+  description: Leer los KPI y el panel de ventas del tablero de Punto de venta (GET /api/v1/kpis/pos)
+  operations: []
+  source: P12
 - code: pos.return.create
   module: pos
   owner: P12
