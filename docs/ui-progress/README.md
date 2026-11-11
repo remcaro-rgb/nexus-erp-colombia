@@ -3,6 +3,10 @@
 Screenshots taken by the integrator after each wave (from wave 02 on), with the system Chrome on the integrated `main`.
 Open a wave to see every page in light and dark theme. Synthetic DEV data only.
 
+## [W05](W05/INDEX.md) — OK
+
+<a href="W05/INDEX.md"><img src="W05/inicio-light.png" width="480" alt="W05 home, light theme"></a>
+
 ## [W04](W04/INDEX.md) — OK
 
 <a href="W04/INDEX.md"><img src="W04/inicio-light.png" width="480" alt="W04 home, light theme"></a>
