@@ -1,0 +1,13 @@
+# parity gate — merge of P09b — 20261110T232416Z — HEAD 621fbd1
+# excerpts of the failing ci-parity jobs (secrets scrubbed)
+
+## policy (exit 1)
+
+```
+forbidden-pattern scan OK (573 files)
+static checks OK (573 files)
+compose lint OK (5 stacks, 5 files, docker compose config model)
+otel scrub config in sync
+secret scan OK (1632 files)
+```
+

@@ -1,0 +1,139 @@
+{
+  "schema": "erp-features/results/v1",
+  "registry_sha256": "a62fa1d937c13533ddc08f22b87a65d9bce24d662e6df7e8996f3aa7ee939ab4",
+  "commit": "5f84a0595b3a33b808c8597a429ca99f8f7d3803",
+  "tests": {
+    "T-ACC-DIM-12": {
+      "status": "FAILED",
+      "evidence": "reports/junit/test-ids-frontend.xml#T-ACC-DIM-12 TreeTable > T-ACC-DIM-12 sorts and lazily loads children"
+    },
+    "T-FORMULA-ENGINE-06": {
+      "status": "FAILED",
+      "evidence": "reports/junit/test-ids-frontend.xml#T-FORMULA-ENGINE-06 FormulaEditor > T-FORMULA-ENGINE-06 accessible labels: every control is named and axe reports no serious violations"
+    },
+    "T-INV-BOM-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_BOM_01_cycles_across_multi_level_boms_and_overlapping_versions_rejected"
+    },
+    "T-INV-BOM-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_BOM_02_explosion_with_yields_and_scrap_is_exact_and_costed_explosion_matches_valuation"
+    },
+    "T-INV-BOM-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_BOM_03_kit_sale_consumes_components_at_cost"
+    },
+    "T-INV-REQ-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_REQ_01_approval_with_sod_reserves_stock_and_leaves_the_rest_to_procure"
+    },
+    "T-INV-REQ-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_REQ_02_consolidation_keeps_lineage_and_split_fulfilment_closes_each_line"
+    },
+    "T-INV-REQ-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_REQ_03_auto_po_only_within_limit_and_with_valid_price"
+    },
+    "T-INV-REQ-05": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_REQ_05_two_requisitions_for_the_last_units_never_double_allocate"
+    },
+    "T-INV-XFORM-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_XFORM_01_repack_unpack_and_pack_canonical_stock_unchanged_no_entry"
+    },
+    "T-INV-XFORM-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_XFORM_02_portioning_direct_actual_weights_waste_values_balance_rounding_to_main"
+    },
+    "T-INV-XFORM-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_XFORM_03_portioning_template_outside_tolerance_requires_approval_inside_posts"
+    },
+    "T-INV-XFORM-04": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_XFORM_04_manual_multi_input_output_balances_value_and_quantities_outputs_without_inputs_rejected"
+    },
+    "T-INV-XFORM-05": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_XFORM_05_production_from_bom_v2_consumes_components_with_scrap_byproduct_by_cost_share"
+    },
+    "T-INV-XFORM-06": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_XFORM_06_concurrent_transformation_and_pos_sale_on_same_lot_one_fails_cleanly"
+    },
+    "T-INV-XFORM-07": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_XFORM_07_ledger_failure_during_post_rolls_back_all_stock_moves"
+    },
+    "T-INV-XFORM-08": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_INV_XFORM_08_random_transformations_value_invariant_and_no_negative_stock"
+    },
+    "T-PAY-FORMULA-01": {
+      "status": "FAILED",
+      "evidence": "reports/junit/test-ids-frontend.xml#T-PAY-FORMULA-01 evaluation order view > shows the server's cycle error"
+    },
+    "T-PAY-FORMULA-03": {
+      "status": "FAILED",
+      "evidence": "reports/junit/test-ids-frontend.xml#T-PAY-FORMULA-03 fixture parameters labelled NOT LEGALLY VERIFIED in the UI > shows masked amounts as ••• and never a number"
+    },
+    "T-PORTAL-CORE-04": {
+      "status": "FAILED",
+      "evidence": "reports/junit/test-ids-frontend.xml#T-PORTAL-CORE-04 portal shell variant > T-PORTAL-CORE-04 tokens identical to the internal shell (dark)"
+    },
+    "T-PORTAL-SUP-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_SUP_01_quote_via_portal_before_deadline_is_compared_and_private"
+    },
+    "T-PORTAL-SUP-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_SUP_02_acknowledgement_and_shipment_notice_reach_receiving"
+    },
+    "T-PORTAL-SUP-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_SUP_03_bank_change_needs_two_different_internal_approvers"
+    },
+    "T-PORTAL-SUP-04": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_SUP_04_portal_never_leaks_other_vendors_prices_costs_or_internal_notes"
+    },
+    "T-PORTAL-SUP-05": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_PORTAL_SUP_05_dashboard_kpis_match_direct_queries"
+    },
+    "T-PT-OPEN-02": {
+      "status": "FAILED",
+      "evidence": "reports/junit/test-ids-frontend.xml#facturacion view model > accepts only secret references for provider credentials (T-PT-OPEN-02 UI side)"
+    },
+    "T-PUR-CYCLE-03": {
+      "status": "FAILED",
+      "evidence": "reports/junit/test-ids-frontend.xml#purchasing view model > T-PUR-CYCLE-03 matrix keeps the server ranking and lists excluded quotes last with the D-010 reason"
+    },
+    "T-PUR-CYCLE-04": {
+      "status": "FAILED",
+      "evidence": "reports/junit/test-ids-frontend.xml#purchasing view model > T-PUR-CYCLE-04 award differing from the recommendation needs a reason; excluded quotes cannot be awarded"
+    },
+    "T-SAL-PRICING-01": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_SAL_PRICING_01_precedence_breaks_and_group_scopes"
+    },
+    "T-SAL-PRICING-02": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_SAL_PRICING_02_snapshot_stored_and_draft_reprice_diff"
+    },
+    "T-SAL-PRICING-03": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_SAL_PRICING_03_override_beyond_limit_routes_to_approval"
+    },
+    "T-SAL-PRICING-04": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_SAL_PRICING_04_portal_quote_never_exposes_cost_or_formula"
+    },
+    "T-SAL-PRICING-05": {
+      "status": "PASSED",
+      "evidence": "reports/junit/test-ids-backend.xml#test_T_SAL_PRICING_05_multicurrency_formula_uses_document_date_fx_and_rounds"
+    }
+  }
+}
