@@ -54,7 +54,8 @@ def test_T_P12_06_no_fiscal_numbering_or_cude_outside_the_checkout_transaction()
     checkout = (backend / "services" / "checkout.py").read_text(encoding="utf-8")
     assert checkout.count("fiscal_number(") == 1
     frontend = REPO / "frontend" / "src" / "features" / "pos"
-    forbidden = re.compile(r"(?i)\b(cude|sha-?384|nextNumber|allocateNumber|fiscalNumber|numberBlock)\b")
+    # the client may DISPLAY the server's CUDE/number, never compute or allocate one
+    forbidden = re.compile(r"(?i)(sha-?384|crypto\.subtle|computeCude|cudeHash|nextNumber|allocateNumber|fiscalNumber|numberBlock)")
     files = [p for p in frontend.rglob("*.ts*") if "__tests__" not in p.parts]
     assert files, "frontend POS feature missing"
     for path in files:
