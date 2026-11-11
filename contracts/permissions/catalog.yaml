@@ -4754,6 +4754,12 @@ codes:
   - reporting_query_explain
   - reporting_query_query
   source: P02
+- code: reporting.report.admin
+  module: reporting
+  owner: P17
+  description: Administrar reportes guardados de otros usuarios (editar, publicar, programar, archivar)
+  operations: []
+  source: P17a
 - code: reporting.report.create
   module: reporting
   owner: P17
