@@ -1,0 +1,54 @@
+# Semantic model contributed by P05 (ledger) — merged by P17 (ADR-009). SQL fragments are code-reviewed repository
+# content; user input only selects names (validated against this file) and values (always bound parameters).
+module: ledger
+entities:
+  journal_line:
+    label: Movimientos contables (libro mayor)
+    table: ledger_journal_line
+    alias: jl
+    orm_model: ledger.JournalLine
+    policy_action: ledger.entry.read
+    resource_type: ledger.journal_line
+    freshness: "SELECT count(*), max(created_at) FROM ledger_journal_entry WHERE company_id = ANY(%(companies)s)"
+    joins:
+      entry: {table: ledger_journal_entry, alias: je, "on": "je.id = jl.entry_id"}
+      account: {table: ledger_account, alias: acc, "on": "acc.id = jl.account_id"}
+      book: {table: ledger_book, alias: bk, "on": "bk.id = jl.book_id"}
+      period: {table: ledger_period, alias: per, "on": "per.id = jl.period_id"}
+      warehouse: {table: inventory_warehouse, alias: wh, "on": "wh.id = jl.warehouse_id", type: left}
+      branch: {table: iam_branch, alias: br, "on": "br.id = jl.branch_id", type: left}
+    default_filters:
+      - {sql: "bk.primary = true", join: book, unless: [book_code]}
+    fields:
+      company_id: {sql: jl.company_id, type: uuid, label: Empresa}
+      posting_date: {sql: jl.posting_date, type: date, label: Fecha contable, time: true}
+      period: {sql: per.code, type: string, label: Periodo, join: period}
+      fiscal_year: {sql: per.fiscal_year, type: integer, label: Año fiscal, join: period}
+      book_code: {sql: bk.code, type: string, label: Libro, join: book}
+      journal_id: {sql: je.journal_id, type: uuid, label: Diario, join: entry}
+      entry_number: {sql: je.number, type: string, label: Comprobante, join: entry}
+      source_type: {sql: je.source_type, type: string, label: Tipo de documento, join: entry}
+      source_id: {sql: je.source_id, type: uuid, label: Documento origen, join: entry}
+      account_code: {sql: acc.code, type: string, label: Cuenta, join: account}
+      account_name: {sql: acc.name, type: string, label: Nombre de la cuenta, join: account}
+      account_type: {sql: acc.type, type: string, label: Tipo de cuenta, join: account}
+      account_class: {sql: "left(acc.code, 1)", type: string, label: Clase PUC, join: account}
+      branch_id: {sql: jl.branch_id, type: uuid, label: Sucursal}
+      branch_code: {sql: br.code, type: string, label: Código sucursal, join: branch}
+      warehouse_id: {sql: jl.warehouse_id, type: uuid, label: Bodega}
+      warehouse_code: {sql: wh.code, type: string, label: Código bodega, join: warehouse}
+      warehouse_branch_id: {sql: wh.branch_id, type: uuid, label: Sucursal de la bodega, join: warehouse}
+      party_id: {sql: jl.party_id, type: uuid, label: Tercero, classification: confidential}
+      tax_code: {sql: jl.tax_code, type: string, label: Impuesto}
+      currency: {sql: jl.currency, type: string, label: Moneda}
+      cost_center: {sql: jl.cost_center_id, type: uuid, label: Centro de costo, hierarchy: cost_center}
+      business_unit: {sql: jl.business_unit_id, type: uuid, label: Unidad de negocio, hierarchy: business_unit}
+      aux_abierto: {sql: jl.aux_abierto_id, type: uuid, label: Auxiliar abierto, hierarchy: aux_abierto}
+      item_contable: {sql: jl.item_dimension_id, type: uuid, label: Ítem contable, hierarchy: item_contable}
+    measures:
+      debit: {sql: jl.debit, agg: sum, type: money, label: Débito}
+      credit: {sql: jl.credit, agg: sum, type: money, label: Crédito}
+      net: {sql: "jl.debit - jl.credit", agg: sum, type: money, label: Saldo neto (D − C)}
+      net_credit: {sql: "jl.credit - jl.debit", agg: sum, type: money, label: Saldo neto (C − D)}
+      lines: {sql: jl.id, agg: count, type: integer, label: Líneas}
+      entries: {sql: jl.entry_id, agg: count_distinct, type: integer, label: Comprobantes}

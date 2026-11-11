@@ -1,0 +1,27 @@
+# Semantic model contributed by P16 (treasury) — merged by P17 (ADR-009).
+module: treasury
+entities:
+  voucher:
+    label: Recibos de caja y comprobantes de egreso
+    table: treasury_voucher
+    alias: tv
+    orm_model: treasury.TreasuryVoucher
+    policy_action: treasury.receipt.read
+    resource_type: treasury.receipt
+    joins:
+      fund: {table: treasury_fund, alias: tf, "on": "tf.id = tv.fund_id"}
+    default_filters:
+      - {sql: "tv.posted = true"}
+    fields:
+      company_id: {sql: tv.company_id, type: uuid, label: Empresa}
+      voucher_type: {sql: tv.voucher_type, type: string, label: Tipo (RC/CE)}
+      status: {sql: tv.status, type: string, label: Estado}
+      document_date: {sql: tv.document_date, type: date, label: Fecha, time: true}
+      branch_id: {sql: tv.branch_id, type: uuid, label: Sucursal}
+      fund_code: {sql: tf.code, type: string, label: Fondo, join: fund}
+      payment_method: {sql: tv.payment_method, type: string, label: Medio de pago}
+      party_id: {sql: tv.party_id, type: uuid, label: Tercero, classification: confidential}
+    measures:
+      total: {sql: tv.total, agg: sum, type: money, label: Total}
+      withholding_total: {sql: tv.withholding_total, agg: sum, type: money, label: Retenciones}
+      vouchers: {sql: tv.id, agg: count, type: integer, label: Comprobantes}

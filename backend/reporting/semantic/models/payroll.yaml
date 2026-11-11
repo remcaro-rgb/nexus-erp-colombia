@@ -1,0 +1,25 @@
+# Semantic model contributed by P13 (payroll) — merged by P17 (ADR-009). Salary aggregates are sensitive:
+# groups with fewer than k = 5 distinct employees are suppressed (k-anonymity, T-P17-03).
+module: payroll
+entities:
+  payslip:
+    label: Nómina (desprendibles)
+    table: payroll_payslip
+    alias: ps
+    orm_model: payroll.Payslip
+    policy_action: payroll.payslip.read
+    resource_type: payroll.payslip
+    k_anonymity: {subject: ps.employee_id, k: 5}
+    joins:
+      run: {table: payroll_run, alias: pr, "on": "pr.id = ps.run_id"}
+    fields:
+      company_id: {sql: ps.company_id, type: uuid, label: Empresa}
+      cost_center: {sql: ps.cost_center_id, type: uuid, label: Centro de costo, hierarchy: cost_center}
+      employee_id: {sql: ps.employee_id, type: uuid, label: Empleado, classification: restricted-pii}
+      employee_name: {sql: ps.employee_name, type: string, label: Nombre del empleado, classification: restricted-pii}
+    measures:
+      earnings: {sql: ps.earnings, agg: sum, type: money, label: Devengos, sensitive: true}
+      deductions: {sql: ps.deductions, agg: sum, type: money, label: Deducciones, sensitive: true}
+      net_pay: {sql: ps.net_pay, agg: sum, type: money, label: Neto pagado, sensitive: true}
+      employer_cost: {sql: ps.employer_cost, agg: sum, type: money, label: Costo empleador, sensitive: true}
+      payslips: {sql: ps.id, agg: count, type: integer, label: Desprendibles}
