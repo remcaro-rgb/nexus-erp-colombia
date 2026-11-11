@@ -393,7 +393,9 @@ def _investment_and_nci(
             if goodwill_fc > 0:
                 e.add(None, acc["goodwill"][0], goodwill_fc * parent.rates.closing, "Plusvalía")
             else:
-                e.add(None, acc["bargain_gain"][0], goodwill_fc * parent.rates.average, "Compra en condiciones ventajosas")
+                e.add(
+                    None, acc["bargain_gain"][0], goodwill_fc * parent.rates.average, "Compra en condiciones ventajosas"
+                )
             e.balance(None, acc["cta"][0], "Diferencia en conversión de la eliminación")
             out.append(e)
         elif nci_share > ZERO and equity:

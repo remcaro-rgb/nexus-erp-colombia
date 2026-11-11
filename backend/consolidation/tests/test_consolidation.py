@@ -11,7 +11,13 @@ from django.db import DatabaseError
 
 from consolidation import intercompany, reports, service
 from consolidation.errors import FxRateMissing, InvalidStateTransition, PeriodClosed, SodViolation
-from consolidation.models import ConsolidationEntry, ConsolidationEntryLine, ConsolidationRun, IntercompanyLink, RunStatus
+from consolidation.models import (
+    ConsolidationEntry,
+    ConsolidationEntryLine,
+    ConsolidationRun,
+    IntercompanyLink,
+    RunStatus,
+)
 from consolidation.tests.conftest import World, s10_world
 from kernel import tenancy
 from kernel.errors import DomainError, FeatureDisabled, NotFound
@@ -27,7 +33,12 @@ def _group(world: World, currency: str = "COP", hist: str | None = None) -> Any:
 
     def fn(u: Any) -> None:
         service.configure_member(
-            u, g, world.b, ownership_pct=D(80), investment_account_code="120505", equity_historical_rate=D(hist) if hist else None
+            u,
+            g,
+            world.b,
+            ownership_pct=D(80),
+            investment_account_code="120505",
+            equity_historical_rate=D(hist) if hist else None,
         )
         if hist:
             service.configure_member(u, g, world.a, equity_historical_rate=D(hist))
@@ -36,7 +47,9 @@ def _group(world: World, currency: str = "COP", hist: str | None = None) -> Any:
     return g
 
 
-def _run(world: World, group: Any, period: str = "2026-11", lines: list[dict[str, Any]] | None = None) -> ConsolidationRun:
+def _run(
+    world: World, group: Any, period: str = "2026-11", lines: list[dict[str, Any]] | None = None
+) -> ConsolidationRun:
     data = {"group_id": str(group.id), "period": period, "document_date": "2026-11-30", "lines": lines or []}
     return world.run(lambda u: service.create_run(u, data))
 
@@ -106,7 +119,9 @@ def test_T_P16_08_partially_consumed_goods_reduce_unrealized_profit(world: World
 
 
 def test_T_P16_08_translation_to_usd_with_cta_and_nci(world: World) -> None:
-    world.post(world.a, [("BANK", "DEBIT", "1000000", None), ("SHARE_CAPITAL", "CREDIT", "1000000", None)], "2026-11-02")
+    world.post(
+        world.a, [("BANK", "DEBIT", "1000000", None), ("SHARE_CAPITAL", "CREDIT", "1000000", None)], "2026-11-02"
+    )
     world.post(world.a, [("INVESTMENT", "DEBIT", "450000", None), ("BANK", "CREDIT", "450000", None)], "2026-11-03")
     world.post(world.b, [("BANK", "DEBIT", "500000", None), ("SHARE_CAPITAL", "CREDIT", "500000", None)], "2026-11-02")
     world.post(world.b, [("BANK", "DEBIT", "41000", None), ("REVENUE", "CREDIT", "41000", None)], "2026-11-12")
@@ -114,12 +129,18 @@ def test_T_P16_08_translation_to_usd_with_cta_and_nci(world: World) -> None:
     world.rate(world.a, "USD", "2026-11-30", "4100")
     group = _group(world, "USD", hist="4000")
     run = _post(world, _run(world, group))
-    assert run.rates["members"][str(world.b)] == {"closing": "4100.0000000000", "average": "4050.0000000000", "historical": "4000.0000000000"}
+    assert run.rates["members"][str(world.b)] == {
+        "closing": "4100.0000000000",
+        "average": "4050.0000000000",
+        "historical": "4000.0000000000",
+    }
     with tenancy.scope(world.ctx):
         data = reports.RunData.from_posted(ConsolidationRun.objects.get(id=run.id))
         b_contrib = run.summary["by_company"][str(world.b)]
     # B: bank at closing, capital at historical, revenue at average, CTA closes the translated TB
-    assert b_contrib["111005"] == "131.9512" and b_contrib["310505"] == "-125.0000" and b_contrib["415505"] == "-10.1235"
+    assert (
+        b_contrib["111005"] == "131.9512" and b_contrib["310505"] == "-125.0000" and b_contrib["415505"] == "-10.1235"
+    )
     assert b_contrib["381595"] == "3.1723"
     bal = reports.balance(data)
     rows = _rows(bal)
@@ -150,13 +171,13 @@ def test_proportional_and_equity_methods(world: World) -> None:
     res, _ = service_compute(world, _run(world, group))
     agg = res.aggregated()
     assert agg["111005"] == D("550000") + D("250000")  # 50 % of B's bank
-    ic = [e for e in res.entries if e.kind == "IC_REVENUE_COGS"][0]
+    ic = next(e for e in res.entries if e.kind == "IC_REVENUE_COGS")
     assert ic.total_debit == D("75000")  # eliminated to the extent of the interest
     world.run(lambda u: service.configure_member(u, group, world.b, ownership_pct=D(30), method="EQUITY"))
     world.post(world.b, [("BANK", "DEBIT", "10000", None), ("REVENUE", "CREDIT", "10000", None)], "2026-11-19")
     res, _ = service_compute(world, _run(world, group, period="2026-11"))
-    assert ("111005" not in {a for (c, a) in res.contributions if c == world.b})
-    em = [e for e in res.entries if e.kind == "EQUITY_METHOD"][0]
+    assert "111005" not in {a for (c, a) in res.contributions if c == world.b}
+    em = next(e for e in res.entries if e.kind == "EQUITY_METHOD")
     assert em.total_debit == D("3000")  # 30 % of B's result
 
 
@@ -171,7 +192,10 @@ def test_manual_adjustments_must_balance(world: World) -> None:
     line = {"line_no": 1, "account_code": "111005", "unit_price": {"amount": "100", "currency": "COP"}}
     with pytest.raises(DomainError):
         _run(world, group, lines=[line])
-    lines = [line, {**line, "line_no": 2, "account_code": "143505", "unit_price": {"amount": "-100", "currency": "COP"}}]
+    lines = [
+        line,
+        {**line, "line_no": 2, "account_code": "143505", "unit_price": {"amount": "-100", "currency": "COP"}},
+    ]
     run = _post(world, _run(world, group, lines=lines))
     with tenancy.scope(world.ctx):
         assert ConsolidationEntry.objects.filter(run=run, kind="ADJUSTMENT").get().total_debit == D("100")
@@ -191,7 +215,9 @@ def test_post_rules_sod_period_and_single_posting(world: World) -> None:
         _post(world, second)  # one posted run per group and period
 
     def rev(u: Any) -> Any:
-        return service.reverse_run(u, service.get_run(world.ctx, posted.id, "consolidation.run.read", lock=True), "corrección")
+        return service.reverse_run(
+            u, service.get_run(world.ctx, posted.id, "consolidation.run.read", lock=True), "corrección"
+        )
 
     world.run(rev)
     with tenancy.scope(world.ctx):
@@ -201,7 +227,11 @@ def test_post_rules_sod_period_and_single_posting(world: World) -> None:
         assert sum((ln.debit - ln.credit for ln in lines), D(0)) == D(0)
         assert ConsolidationEntry.objects.filter(run=posted, kind="REVERSAL").count() == 4
     _post(world, second)  # after the reversal a new run can be posted
-    world.run(lambda u: service.close_period(u, service.get_group(world.ctx, group.id, "consolidation.group.update"), "2026-11"))
+    world.run(
+        lambda u: service.close_period(
+            u, service.get_group(world.ctx, group.id, "consolidation.group.update"), "2026-11"
+        )
+    )
     third = _run(world, group)
     with pytest.raises(PeriodClosed):
         _post(world, third)
@@ -229,7 +259,9 @@ def test_feature_flag_off_blocks_consolidation(world: World) -> None:
 
 def test_ic_mismatch_is_eliminated_to_difference_account_and_evented(world: World) -> None:
     s10_world(world)
-    world.post(world.b, [("EXPENSE_IC", "DEBIT", "1000", None), ("IC_PAYABLE", "CREDIT", "1000", world.a)], "2026-11-18")
+    world.post(
+        world.b, [("EXPENSE_IC", "DEBIT", "1000", None), ("IC_PAYABLE", "CREDIT", "1000", world.a)], "2026-11-18"
+    )
     run = _post(world, _run(world, _group(world)))
     assert run.summary["ic_differences"][0]["difference"] == "-1000.0000"
     with tenancy.scope(world.ctx):

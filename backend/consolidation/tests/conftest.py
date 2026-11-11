@@ -103,7 +103,9 @@ class World:
             self.policy.grant(ctx.principal_id, p)
         return ctx
 
-    def post(self, company: uuid.UUID, lines: list[tuple[str, str, str, uuid.UUID | None]], day: str = "2026-11-05") -> Any:
+    def post(
+        self, company: uuid.UUID, lines: list[tuple[str, str, str, uuid.UUID | None]], day: str = "2026-11-05"
+    ) -> Any:
         """Direct journal entry: ``(role, DEBIT|CREDIT, amount, party company)``."""
         req = PostingRequest(
             company,
@@ -118,7 +120,13 @@ class World:
         return self.run(lambda u: services.get(PostingService).post(u, req))
 
     def agreement(self, **accounts: Any) -> IntercompanyAgreement:
-        data = {"code": "AB", "name": "Andina → Bolívar (SINTÉTICO)", "company_a_id": str(self.a), "company_b_id": str(self.b), "accounts": accounts}
+        data = {
+            "code": "AB",
+            "name": "Andina → Bolívar (SINTÉTICO)",
+            "company_a_id": str(self.a),
+            "company_b_id": str(self.b),
+            "accounts": accounts,
+        }
         return self.run(lambda u: intercompany.create_agreement(u, data))
 
     def s10_request(self, source_id: uuid.UUID | None = None) -> IcSaleRequest:
@@ -155,7 +163,11 @@ class World:
     def rate(self, company: uuid.UUID, currency: str, day: str, rate: str) -> None:
         def fn(u: Any) -> None:
             ExchangeRate.objects.create(
-                tenant_id=self.ctx.tenant_id, company_id=company, currency=currency, date=dt.date.fromisoformat(day), rate=D(rate)
+                tenant_id=self.ctx.tenant_id,
+                company_id=company,
+                currency=currency,
+                date=dt.date.fromisoformat(day),
+                rate=D(rate),
             )
 
         self.run(fn)
@@ -171,14 +183,18 @@ def bootstrap_ledger(ctx: tenancy.TenantContext, company: uuid.UUID, skip_roles:
             )
             for r in roles:
                 if r not in skip_roles:
-                    AccountDetermination.objects.create(tenant_id=ctx.tenant_id, company_id=company, role_code=r, account=acc)
+                    AccountDetermination.objects.create(
+                        tenant_id=ctx.tenant_id, company_id=company, role_code=r, account=acc
+                    )
 
     run_in_unit_of_work(fn, ctx)
 
 
 def enable_consolidation(ctx: tenancy.TenantContext) -> None:
     def fn(u: Any) -> None:
-        FeatureFlagOverride.objects.create(tenant_id=ctx.tenant_id, code=CONSOLIDATION_FLAG, enabled=True, reason="tests")
+        FeatureFlagOverride.objects.create(
+            tenant_id=ctx.tenant_id, code=CONSOLIDATION_FLAG, enabled=True, reason="tests"
+        )
 
     run_in_unit_of_work(fn, ctx)
 
@@ -199,7 +215,15 @@ def world(db: Any, ic_services: dict[str, Any]) -> World:
 
 def s10_world(world: World, investment: str = "450000") -> World:
     """Parent A (80 % of B), opening balances, A's investment in B and the S10 sale A → B."""
-    world.post(world.a, [("BANK", "DEBIT", "1000000", None), ("INVENTORY", "DEBIT", "200000", None), ("SHARE_CAPITAL", "CREDIT", "1200000", None)], "2026-11-02")
+    world.post(
+        world.a,
+        [
+            ("BANK", "DEBIT", "1000000", None),
+            ("INVENTORY", "DEBIT", "200000", None),
+            ("SHARE_CAPITAL", "CREDIT", "1200000", None),
+        ],
+        "2026-11-02",
+    )
     world.post(world.a, [("INVESTMENT", "DEBIT", investment, None), ("BANK", "CREDIT", investment, None)], "2026-11-03")
     world.post(world.b, [("BANK", "DEBIT", "500000", None), ("SHARE_CAPITAL", "CREDIT", "500000", None)], "2026-11-02")
     world.agreement()

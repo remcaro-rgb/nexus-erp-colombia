@@ -17,6 +17,7 @@ from collections.abc import Callable, Iterable, Sequence
 from typing import Any
 
 from django.http import HttpResponse
+from rest_framework.negotiation import DefaultContentNegotiation
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -181,5 +182,18 @@ def report_response(request: Request, body: dict[str, Any], filename: str) -> Re
     raise FilterInvalid("format must be json or csv (xlsx/pdf are rendered by the reporting module)")
 
 
+class _NoUrlFormatOverride:
+    URL_FORMAT_OVERRIDE = None
+
+
+class ContractNegotiation(DefaultContentNegotiation):  # type: ignore[misc]  # DRF ships no type stubs (Any)
+    """The contract's ``format`` query parameter selects the export file (handled by :func:`report_response`),
+    not a DRF renderer: DRF's URL format override is disabled for this module."""
+
+    settings = _NoUrlFormatOverride()
+
+
 class ConsolidationAPIView(ModuleSecuredView):
     """Secured base for every endpoint of this module; each handler authorizes its permission code."""
+
+    content_negotiation_class = ContractNegotiation

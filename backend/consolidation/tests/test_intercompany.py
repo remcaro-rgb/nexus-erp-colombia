@@ -25,7 +25,9 @@ D = Decimal
 def _lines(world: World, company: Any, source_type: str) -> dict[str, tuple[Decimal, Decimal]]:
     with tenancy.scope(world.ctx):
         out: dict[str, tuple[Decimal, Decimal]] = {}
-        book_primary = JournalLine.objects.filter(company_id=company, entry__source_type=source_type, entry__book__primary=True)
+        book_primary = JournalLine.objects.filter(
+            company_id=company, entry__source_type=source_type, entry__book__primary=True
+        )
         for ln in book_primary.select_related("account"):
             d, c = out.get(ln.account.code, (D(0), D(0)))
             out[ln.account.code] = (d + ln.debit, c + ln.credit)
@@ -34,7 +36,9 @@ def _lines(world: World, company: Any, source_type: str) -> dict[str, tuple[Deci
 
 def test_T_P16_04_s10_sale_posts_both_companies_in_one_transaction(world: World) -> None:
     world.agreement()
-    world.post(world.a, [("INVENTORY", "DEBIT", "200000", None), ("SHARE_CAPITAL", "CREDIT", "200000", None)], "2026-11-02")
+    world.post(
+        world.a, [("INVENTORY", "DEBIT", "200000", None), ("SHARE_CAPITAL", "CREDIT", "200000", None)], "2026-11-02"
+    )
     res = world.run(lambda u: intercompany.post_sale(u, world.s10_request()))
     a = _lines(world, world.a, "sales.invoice")
     assert a["130505"] == (D("178500"), D(0))  # Dr IC_RECEIVABLE
@@ -141,9 +145,13 @@ def test_T_P16_05_reconciliation_mirrors_after_sale_settlement_and_netting(world
     rows = intercompany_rows(world)
     assert rows[0]["status"] == "MIRRORED" and rows[0]["a_receivable_net"] == "178500.0000"
     assert rows[0]["b_payable_net"] == "178500.0000"
-    settle = IcSettlementRequest(world.a, world.b, DocumentRef("treasury.receipt", ids.new_id(), "RC-1"), dt.date(2026, 11, 15), D("100000"))
+    settle = IcSettlementRequest(
+        world.a, world.b, DocumentRef("treasury.receipt", ids.new_id(), "RC-1"), dt.date(2026, 11, 15), D("100000")
+    )
     world.run(lambda u: intercompany.settle(u, settle))
-    net = IcSettlementRequest(world.a, world.b, DocumentRef("intercompany.netting", ids.new_id(), "N-1"), dt.date(2026, 11, 16), D("8500"))
+    net = IcSettlementRequest(
+        world.a, world.b, DocumentRef("intercompany.netting", ids.new_id(), "N-1"), dt.date(2026, 11, 16), D("8500")
+    )
     world.run(lambda u: intercompany.net(u, net))
     rows = intercompany_rows(world)
     # netting moves A's receivable into its payable account (and B's the other way): net positions unchanged
@@ -154,7 +162,9 @@ def test_T_P16_05_reconciliation_mirrors_after_sale_settlement_and_netting(world
 def test_T_P16_05_reconciliation_detects_mismatch(world: World) -> None:
     s10_world(world)
     # B books an extra IC payable to A that A never invoiced
-    world.post(world.b, [("EXPENSE_IC", "DEBIT", "1000", None), ("IC_PAYABLE", "CREDIT", "1000", world.a)], "2026-11-18")
+    world.post(
+        world.b, [("EXPENSE_IC", "DEBIT", "1000", None), ("IC_PAYABLE", "CREDIT", "1000", world.a)], "2026-11-18"
+    )
     rows = intercompany_rows(world)
     assert rows[0]["status"] == "MISMATCH" and rows[0]["difference"] == "-1000.0000"
 
