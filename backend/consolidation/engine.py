@@ -381,13 +381,20 @@ def _investment_and_nci(
         inv_row = parent_tb.get(m.investment_account) if m.investment_account else None
         if inv_row is not None:
             e = EntryDraft("INVESTMENT_EQUITY", "Eliminación inversión vs patrimonio")
-            investment = q4(inv_row.balance * parent.rates.historical)
+            # Goodwill is measured in the functional currency (investment − share × book equity) and, like the
+            # investment (an asset of the parent), carried at the closing rate; equity is reversed at its
+            # historical rate; the translation residual of the elimination goes to the CTA (IAS 21).
+            equity_fc = -sum((r.balance for r in m.rows if r.account_type == "equity"), ZERO)
+            goodwill_fc = inv_row.balance - m.share * equity_fc
             for k, v in sorted(equity.items()):
                 e.add(m.company_id, k, -v, "Patrimonio de la subsidiaria")  # reverse 100 % of equity
-            e.add(parent.company_id, inv_row.group_account, -investment, "Inversión")
+            e.add(parent.company_id, inv_row.group_account, -(inv_row.balance * parent.rates.closing), "Inversión")
             e.add(m.company_id, acc["nci"][0], -(equity_cr * nci_share), "Participación no controladora")
-            goodwill = e.total_credit - e.total_debit
-            e.add(None, acc["goodwill"][0] if goodwill > 0 else acc["bargain_gain"][0], goodwill, "Plusvalía")
+            if goodwill_fc > 0:
+                e.add(None, acc["goodwill"][0], goodwill_fc * parent.rates.closing, "Plusvalía")
+            else:
+                e.add(None, acc["bargain_gain"][0], goodwill_fc * parent.rates.average, "Compra en condiciones ventajosas")
+            e.balance(None, acc["cta"][0], "Diferencia en conversión de la eliminación")
             out.append(e)
         elif nci_share > ZERO and equity:
             e = EntryDraft("NCI", "Participación no controladora en el patrimonio")

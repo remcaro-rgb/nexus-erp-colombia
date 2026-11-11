@@ -449,7 +449,8 @@ def mirror_sales_invoice(
             },
             "mirror of an intercompany sales invoice",
         )
-        result = _result(link)
+    # read back with the caller's context: B's document number is shown only to users of B (RLS)
+    result = _result(link)
     access.audit(uow, "post", "intercompany.link", link.id, request.company_a_id, {"b_document": number})
     return result
 
@@ -589,7 +590,7 @@ def _two_sided(uow: UnitOfWork, request: IcSettlementRequest, kind: str) -> IcRe
         access.audit(
             uow, "create", "intercompany.document", doc.id, request.company_b_id, {"number": number, "kind": kind}
         )
-        result = _result(link)
+    result = _result(link)
     return result
 
 

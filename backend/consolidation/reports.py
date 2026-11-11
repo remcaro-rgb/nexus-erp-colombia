@@ -38,7 +38,7 @@ COLUMNS = [
 
 
 def _s(value: Decimal) -> str:
-    return str(engine.q4(value))
+    return str(engine.q4(value) + ZERO)  # + 0 drops a negative zero
 
 
 class RunData:
