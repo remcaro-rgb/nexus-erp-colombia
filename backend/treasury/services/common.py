@@ -17,7 +17,7 @@ from kernel.interfaces.audit import AuditEntry, AuditService
 from kernel.interfaces.common import DimensionValues
 from kernel.interfaces.policy import PolicyService
 from kernel.models import Sequence
-from kernel.money import MoneyError, minor_units, round_half_up, to_decimal, validate_currency
+from kernel.money import MoneyError, minor_units, q_amount, round_half_up, to_decimal, validate_currency
 from kernel.sequences import allocate
 from kernel.tenancy import TenantContext
 from kernel.uow import UnitOfWork
@@ -212,7 +212,7 @@ def money_in(raw: Any, field: str, currency: str) -> Decimal:
                 f"{field}.currency must be {currency}", field=field, code="treasury_currency_mismatch"
             )
         raw = raw.get("amount")
-    return round_half_up(decimal_in(raw, field, minimum=Decimal(0)), minor_units(currency))
+    return q_amount(round_half_up(decimal_in(raw, field, minimum=Decimal(0)), minor_units(currency)))
 
 
 def qty_in(raw: Any, field: str) -> Decimal:
