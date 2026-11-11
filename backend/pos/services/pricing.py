@@ -267,7 +267,7 @@ def cart_json(cart: PricedCart) -> dict[str, Any]:
                 "presentation_id": str(x.presentation.id) if x.presentation else None,
                 "description": x.description,
                 "quantity": f"{x.quantity:f}",
-                "factor": f"{x.factor:f}",
+                "factor": f"{q_qty(x.factor):f}",
                 "base_qty": f"{x.base_qty:f}",
                 "unit_price": f"{x.unit_price:f}",
                 "discount_pct": f"{x.discount_pct:f}",
