@@ -140,6 +140,8 @@ def run_specs(
             "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1",
             "PLAYWRIGHT_JSON_OUTPUT_NAME": str(report),
             "NEXUS_E2E_WORLD": str(world_file),
+            # one artifacts folder per test id: Playwright wipes its outputDir at start (parallel runs must not collide)
+            "NEXUS_E2E_OUTPUT_DIR": str(EVIDENCE / "p22c-artifacts" / test_id),
             "CI": "1",
         }
         proc = subprocess.run(  # noqa: S603 - fixed argv, no shell

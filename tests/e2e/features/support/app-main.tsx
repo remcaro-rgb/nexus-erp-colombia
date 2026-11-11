@@ -89,7 +89,7 @@ function extraPages(): Record<string, Record<string, LazyPage>> {
       "solicitudes/abastecimiento": page(() => import("@features/purchasing/requisitions/RequisitionsPages"), "SourcingPage"),
     },
     talento: {
-      "nomina/conceptos": page(() => import("@features/payroll/ConceptsPage"), "default"),
+      "nomina/conceptos": page(() => import("@features/payroll/ConceptsPage"), "ConceptsPage"),
     },
   };
 }

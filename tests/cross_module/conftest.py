@@ -18,3 +18,14 @@ from qa_harness.pytest_support import register_markers  # noqa: E402
 
 def pytest_configure(config):
     register_markers(config)
+
+
+def pytest_collection_finish(session):
+    """CCR P11b-1: the P11b models/migrations join the ``purchasing`` app only once their packages are imported.
+
+    Import them after collection (Django is configured) and before the session's test database is created, so a
+    fresh test database always has every table, whatever subset of tests runs."""
+    import importlib
+
+    for name in ("purchasing.requisitions", "purchasing.portal"):
+        importlib.import_module(name)

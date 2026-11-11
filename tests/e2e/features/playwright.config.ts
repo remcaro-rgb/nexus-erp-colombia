@@ -13,7 +13,7 @@ if (!chrome) throw new Error("CHROME_PATH is not set: the e2e specs use the syst
 export default defineConfig({
   testDir: here,
   testMatch: ["**/*.spec.ts"],
-  outputDir: resolve(here, "../../../reports/playwright/p22c-artifacts"),
+  outputDir: process.env.NEXUS_E2E_OUTPUT_DIR ?? resolve(here, "../../../reports/playwright/p22c-artifacts"),
   fullyParallel: false,
   forbidOnly: true,
   retries: 0,
