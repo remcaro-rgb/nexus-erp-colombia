@@ -30,7 +30,7 @@ dev = [
   "ruff==0.17.4",
   "httpx==0.28.1",
   "requests==2.34.2",
-  "types-pyyaml==6.0.12.20261103",
+  "types-pyyaml==6.0.12.20261111",
   "types-requests==2.33.0.20261030",
 ]
 
