@@ -27,7 +27,7 @@ dev = [
   "factory-boy==3.3.3",
   "mypy==2.4.1",
   "django-stubs==5.2.5",
-  "ruff==0.17.4",
+  "ruff==0.17.5",
   "httpx==0.28.1",
   "requests==2.34.2",
   "types-pyyaml==6.0.12.20261103",
